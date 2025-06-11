@@ -1,0 +1,21 @@
+:root {
+	--font-family: Arial, Helvetica, sans-serif;
+	--font-size: 16px;
+	--body-background: #f0f0f0;
+
+	/* Container */
+
+	--viewport: 1440px;
+
+	--container-width: calc(var(--viewport) - calc(var(--container-offset) * 2));
+	--container-offset: 20px;
+
+	/* Section */
+
+	--section-background: #ffffff;
+	--section-border-radius: 10px;
+
+	/* Collection */
+
+	--collection-item-background: #e0e0e0;
+}

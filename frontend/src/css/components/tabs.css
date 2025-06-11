@@ -1,0 +1,31 @@
+.tabs {
+	height: 60px;
+}
+
+.tab {
+	appearance: none;
+	cursor: pointer;
+	border: none;
+	background-color: unset;
+	height: 100%;
+	padding: 0 20px;
+	transition: 0.1s 0s ease-in;
+}
+
+.tab.active {
+	background-color: #878787;
+	color: #fff;
+}
+
+@media (hover: hover) {
+	.tab:hover {
+		transition: 0.2s 0s ease-in;
+		background-color: #878787;
+		color: #fff;
+	}
+}
+
+.tab:active {
+	background-color: #464646;
+	color: #fff;
+}
