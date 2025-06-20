@@ -63,7 +63,7 @@
 						Lorem ipsum dolor sit amet consectetur, adipisicing elit. Autem eligendi vel labore id consequatur magnam, aperiam dolor laborum modi sapiente mollitia quae eos rem, sit repudiandae animi adipisci nulla numquam.
 					</div>
 				</div>
-				<div class="collection__add-item"></div>
+				<div class="collection__add-item" modal-window-button="add"></div>
 			</div>
 		</section>
 		<section class="collection" collection="films">
@@ -85,6 +85,51 @@
 			</div>
 		</section>
 	</main>
+
+	<div class="modal-windows">
+		<div class="modal-window" modal-window="add">
+			<div class="modal-window__overlay"></div>
+			<div class="modal-window__wrapper">
+				<button class="modal-window__close" modal-window-close>X</button>
+				<div class="modal-window__content">
+					<p class="modal-window__title"></p>
+					<form action="#" method="post" class="modal-window__form">
+						<input required class="modal-window__form-input" type="text" name="title" id="id_title" placeholder="Введите название">
+						
+						<textarea class="modal-window__form-input" contenteditable="true" type="text" name="description" id="id_description" placeholder="Введите описание"></textarea>
+
+						<div class="form__group">
+							<label for="id_date">Введите дату, когда закончили просмотр</label>
+							<input required class="modal-window__form-input" type="date" name="date" id="id_date">
+						</div>
+
+						<div class="form__group">
+							<label for="id_type">Выберите тип</label>
+							
+							<select required class="custom-select" name="type" id="id_type">
+								<option value="">Сериал</option>
+								<option value="">Фильм</option>
+								<option value="">Аниме</option>
+								<option value="">Книга</option>
+							</select>
+						</div>
+
+						<div class="form__group">
+							<label for="id_group">Выберите группу</label>
+							<select required class="custom-select" name="group" id="id_group">
+								<option value="anime">Anime</option>
+								<option value="books">Films</option>
+								<option value="serials">Serials</option>
+								<option value="books">Books</option>
+							</select>
+						</div>
+
+						<button class="modal-window__form-send" type="submit">Добавить</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<script src="src/js/main.js" type="module"></script>
 </body>
