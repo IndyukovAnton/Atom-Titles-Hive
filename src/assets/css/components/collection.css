@@ -1,6 +1,6 @@
 .collection {
 	min-height: 800px;
-	display: none;
+	/* display: none; */
 }
 
 .collection.visible {
