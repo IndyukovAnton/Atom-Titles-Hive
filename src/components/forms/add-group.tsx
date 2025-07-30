@@ -19,7 +19,7 @@ const FormAddGroup = () => {
 		return true;
 	}
 
-	function onSubmitHandler(e) {
+	function onSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 
 		if (!validateForm()) return;

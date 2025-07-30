@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
-import type { tab } from "../components/tab"
-import type { collection } from "../components/collection"
+// import type { tab } from "../components/tab"
+// import type { collection } from "../components/collection"
 
 import { Tabs } from "../components/tabs"
 import { CollectionList } from "../components/collectionList"
@@ -11,23 +11,24 @@ import { FormAddGroup } from "../components/forms/add-group";
 
 import "../assets/css/components/modal-window.css"
 
+type TGroup = {
+	title: string,
+	tag: string
+}
+
 const HomePage = ()=> {
   const [collections, setСollections] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [groups, setGroups] = useState<TGroup[]>([]);
   const [loading, setLoading] = useState(1);
-	const [activeCollection, setActiveCollection] = useState('')
+	const [activeCollection, setActiveCollection] = useState<string>(groups[0].tag || '')
 
 	const [formAddItemIsOpen, openFormAddItem] = useState(false)
 	const [formAddGroupIsOpen, openFormAddGroup] = useState(false)
 
-	if (groups[0] && !activeCollection) {
-		const activeGroup: string = groups[0].tag
-
-		setActiveCollection(activeGroup)
-	}
-
-	function switchActiveCollection(event) {
-		setActiveCollection(event.currentTarget.dataset.tab)
+	function switchActiveCollection(event: React.MouseEvent<HTMLButtonElement>) {
+		if (event.currentTarget.dataset.tab) {
+			setActiveCollection(event.currentTarget.dataset.tab)
+		}
 	}
 
   useEffect(() => {

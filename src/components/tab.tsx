@@ -3,7 +3,7 @@ export type tab = {
 	tag: string
 }
 
-export type ClickHander = (event: Event)=> void
+export type ClickHander = (event: React.MouseEvent<HTMLButtonElement>) => void
 
 type TabProps = {
 	tab: tab,

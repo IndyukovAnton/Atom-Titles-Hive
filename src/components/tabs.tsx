@@ -1,5 +1,5 @@
 import { Tab } from "./tab"
-import type { tab, ClickHander } from "./tab"
+import type { tab, ClickHander} from "./tab"
 
 import '../assets/css/components/tabs.css'
 

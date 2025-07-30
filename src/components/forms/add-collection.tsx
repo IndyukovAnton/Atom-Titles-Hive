@@ -3,8 +3,13 @@ import "../../assets/css/components/forms/form-add.css";
 
 // import { Select } from "../custom-select";
 
+type TGroup = {
+	title: string,
+	tag: string
+}
+
 type FormAddProps = {
-	groups: any
+	groups: TGroup[]
 }
 
 const FormAddCollectionItem = (props: FormAddProps) => {
@@ -16,8 +21,8 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 	const [description, setDescription] = useState('');
 	const [dateStart, setDateStart] = useState('');
 	const [dateEnd, setDateEnd] = useState('');
-	const [rating, setRating] = useState(0);
-	const [image, setImage] = useState(null);
+	const [rating, setRating] = useState<number>(0);
+	const [image, setImage] = useState<File | null>(null);
 	const [loading, setLoading] = useState(false);
 
 	function validateForm() {
@@ -37,7 +42,7 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 		return true;
 	}
 
-	function onSubmitHandler(e) {
+	function onSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 
 		if (!validateForm()) return;
@@ -51,7 +56,7 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 		formData.append('description', description);
 		formData.append('date-start', dateStart);
 		formData.append('date-end', dateEnd);
-		formData.append('rating', rating);
+		formData.append('rating', rating.toString());
 
 		if (image) {
 			formData.append('image', image); // ← файл как есть
@@ -70,7 +75,7 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 					setDescription('');
 					setRating(0);
 					setImage(null);
-					e.target.reset(); // сбрасывает input[type="file"]
+					(e.target as HTMLFormElement).reset();
 				} else {
 					return res.text().then(text => {
 						throw new Error(`Ошибка: ${res.status} ${text}`);
@@ -94,7 +99,7 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 				type="text"
 				placeholder="Название"
 				value={title}
-				onChange={(e) => setTitle(e.target.value)}
+				onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
 			/>
 			<input
 				name="description"
@@ -135,8 +140,8 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 				name="image"
 				type="file"
 				accept="image/*" // только изображения
-				onChange={(e) => {
-					const file = e.target.files[0];
+				onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+					const file = e.target.files?.[0];
 					if (file) {
 						setImage(file);
 					}
