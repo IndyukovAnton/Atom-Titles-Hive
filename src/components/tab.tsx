@@ -1,12 +1,19 @@
 export type tab = {
 	title: string,
 	tag: string
-	active: boolean,
 }
 
-const Tab = (props: tab) => {
+export type ClickHander = (event: Event)=> void
+
+type TabProps = {
+	tab: tab,
+	active : string,
+	clickHandler: ClickHander
+}
+
+const Tab = (props: TabProps) => {
 	return (
-		<button className={"tab" + (props.active ? ' active' : '')} data-tab={props.tag}>{props.title}</button>
+		<button onClick={props.clickHandler} className={"tab" + (props.active === props.tab.tag ? ' active' : '')} data-tab={props.tab.tag}>{props.tab.title}</button>
 	)
 }
 

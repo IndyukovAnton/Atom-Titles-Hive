@@ -2,8 +2,10 @@ body {
 	font-family: var(--font-family);
 	font-size: var(--font-size);
 
-	background-color: var(--body-background);
+	background: var(--body-background);
 	padding: 100px 0;
+
+  /* animation: gradientAnimation 0.5s ease infinite; */
 }
 
 .container {
@@ -19,4 +21,16 @@ main, section {
 
 section:not(:last-child) {
 	margin-bottom: 40px;
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }

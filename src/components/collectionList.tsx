@@ -4,14 +4,18 @@ import type { collection } from "./collection"
 import '../assets/css/components/collection.css'
 
 type CollectionProps = {
-	collections: collection[]
+	group: string,
+	collections: collection[],
+	activeGroup: string
 }
 
 const CollectionList = (props: CollectionProps) => {
 	return (
-		<div className="collection">
+		<div className={"collection" + (props.activeGroup === props.group ? " active": '')}>
 			{props.collections.map((collection, index) => {
-				return <Collection key={index} {...collection}></Collection>
+				if (collection.group === props.group) {
+					return <Collection key={index} {...collection}></Collection>
+				}
 			})}
 		</div>
 	)

@@ -1,5 +1,7 @@
 .tabs {
-	height: 60px;
+	height: 40px;
+	margin-bottom: 20px;
+	border-bottom: 2px solid #000;
 }
 
 .tab {
@@ -10,22 +12,16 @@
 	height: 100%;
 	padding: 0 20px;
 	transition: 0.1s 0s ease-in;
+	border-radius: 5px 5px 0 0;
+	overflow: hidden;
 }
 
 .tab.active {
-	background-color: #878787;
-	color: #fff;
-}
-
-@media (hover: hover) {
-	.tab:hover {
-		transition: 0.2s 0s ease-in;
-		background-color: #878787;
-		color: #fff;
-	}
+	background-color: #ffffff;
+	color: #000000;
 }
 
 .tab:active {
-	background-color: #464646;
-	color: #fff;
+	background-color: #dcdcdc;
+	color: #000000;
 }

@@ -1,27 +1,24 @@
 export type collection = {
 	id: number,
+	group: string,
 	title: string,
 	description: string,
-	img: string | null,
-	dateStart: Date,
-	dateEnd: Date,
+	image: string | null,
+	dateStart: string,
+	dateEnd: string,
 	rating: number
 }
 
 const Collection = (props: collection) => {
-
-	const fullDateStart = `${props.dateStart.getDate()}.${props.dateStart.getMonth()}.${props.dateStart.getFullYear()}`
-	const fullDateEnd = `${props.dateEnd.getDate()}.${props.dateEnd.getMonth()}.${props.dateEnd.getFullYear()}`
-
 	return (
 		<div className="collection__item">
-			<img src={props.img || "/img/dummy.png"}  alt="dummy" className="collection__item-image" />
+			<img src={props.image || "/img/dummy.png"}  alt="dummy" className="collection__item-image" />
 			<div className="collection__item-title">{props.title}</div>
 			<div className="collection__item-description">{props.description}</div>
 			<div className="collection__item-info">
-				<p className="collection__item-date-start">{fullDateStart}</p>
-				<p className="collection__item-date-end">{fullDateEnd}</p>
-				<p className="collection__item-date-rating">{props.rating}</p>
+				<p className="collection__item-date-start">Начал смотреть: <span>{props.dateStart}</span></p>
+				<p className="collection__item-date-end">Закончил смотреть: <span>{props.dateEnd}</span></p>
+				<p className="collection__item-rating">Оценка: <span>{props.rating}</span>★</p>
 			</div>
 		</div>
 	)

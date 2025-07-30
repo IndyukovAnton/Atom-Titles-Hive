@@ -1,0 +1,41 @@
+.btn-add {
+	--bg-color: rgba(127, 234, 251, 0.8);
+
+	max-width: 300px;
+	width: 100%;
+	background-color: var(--bg-color);
+	backdrop-filter: blur(10px);
+	padding: 10px 0;
+	font-size: 30px;
+	border-radius: 20px;
+	border: 2px solid transparent;
+	user-select: none;
+	margin-bottom: 40px;
+	transition: 0.2s ease;
+
+	@media (hover: hover) {
+		&:hover {
+			background-color: transparent;
+			border-color: var(--bg-color);
+			color: #fff;
+		}
+	}
+}
+
+.top__buttons {
+	display: flex;
+	column-gap: 20px;
+	width: 100%;
+}
+
+.loading,
+.error {
+	position: fixed;
+	width: 100%;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	font-size: 40PX;
+	color: #fff;
+	text-align: center;
+}
