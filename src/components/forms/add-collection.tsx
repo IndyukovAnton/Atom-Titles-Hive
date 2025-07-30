@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "../../assets/css/components/forms/form-add.css";
 
-import { Select } from "../custom-select";
+// import { Select } from "../custom-select";
 
 type FormAddProps = {
 	groups: any
