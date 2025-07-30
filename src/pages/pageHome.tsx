@@ -20,7 +20,11 @@ const HomePage = ()=> {
   const [collections, setСollections] = useState([]);
   const [groups, setGroups] = useState<TGroup[]>([]);
   const [loading, setLoading] = useState(1);
-	const [activeCollection, setActiveCollection] = useState<string>(groups[0].tag || '')
+	const [activeCollection, setActiveCollection] = useState<string>('')
+
+	if (groups && groups.length && activeCollection !== '') {
+		setActiveCollection(groups[0].tag)
+	}
 
 	const [formAddItemIsOpen, openFormAddItem] = useState(false)
 	const [formAddGroupIsOpen, openFormAddGroup] = useState(false)
