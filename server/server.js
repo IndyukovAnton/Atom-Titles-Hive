@@ -1,4 +1,4 @@
-import express from 'express';
+import express from 'express'
 import cors from 'cors';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -6,15 +6,29 @@ import fileUpload from 'express-fileupload'; // ← добавлен
 
 const app = express();
 const PORT = 3000;
+const DEBUG = true
 
 const paths = {
 	static: 'public',
 	collections: 'data/collections.json',
 	groups: 'data/groups.json',
+	upload: 'uploads'
 };
 
-const collectionsPath = path.join(paths.static, paths.collections);
-const groupsPath = path.join(paths.static, paths.groups);
+let collectionsPath;
+let groupsPath;
+let uploadPath;
+
+if (DEBUG) {
+	collectionsPath = path.join(paths.static, paths.collections);
+	groupsPath = path.join(paths.static, paths.groups);
+	uploadPath = path.join(paths.static, paths.upload);
+} else {
+	collectionsPath = path.join(paths.collections);
+	groupsPath = path.join(paths.groups);
+	uploadPath = path.join(paths.upload);
+}
+
 
 let collections = null;
 let groups = null;
@@ -22,7 +36,7 @@ let groups = null;
 // ✅ Включаем CORS ДО всего
 app.use(
 	cors({
-		origin: 'http://localhost:5173',
+		origin: '*',
 		credentials: true
 	})
 );
@@ -67,6 +81,24 @@ app.get('/collections', (req, res) => {
 	res.json(collections);
 });
 
+function getIDString() {
+	
+	const minLetter = 65
+	const maxLetter = 80
+	
+	const countLetters = 6
+	const letters = []
+
+	for (let i = 0; i < countLetters; i++) {
+		const letter = Math.random() * (maxLetter - minLetter) + minLetter
+		letters.push(letter)
+	}
+
+	const code = String.fromCharCode(...letters)
+	
+	return code
+}
+
 app.post('/collections', async (req, res) => {
 	const { group, title, description, rating, 'date-start': dateStart, 'date-end': dateEnd } = req.body;
 	const image = req.files?.image; // файл из формы
@@ -78,7 +110,7 @@ app.post('/collections', async (req, res) => {
 
 	// 🔹 Формируем новый элемент
 	const newItem = {
-		id: Date.now(),
+		id: getIDString() + "_" + Date.now(),
 		group,
 		title,
 		description,
@@ -91,8 +123,8 @@ app.post('/collections', async (req, res) => {
 	// 🔹 Если загружено изображение
 	if (image) {
 		const ext = path.extname(image.name);
-		const fileName = `img_${Date.now()}${ext}`;
-		const uploadDir = path.join(paths.static, 'uploads');
+		const fileName = `img_${newItem.id}${ext}`;
+		const uploadDir = uploadPath;
 		const imagePath = path.join(uploadDir, fileName);
 
 		// Создаём папку uploads, если её нет
@@ -103,7 +135,7 @@ app.post('/collections', async (req, res) => {
 		// Сохраняем файл
 		try {
 			await image.mv(imagePath);
-			newItem.image = `/uploads/${fileName}`; // URL для фронтенда
+			newItem.image = uploadPath + `/${fileName}`; // URL для фронтенда
 		} catch (err) {
 			console.error('❌ Ошибка сохранения изображения:', err);
 			return res.status(500).json({ error: 'Не удалось сохранить изображение' });
@@ -171,12 +203,50 @@ app.put('/collections', (req, res) => {
 });
 
 // ✅ DELETE /collections
-app.delete('/collections', (req, res) => {
-	if (req.query.id) {
-		console.log('Удаление ID:', req.query.id);
-		res.send('Удаление: ' + req.query.id);
-	} else {
-		res.status(400).json({ error: 'ID не указан' });
+app.delete('/collections', async (req, res) => {
+	const { id } = req.query;
+
+	if (!id) {
+			return res.status(400).json({ error: 'ID не указан' });
+	}
+
+	// Найти элемент по id
+	const itemIndex = collections.findIndex(item => item.id === id);
+
+	if (itemIndex === -1) {
+			return res.status(404).json({ error: 'Элемент не найден' });
+	}
+
+	const itemToDelete = collections[itemIndex];
+
+	// Удалить изображение с диска, если оно есть
+	if (itemToDelete.image) {
+			const imagePath = itemToDelete.image; // Путь к файлу
+
+			console.log(imagePath)
+
+			try {
+					await fs.promises.unlink(imagePath);
+					console.log(`🗑️ Изображение удалено: ${imagePath}`);
+			} catch (err) {
+					if (err.code !== 'ENOENT') {
+							// Игнорируем ошибку, если файл не найден
+							console.error('❌ Ошибка при удалении изображения:', err);
+					}
+			}
+	}
+
+	// Удалить элемент из массива
+	collections.splice(itemIndex, 1);
+
+	// Сохранить обновлённый массив в файл
+	try {
+			await fs.promises.writeFile(collectionsPath, JSON.stringify(collections, null, 2), 'utf8');
+			console.log(`✅ Элемент с id=${id} удалён`);
+			res.status(200).json({ message: 'Элемент успешно удалён', id });
+	} catch (err) {
+			console.error('❌ Ошибка при сохранении файла после удаления:', err);
+			res.status(500).json({ error: 'Не удалось сохранить данные после удаления' });
 	}
 });
 

@@ -1,9 +1,7 @@
 .form-add {
-	max-width: 500px;
 	display: flex;
 	flex-direction: column;
 	row-gap: 20px;
-	margin-bottom: 50px;
 }
 
 .form-add input {

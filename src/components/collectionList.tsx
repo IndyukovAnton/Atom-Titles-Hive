@@ -7,6 +7,7 @@ type CollectionProps = {
 	group: string,
 	collections: collection[],
 	activeGroup: string
+	deleteHandler: (event: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 const CollectionList = (props: CollectionProps) => {
@@ -14,7 +15,7 @@ const CollectionList = (props: CollectionProps) => {
 		<div className={"collection" + (props.activeGroup === props.group ? " active": '')}>
 			{props.collections.map((collection, index) => {
 				if (collection.group === props.group) {
-					return <Collection key={index} {...collection}></Collection>
+					return <Collection key={index} {...collection} deleteHandler={props.deleteHandler}></Collection>
 				}
 			})}
 		</div>

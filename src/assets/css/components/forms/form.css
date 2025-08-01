@@ -3,6 +3,7 @@
 	flex-direction: column;
 	gap: 30px;
 }
+
 .modal-window__form-input {
 	padding: 10px;
 	font-size: 18px;

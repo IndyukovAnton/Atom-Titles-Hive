@@ -28,8 +28,10 @@ body:has(.modal-window.active) {
 }
 
 .modal-window__wrapper {
+	max-width: 500px;
+	width: 100%;
 	background-color: #fff;
-	padding: 40px 20px;
+	padding: 60px 20px 40px;
 	border-radius: 10px;
 	position: absolute;
 	top: 50%;
@@ -45,11 +47,10 @@ body:has(.modal-window.active) {
 
 .modal-window__close {
 	appearance: none;
-	width: 20px;
-	height: 20px;
+	width: 40px;
+	height: 40px;
 	background-color: transparent;
 	border: none;
-	font-size: 20px;
 	position: absolute;
 	top: 10px;
 	right: 10px;
