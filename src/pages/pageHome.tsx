@@ -8,7 +8,9 @@ import { CollectionList } from "../components/collectionList"
 
 import { FormAddCollectionItem } from "../components/forms/add-collection"
 import { FormDeleteCollection } from "../components/forms/delete-collection";
+
 import { FormAddGroup } from "../components/forms/add-group";
+import { FormDeleteGroup } from "../components/forms/delete-group";
 
 import "../assets/css/components/modal-window.css"
 
@@ -26,8 +28,10 @@ const HomePage = ()=> {
 	const [formAddItemIsOpen, openFormAddItem] = useState(false)
 	const [formAddGroupIsOpen, openFormAddGroup] = useState(false)
 	const [formDeleteCollectionIsOpen, openFormDeleteCollection] = useState(false)
+	const [formDeleteGroupIsOpen, openFormDeleteGroup] = useState(false)
 
 	const [deleteColectionId, setDeleteColectionId] = useState('')
+	const [deleteGroupTag, setDeleteGroupTag] = useState('')
 
 	function switchActiveCollection(event: React.MouseEvent<HTMLButtonElement>) {
 		if (event.currentTarget.dataset.tab) {
@@ -70,12 +74,20 @@ const HomePage = ()=> {
 			return <p className="error">Произошла ошибка во время загрузки!</p>;
 	}
 
-	function openDeleteModal(event: React.MouseEvent<HTMLButtonElement>){
+	function openDeleteCollectionModal(event: React.MouseEvent<HTMLButtonElement>){
 
 		const id: string = event.currentTarget.closest('.collection__item')?.getAttribute('id') || ''
 
 		setDeleteColectionId(id)
 		openFormDeleteCollection(true)
+	}
+
+	function openDeleteGroupModal(event: React.MouseEvent<HTMLImageElement>){
+
+		const tag: string = event.currentTarget.closest('.tab')?.getAttribute('data-tab') || ''
+
+		setDeleteGroupTag(tag)
+		openFormDeleteGroup(true)
 	}
 
 	return (
@@ -89,10 +101,10 @@ const HomePage = ()=> {
 				}}>Добавить группу</button>
 			</div>
 
-			<Tabs tabs={groups} active={activeCollection} clickHandler={switchActiveCollection}></Tabs>
+			<Tabs tabs={groups} active={activeCollection} clickHandler={switchActiveCollection} deleteHandler={openDeleteGroupModal}></Tabs>
 
 			{groups.map((group, index) => {
-				return <CollectionList key={index} group={group.tag} collections={collections} activeGroup={activeCollection} deleteHandler={openDeleteModal}></CollectionList>
+				return <CollectionList key={index} group={group.tag} collections={collections} activeGroup={activeCollection} deleteHandler={openDeleteCollectionModal}></CollectionList>
 			})}
 
 			<div className={"modal-window" + (formAddItemIsOpen ? " opened" : " closed")}>
@@ -127,6 +139,18 @@ const HomePage = ()=> {
 					</button>
 					<div className="modal-window__content">
 						<FormDeleteCollection collectionId={deleteColectionId} />
+					</div>
+				</div>
+			</div>
+
+			<div className={"modal-window" + (formDeleteGroupIsOpen ? " opened" : " closed")}>
+				<div className="modal-window__overlay" onClick={()=> {openFormDeleteGroup(false)}}></div>
+				<div className="modal-window__wrapper">
+					<button className="modal-window__close" onClick={() => {openFormDeleteGroup(false)}}>
+						<img src="img/icons/icon-cross.svg" alt="close" />
+					</button>
+					<div className="modal-window__content">
+						<FormDeleteGroup groupTag={deleteGroupTag} />
 					</div>
 				</div>
 			</div>

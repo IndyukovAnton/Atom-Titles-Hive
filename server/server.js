@@ -73,14 +73,6 @@ async function loadGroups() {
 	}
 }
 
-// ✅ GET /collections
-app.get('/collections', (req, res) => {
-	if (!collections) {
-		return res.status(200).json({});
-	}
-	res.json(collections);
-});
-
 function getIDString() {
 	
 	const minLetter = 65
@@ -98,6 +90,103 @@ function getIDString() {
 	
 	return code
 }
+
+// ✅ GET /collections
+app.get('/collections', (req, res) => {
+	if (!collections) {
+		return res.status(200).json({});
+	}
+	res.json(collections);
+});
+
+app.get('/groups', (req, res) => {
+	if (!groups) {
+		return res.status(200).json({});
+	}
+	res.json(groups);
+});
+
+app.post('/groups', async (req, res) => {
+	const { title, tag } = req.body;
+
+	if (!title || !tag) {
+		return res.status(400).json({ error: 'Не все поля заполнены' });
+	}
+
+	// 🔹 Формируем новый элемент
+	const newItem = {
+		title,
+		tag
+	};
+
+	
+
+	if (!fs.existsSync(groupsPath)) {
+		fs.mkdirSync(groupsPath, { recursive: true });
+	}
+
+	// 🔹 Добавляем в коллекцию
+	groups.push(newItem);
+
+	// 🔹 Сохраняем в файл
+	try {
+		await fs.promises.writeFile(groupsPath, JSON.stringify(groups, null, 2), 'utf8');
+		console.log('✅ Группа добавлена и сохранена');
+		res.status(201).json({ message: 'Группа добавлена', item: newItem });
+	} catch (err) {
+		console.error('❌ Ошибка записи файла:', err);
+		res.status(500).json({ error: 'Не удалось сохранить данные' });
+	}
+});
+
+app.delete('/groups', async (req, res) => {
+	const { tag } = req.query;
+
+	if (!tag) {
+			return res.status(400).json({ error: 'Тег не указан' });
+	}
+
+	// Ищем группу
+	const groupIndex = groups.findIndex(group => group.tag === tag);
+	if (groupIndex === -1) {
+			return res.status(404).json({ error: 'Группа не найдена' });
+	}
+
+	// Удаляем группу
+	const removedGroup = groups.splice(groupIndex, 1)[0];
+
+	// Обновляем все коллекции: если group === tag, ставим "undefined"
+	let updatedCount = 0;
+	collections = collections.map(item => {
+			if (item.group === tag) {
+					updatedCount++;
+					return {
+							...item,
+							group: "undefined" // можно использовать null, "", или оставить строку "undefined"
+					};
+			}
+			return item;
+	});
+
+	// Сохраняем обновлённые данные
+	try {
+			// Сохраняем обновлённые коллекции
+			await fs.promises.writeFile(collectionsPath, JSON.stringify(collections, null, 2), 'utf8');
+			// Сохраняем обновлённый список групп
+			await fs.promises.writeFile(groupsPath, JSON.stringify(groups, null, 2), 'utf8');
+
+			console.log(`✅ Группа "${tag}" удалена. Обновлено ${updatedCount} элементов.`);
+
+			res.status(200).json({
+					message: 'Группа удалена, привязки обновлены',
+					tag: removedGroup.tag,
+					collectionsUpdated: updatedCount
+			});
+	} catch (err) {
+			console.error('❌ Ошибка при сохранении файлов:', err);
+			res.status(500).json({ error: 'Не удалось сохранить данные после удаления группы' });
+	}
+});
 
 app.post('/collections', async (req, res) => {
 	const { group, title, description, rating, 'date-start': dateStart, 'date-end': dateEnd } = req.body;
@@ -156,48 +245,8 @@ app.post('/collections', async (req, res) => {
 	}
 });
 
-app.get('/groups', (req, res) => {
-	if (!groups) {
-		return res.status(200).json({});
-	}
-	res.json(groups);
-});
-
-app.post('/groups', async (req, res) => {
-	const { title, tag } = req.body;
-
-	if (!title || !tag) {
-		return res.status(400).json({ error: 'Не все поля заполнены' });
-	}
-
-	// 🔹 Формируем новый элемент
-	const newItem = {
-		title,
-		tag
-	};
-
-	
-
-	if (!fs.existsSync(groupsPath)) {
-		fs.mkdirSync(groupsPath, { recursive: true });
-	}
-
-	// 🔹 Добавляем в коллекцию
-	groups.push(newItem);
-
-	// 🔹 Сохраняем в файл
-	try {
-		await fs.promises.writeFile(groupsPath, JSON.stringify(groups, null, 2), 'utf8');
-		console.log('✅ Группа добавлена и сохранена');
-		res.status(201).json({ message: 'Группа добавлена', item: newItem });
-	} catch (err) {
-		console.error('❌ Ошибка записи файла:', err);
-		res.status(500).json({ error: 'Не удалось сохранить данные' });
-	}
-});
-
-// ✅ PUT /collections
-app.put('/collections', (req, res) => {
+// ✅ PATCH /collections
+app.patch('/collections', (req, res) => {
 	console.log('Обновление:', req.query, req.body);
 	res.send('Изменение: ' + JSON.stringify(req.query));
 });
