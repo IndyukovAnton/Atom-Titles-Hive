@@ -1,11 +1,11 @@
 import { useState } from "react";
-import "../../assets/css/components/forms/form-delete.css";
+import "@/assets/css/components/forms/form-delete.css";
 
 type FormDeleteProps = {
 	collectionId: string
 }
 
-const FormDeleteCollection = (props: FormDeleteProps) => {
+const FormDeleteCollection = ({ collectionId }: FormDeleteProps) => {
 	const [loading, setLoading] = useState(false)
 
 	function onSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
@@ -13,13 +13,11 @@ const FormDeleteCollection = (props: FormDeleteProps) => {
 
 		setLoading(true);
 
-		fetch('http://127.0.0.1:3000/collections?id='+props.collectionId, {
+		fetch('http://127.0.0.1:3000/api/collections?id=' + collectionId, {
 			method: 'DELETE',
 		})
 			.then((res) => {
-				if (res.ok) {
-					alert('Элемент удалён!');
-				} else {
+				if (!res.ok) {
 					return res.text().then(text => {
 						throw new Error(`Ошибка: ${res.status} ${text}`);
 					});
@@ -27,7 +25,6 @@ const FormDeleteCollection = (props: FormDeleteProps) => {
 			})
 			.catch((err) => {
 				console.error("Ошибка отправки:", err);
-				alert('Не удалось удалить!');
 			})
 			.finally(() => {
 				setLoading(false);
@@ -35,12 +32,8 @@ const FormDeleteCollection = (props: FormDeleteProps) => {
 			});
 	}
 
-	if (!props.collectionId) { return }
-
 	return (
 		<form className="form-delete" onSubmit={onSubmitHandler}>
-			<input type="hidden" name="id" value={props.collectionId}/>
-
 			<button type="submit" disabled={loading}>
 				{loading ? 'Удаление...' : 'Удалить'}
 			</button>

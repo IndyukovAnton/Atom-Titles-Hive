@@ -1,12 +1,11 @@
-export type tab = {
-	title: string,
-	tag: string
-}
+import type { IGroup } from "@/types/group.interface"
+
+import './Tab.css'
 
 export type ClickHander = (event: React.MouseEvent<HTMLButtonElement>) => void
 
 type TabProps = {
-	tab: tab,
+	tab: IGroup,
 	active : string,
 	clickHandler: ClickHander,
 	deleteHandler: (event: React.MouseEvent<HTMLImageElement>) => void

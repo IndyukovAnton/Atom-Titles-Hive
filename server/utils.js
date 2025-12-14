@@ -1,10 +1,17 @@
-export async function loadCollections() {
-	try {
-		const data = await fs.promises.readFile(collectionsPath, 'utf8');
-		collections = JSON.parse(data);
-		console.log('✅ Данные загружены');
-	} catch (err) {
-		console.error('❌ Ошибка загрузки collections:', err);
-		collections = []; // или пустой массив
+export function getIDString() {
+	
+	const minLetter = 65
+	const maxLetter = 80
+	
+	const countLetters = 6
+	const letters = []
+
+	for (let i = 0; i < countLetters; i++) {
+		const letter = Math.random() * (maxLetter - minLetter) + minLetter
+		letters.push(letter)
 	}
+
+	const code = String.fromCharCode(...letters)
+	
+	return code
 }

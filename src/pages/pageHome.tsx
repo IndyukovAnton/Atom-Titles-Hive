@@ -1,29 +1,30 @@
 import { useState, useEffect } from 'react';
 
-// import type { tab } from "../components/tab"
-// import type { collection } from "../components/collection"
+import { TabsList } from "@/components/TabsList/TabsList";
+import { CollectionList } from "@/components/CollectionList/CollectionList";
 
-import { Tabs } from "../components/tabs"
-import { CollectionList } from "../components/collectionList"
+import { Button } from "@/components/Button/Button";
 
-import { FormAddCollectionItem } from "../components/forms/add-collection"
-import { FormDeleteCollection } from "../components/forms/delete-collection";
+import { FormAddCollectionItem } from "@/components/Forms/FormAddCollections/FormAddCollection"
+import { FormDeleteCollection } from "@/components/Forms/delete-collection";
 
-import { FormAddGroup } from "../components/forms/add-group";
-import { FormDeleteGroup } from "../components/forms/delete-group";
+import { FormAddGroup } from "@/components/Forms/FormAddGroup/FormAddGroup";
+import { FormDeleteGroup } from "@/components/Forms/delete-group";
 
-import "../assets/css/components/modal-window.css"
+import { getApiGroups } from "@/api/groups.api";
+import { getApiCollections } from "@/api/collections.api";
 
-type TGroup = {
-	title: string,
-	tag: string
-}
+import "@/assets/css/components/modal-window.css"
+import type { IGroup } from "@/types/group.interface";
+import type { ICollection } from "@/types/collections.interface";
 
 const HomePage = ()=> {
-  const [collections, setСollections] = useState([]);
-  const [groups, setGroups] = useState<TGroup[]>([]);
-  const [loading, setLoading] = useState(1);
-	const [activeCollection, setActiveCollection] = useState<string>('undefined')
+	// TODO сделать store, а также, контексты для данных и тем
+
+	const [collections, setСollections] = useState<ICollection[]>([]);
+	const [groups, setGroups] = useState<IGroup[]>([]);
+	const [loading, setLoading] = useState(1);
+	const [activeCollection, setActiveCollection] = useState<string>('null')
 
 	const [formAddItemIsOpen, openFormAddItem] = useState(false)
 	const [formAddGroupIsOpen, openFormAddGroup] = useState(false)
@@ -39,33 +40,33 @@ const HomePage = ()=> {
 		}
 	}
 
-  useEffect(() => {
-    fetch('http://127.0.0.1:3000/groups')
-      .then(response => response.json())
-      .then(data => {
-        setGroups(data);
-        setLoading(0);
-      })
-      .catch(error => {
-        console.error('Ошибка:', error);
-        setLoading(-1);
-      });
-  }, []);
+	useEffect(() => {
+		const onLoadCallback = (data: IGroup[])=> {
+			setGroups(data);
+			setLoading(0);
+		}
 
-  useEffect(() => {
-    fetch('http://127.0.0.1:3000/collections')
-      .then(response => response.json())
-      .then(data => {
-        setСollections(data);
-        setLoading(0);
-      })
-      .catch(error => {
-        console.error('Ошибка:', error);
-        setLoading(-1);
-      });
-  }, []);
+		const onErrorCallback = (error: unknown)=> {
+			console.error('Ошибка:', error);
+			setLoading(-1);
+		}
 
-  if (loading === 1) return <p className="loading">Загрузка...</p>;
+		getApiGroups({onLoadCallback, onErrorCallback})
+	}, []);
+
+	useEffect(() => {
+		const onLoadCallback = (data: ICollection[])=> {
+			setСollections(data);
+			setLoading(0);
+		}
+
+		const onErrorCallback = (error: unknown)=> {
+			console.error('Ошибка:', error);
+			setLoading(-1);
+		}
+
+		getApiCollections({onLoadCallback, onErrorCallback})
+	}, []);
 
 	switch (loading) {
 		case 1:
@@ -93,19 +94,24 @@ const HomePage = ()=> {
 	return (
 		<div className="home">
 			<div className="top__buttons">
-				<button className="btn-add" onClick={()=> {
-					openFormAddItem(true)
-				}}>Добавить тайтл</button>
-				<button className="btn-add" onClick={()=> {
-					openFormAddGroup(true)
-				}}>Добавить группу</button>
+				<Button onClick={()=> {openFormAddItem(true)}}>
+					<span>Добавить тайтл</span>
+				</Button>
+
+				<Button onClick={()=> {openFormAddGroup(true)}}>
+					<span>Добавить группу</span>
+				</Button>
 			</div>
 
-			<Tabs tabs={groups} active={activeCollection} clickHandler={switchActiveCollection} deleteHandler={openDeleteGroupModal}></Tabs>
+			<TabsList tabs={groups} active={activeCollection} clickHandler={switchActiveCollection} deleteHandler={openDeleteGroupModal}></TabsList>
 
 			{groups.map((group, index) => {
-				return <CollectionList key={index} group={group.tag} collections={collections} activeGroup={activeCollection} deleteHandler={openDeleteCollectionModal}></CollectionList>
+				return (
+					<CollectionList key={index} group={`${group.tag}`} collections={collections} activeGroup={activeCollection} deleteHandler={openDeleteCollectionModal}/>
+				)
 			})}
+
+			{/* TODO: вынести модалки в portal */}
 
 			<div className={"modal-window" + (formAddItemIsOpen ? " opened" : " closed")}>
 				<div className="modal-window__overlay" onClick={()=> { openFormAddItem(false) }}></div>

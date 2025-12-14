@@ -1,8 +1,9 @@
-export const PORT = 3000;
-
-export const PATH = {
-	static: 'public',
-	collections: 'collections/collectionsData.json',
-};
-
-PATH.collectionsPath = path.join(path.static, path.collections)
+export const SETTINGS = {
+	port: 3000,
+	paths: {
+		static: 'public',
+		upload: 'uploads',
+		database: "../data/db.sqlite"
+	},
+	debug: true
+}

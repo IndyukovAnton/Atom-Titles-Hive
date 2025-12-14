@@ -1,10 +1,12 @@
 .collection {
-	display: none;
-	grid-template-columns: repeat(4, 1fr);
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 	position: relative;
-	grid-auto-flow: dense;
-	gap: 20px;
-	align-items: stretch;
+	gap: 10px;
+	opacity: 0;
+	pointer-events: none;
+	transition: 0.2s 0s ease;
+	max-height: 0;
 }
 
 .collection:has(.empty) {
@@ -12,7 +14,9 @@
 }
 
 .collection.active {
-	display: grid;
+	opacity: 1;
+	pointer-events: all;
+	max-height: fit-content;
 }
 
 .collection__title {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../../assets/css/components/forms/form-add.css";
+import "./FormAddGroup.css";
 
 const FormAddGroup = () => {
 	const [title, setTitle] = useState('');

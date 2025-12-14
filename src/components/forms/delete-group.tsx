@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../../assets/css/components/forms/form-delete.css";
+import "@/assets/css/components/forms/form-delete.css";
 
 type FormDeleteProps = {
 	groupTag: string
@@ -13,7 +13,7 @@ const FormDeleteGroup = (props: FormDeleteProps) => {
 
 		setLoading(true);
 
-		fetch('http://127.0.0.1:3000/groups?tag='+props.groupTag, {
+		fetch('http://127.0.0.1:3000/api/groups?tag='+props.groupTag, {
 			method: 'DELETE',
 		})
 			.then((res) => {

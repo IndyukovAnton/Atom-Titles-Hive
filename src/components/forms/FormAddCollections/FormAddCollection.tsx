@@ -1,22 +1,13 @@
 import { useState } from "react";
-import "../../assets/css/components/forms/form-add.css";
+import "./FormAddCollection.css";
+import type { IFormAddProps } from "@/types/form.interface";
 
-// import { Select } from "../custom-select";
 
-type TGroup = {
-	title: string,
-	tag: string
-}
-
-type FormAddProps = {
-	groups: TGroup[]
-}
-
-const FormAddCollectionItem = (props: FormAddProps) => {
+const FormAddCollectionItem = (props: IFormAddProps) => {
 	const minRating = 0;
 	const maxRating = 10;
 
-	const [group, setGroup] = useState(props.groups[0].tag || 'all');
+	const [group, setGroup] = useState(props.groups[0]?.tag || 'all');
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [dateStart, setDateStart] = useState('');
@@ -63,9 +54,9 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 		}
 
 		// ✅ Отправляем как multipart/form-data (браузер сам установит заголовок)
-		fetch('http://127.0.0.1:3000/collections', {
+		fetch('http://127.0.0.1:3000/api/collections', {
 			method: 'POST',
-			body: formData, // ← не указывай 'Content-Type' — браузер сделает сам
+			body: formData,
 		})
 			.then((res) => {
 				if (res.ok) {
@@ -126,8 +117,6 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 				onChange={(e) => setRating(Number(e.target.value))}
 			/>
 
-			{/* <Select inputName="group" onChange={(value: string)=> {setGroup(value)}} items={props.groups}/> */}
-
 			<select required name="group" onChange={(e)=> {
 				setGroup(e.currentTarget.value)
 			}}>
@@ -139,7 +128,7 @@ const FormAddCollectionItem = (props: FormAddProps) => {
 			<input
 				name="image"
 				type="file"
-				accept="image/*" // только изображения
+				accept="image/*"
 				onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
 					const file = e.target.files?.[0];
 					if (file) {
