@@ -1,0 +1,67 @@
+:root {
+  /* Light theme colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f0f2f5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #65676b;
+  --border-color: #dddfe2;
+  --gradient-start: #a1c4fd;
+  --gradient-end: #c2e9fb;
+  
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(255, 255, 255, 0.5);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-border: rgba(0, 0, 0, 0.1);
+  --input-text: #1a1a1a;
+  --btn-primary-bg: #4c6ef5;
+  --btn-primary-text: #ffffff;
+  --icon-color: #4b5563;
+  --btn-accent-bg: #4c6ef5;
+  --btn-accent-text: #ffffff;
+  --btn-primary-bg-hover: #4c6ef5;
+  --btn-primary-text-hover: #ffffff;
+  --btn-accent-bg-hover: #4c6ef5;
+  --btn-accent-text-hover: #ffffff;
+}
+
+[data-theme="dark"] {
+  /* Dark theme colors */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #0f172a;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --gradient-start: #1e1b4b;
+  --gradient-end: #312e81;
+
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(15, 23, 42, 0.6);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --input-text: #ffffff;
+  --btn-primary-bg: #ffffff;
+  --btn-primary-text: #312e81;
+  --icon-color: #94a3b8;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
