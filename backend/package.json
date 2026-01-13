@@ -21,7 +21,8 @@
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d ormconfig.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d ormconfig.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ormconfig.ts",
-    "migration:show": "typeorm-ts-node-commonjs migration:show -d ormconfig.ts"
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d ormconfig.ts",
+    "test:ci": "jest --ci --coverage"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -83,7 +84,7 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "../test-reports/coverage",
     "testEnvironment": "node"
   }
 }

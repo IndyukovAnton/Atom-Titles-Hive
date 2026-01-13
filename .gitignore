@@ -12,6 +12,9 @@ dist
 # logs
 logs
 
+# Test reports
+backend/test-reports/
+
 # temporary files
 tmp
 
