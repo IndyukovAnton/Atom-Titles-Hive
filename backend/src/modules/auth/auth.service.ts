@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
 import { RegisterDto } from '../../dto/register.dto';
 import { LoginDto } from '../../dto/login.dto';
+import { LoggerService } from '../../utils/logger.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private jwtService: JwtService,
+    private logger: LoggerService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -22,6 +24,7 @@ export class AuthService {
     });
 
     if (existingUser) {
+      await this.logger.warn(`Registration failed: Username or email already exists - ${dto.username}/${dto.email}`);
       throw new ConflictException('Username or email already exists');
     }
 
@@ -36,6 +39,8 @@ export class AuthService {
     });
 
     await this.userRepository.save(user);
+
+    await this.logger.log(`New user registered: ${user.username} (ID: ${user.id})`);
 
     // Генерация JWT токена
     const payload = { sub: user.id, username: user.username };
@@ -58,6 +63,7 @@ export class AuthService {
     });
 
     if (!user) {
+      await this.logger.warn(`Failed login attempt: User not found - ${dto.username}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -65,8 +71,11 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
+      await this.logger.warn(`Failed login attempt: Invalid password - ${dto.username}`);
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.logger.log(`User logged in: ${user.username} (ID: ${user.id})`);
 
     // Генерация JWT токена
     const payload = { sub: user.id, username: user.username };

@@ -4,11 +4,12 @@ import { GroupsService } from './groups.service';
 import { GroupsController } from './groups.controller';
 import { Group } from '../../entities/group.entity';
 import { MediaEntry } from '../../entities/media-entry.entity';
+import { LoggerService } from '../../utils/logger.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Group, MediaEntry])],
   controllers: [GroupsController],
-  providers: [GroupsService],
+  providers: [GroupsService, LoggerService],
   exports: [GroupsService],
 })
 export class GroupsModule {}

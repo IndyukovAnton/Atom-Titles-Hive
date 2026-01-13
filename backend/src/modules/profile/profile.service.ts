@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { UpdateProfileDto } from '../../dto/update-profile.dto';
+import { LoggerService } from '../../utils/logger.service';
 
 @Injectable()
 export class ProfileService {
@@ -13,6 +14,7 @@ export class ProfileService {
     private userRepository: Repository<User>,
     @InjectRepository(MediaEntry)
     private mediaRepository: Repository<MediaEntry>,
+    private logger: LoggerService,
   ) {}
 
   async getProfile(userId: number) {
@@ -21,6 +23,8 @@ export class ProfileService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    await this.logger.log(`Profile accessed by user ${userId} (${user.username})`);
 
     return {
       id: user.id,
@@ -37,6 +41,8 @@ export class ProfileService {
       throw new NotFoundException('User not found');
     }
 
+    const changes: string[] = [];
+
     // Проверка смены пароля
     if (dto.newPassword) {
       if (!dto.currentPassword) {
@@ -45,22 +51,29 @@ export class ProfileService {
 
       const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
       if (!isPasswordValid) {
+        await this.logger.warn(`Failed password change attempt for user ${userId}`);
         throw new BadRequestException('Current password is incorrect');
       }
 
       user.password = await bcrypt.hash(dto.newPassword, 10);
+      changes.push('password');
     }
 
     // Обновление других полей
     if (dto.username) {
       user.username = dto.username;
+      changes.push('username');
     }
 
     if (dto.email) {
       user.email = dto.email;
+      changes.push('email');
     }
 
     await this.userRepository.save(user);
+    await this.logger.log(
+      `Profile updated for user ${userId} (${user.username}). Changed fields: ${changes.join(', ')}`
+    );
 
     return {
       id: user.id,

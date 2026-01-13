@@ -15,7 +15,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Получаем токен из zustand-persist хранилища
-    const storage = localStorage.getItem('titles-tracker-auth-storage');
+    const storage = localStorage.getItem('atom-titles-hive-auth-storage');
     if (storage) {
       try {
         const { state } = JSON.parse(storage);
@@ -38,7 +38,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('titles-tracker-auth-storage');
+      localStorage.removeItem('atom-titles-hive-auth-storage');
       window.location.href = '/login';
     }
     return Promise.reject(error);

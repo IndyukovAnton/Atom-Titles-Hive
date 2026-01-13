@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -10,6 +10,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MediaModule } from './modules/media/media.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { LoggerService } from './utils/logger.service';
+import { HttpLoggerMiddleware } from './utils/http-logger.middleware';
 
 @Module({
   imports: [
@@ -20,8 +22,10 @@ import { ProfileModule } from './modules/profile/profile.module';
       type: 'sqlite',
       database: 'database/app.db',
       entities: [User, MediaEntry, Group],
-      synchronize: true, // Только для dev! В production использовать миграции
-      logging: false,
+      synchronize: false, // Отключено для production, используются миграции
+      migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+      migrationsRun: true, // Автоматический запуск миграций при старте
+      logging: process.env.NODE_ENV === 'development',
     }),
     AuthModule,
     MediaModule,
@@ -29,6 +33,17 @@ import { ProfileModule } from './modules/profile/profile.module';
     ProfileModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    LoggerService, // Глобальный LoggerService
+  ],
+  exports: [LoggerService], // Экспортируем для использования в других модулях
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(HttpLoggerMiddleware)
+      .forRoutes('*'); // Применяем ко всем маршрутам
+  }
+}
+

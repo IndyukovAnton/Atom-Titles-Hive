@@ -5,6 +5,7 @@ import { Group } from '../../entities/group.entity';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { CreateGroupDto } from '../../dto/create-group.dto';
 import { UpdateGroupDto } from '../../dto/update-group.dto';
+import { LoggerService } from '../../utils/logger.service';
 
 @Injectable()
 export class GroupsService {
@@ -13,6 +14,7 @@ export class GroupsService {
     private groupRepository: Repository<Group>,
     @InjectRepository(MediaEntry)
     private mediaRepository: Repository<MediaEntry>,
+    private logger: LoggerService,
   ) {}
 
   async create(userId: number, dto: CreateGroupDto): Promise<Group> {
@@ -21,7 +23,9 @@ export class GroupsService {
       userId,
     });
 
-    return await this.groupRepository.save(group);
+    const saved = await this.groupRepository.save(group);
+    await this.logger.log(`Group created: "${dto.name}" (ID: ${saved.id}) by user ${userId}`);
+    return saved;
   }
 
   async findAll(userId: number): Promise<Group[]> {
@@ -49,12 +53,14 @@ export class GroupsService {
     const group = await this.findOne(id, userId);
 
     await this.groupRepository.update(id, dto);
+    await this.logger.log(`Group updated: ID ${id} ("${dto.name || group.name}") by user ${userId}`);
 
     return this.findOne(id, userId);
   }
 
   async remove(id: number, userId: number): Promise<void> {
     const group = await this.findOne(id, userId);
+    const mediaCount = group.mediaEntries?.length || 0;
 
     // Перенести все записи в "Без группы" (groupId = null)
     await this.mediaRepository.update(
@@ -63,6 +69,9 @@ export class GroupsService {
     );
 
     await this.groupRepository.remove(group);
+    await this.logger.log(
+      `Group deleted: ID ${id} ("${group.name}"). ${mediaCount} media entries moved to ungrouped by user ${userId}`
+    );
   }
 
   async getGroupStats(userId: number) {

@@ -57,7 +57,46 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Database Migrations
+
+This project uses TypeORM migrations for database schema management.
+
+```bash
+# Generate a new migration (after changing entities)
+$ npm run migration:generate src/migrations/MigrationName
+
+# Run pending migrations
+$ npm run migration:run
+
+# Revert the last migration
+$ npm run migration:revert
+
+# Show migration status
+$ npm run migration:show
+```
+
+For detailed information, see [docs/migrations-guide.md](docs/migrations-guide.md).
+
+## Logging
+
+Application logs are written to `/logs/YYYY-MM-DD.txt` files.
+
+### Log Format
+```
+[HH:MM:SS] [LEVEL] Message
+```
+
+### Log Levels
+- **INFO**: Normal operations (login, CRUD operations)
+- **WARN**: Non-critical issues (failed login attempts, 404 errors)
+- **ERROR**: Critical errors with stack trace
+
+Logs older than 30 days are automatically deleted on application startup. Configure retention period via `LOG_RETENTION_DAYS` in `.env`.
+
+For detailed information, see [docs/logging-guide.md](docs/logging-guide.md).
+
 ## Deployment
+
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 

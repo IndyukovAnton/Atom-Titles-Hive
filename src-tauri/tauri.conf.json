@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Web Titles Tracker",
+  "productName": "Atom Titles-Hive",
   "version": "0.1.0",
-  "identifier": "com.indyukov.web-titles-tracker",
+  "identifier": "com.indyukov.atom-titles-hive",
   "build": {
     "frontendDist": "../frontend/dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Web Titles Tracker",
+        "title": "Atom Titles-Hive",
         "width": 1280,
         "height": 800,
         "minWidth": 400,

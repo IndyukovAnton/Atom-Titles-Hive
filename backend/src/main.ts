@@ -1,10 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { Logger } from './utils/logger';
+import { LoggerService } from './utils/logger.service';
+import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Получаем LoggerService из контекста приложения
+  const logger = app.get(LoggerService);
+  
+  // Глобальный Exception Filter
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
   
   // Глобальная валидация
   app.useGlobalPipes(new ValidationPipe({
@@ -24,11 +31,17 @@ async function bootstrap() {
   
   const message = `Backend running on http://localhost:${port}`;
   console.log(`🚀 ${message}`);
-  Logger.info(message);
+  await logger.log(message);
+  
+  // Запуск очистки старых логов при старте
+  const retentionDays = parseInt(process.env.LOG_RETENTION_DAYS || '30', 10);
+  await logger.cleanOldLogs(retentionDays);
 }
 
-bootstrap().catch(err => {
-  Logger.error(`Application failed to start: ${err.message}`);
+bootstrap().catch(async (err) => {
+  const logger = new LoggerService();
+  await logger.error(`Application failed to start: ${err.message}`, err.stack);
   process.exit(1);
 });
+
 

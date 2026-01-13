@@ -4,29 +4,41 @@ import { Repository, Like } from 'typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { CreateMediaDto } from '../../dto/create-media.dto';
 import { UpdateMediaDto } from '../../dto/update-media.dto';
+import { LoggerService } from '../../utils/logger.service';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(MediaEntry)
     private mediaRepository: Repository<MediaEntry>,
+    private logger: LoggerService,
   ) {}
 
   async create(userId: number, dto: CreateMediaDto): Promise<MediaEntry> {
-    const media = new MediaEntry();
-    media.title = dto.title;
-    media.image = dto.image ?? null;
-    media.description = dto.description ?? null;
-    media.rating = dto.rating;
-    media.category = dto.category ?? null;
-    media.groupId = dto.groupId ?? null;
-    media.userId = userId;
-    media.genres = dto.genres ? JSON.stringify(dto.genres) : null;
-    media.tags = dto.tags ? JSON.stringify(dto.tags) : null;
-    media.startDate = dto.startDate ? new Date(dto.startDate) : null;
-    media.endDate = dto.endDate ? new Date(dto.endDate) : null;
+    try {
+      const media = new MediaEntry();
+      media.title = dto.title;
+      media.image = dto.image ?? null;
+      media.description = dto.description ?? null;
+      media.rating = dto.rating;
+      media.category = dto.category ?? null;
+      media.groupId = dto.groupId ?? null;
+      media.userId = userId;
+      media.genres = dto.genres ? JSON.stringify(dto.genres) : null;
+      media.tags = dto.tags ? JSON.stringify(dto.tags) : null;
+      media.startDate = dto.startDate ? new Date(dto.startDate) : null;
+      media.endDate = dto.endDate ? new Date(dto.endDate) : null;
 
-    return await this.mediaRepository.save(media);
+      const saved = await this.mediaRepository.save(media);
+      await this.logger.log(`Media created: "${dto.title}" (ID: ${saved.id}) by user ${userId}`);
+      return saved;
+    } catch (error) {
+      await this.logger.error(
+        `Failed to create media: ${dto.title} by user ${userId}`,
+        error instanceof Error ? error.stack : String(error)
+      );
+      throw error;
+    }
   }
 
   async findAll(userId: number, filters?: {
@@ -115,6 +127,7 @@ export class MediaService {
   async remove(id: number, userId: number): Promise<void> {
     const media = await this.findOne(id, userId);
     await this.mediaRepository.remove(media);
+    await this.logger.log(`Media deleted: ID ${id} ("${media.title}") by user ${userId}`);
   }
 
   async search(userId: number, query: string): Promise<MediaEntry[]> {
