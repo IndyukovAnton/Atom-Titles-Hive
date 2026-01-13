@@ -22,7 +22,9 @@ export const useThemeStore = create<ThemeState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Принудительно обновляем DOM
-          document.documentElement.setAttribute('data-theme', state.theme);
+          const root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(state.theme);
         }
       }
     }
