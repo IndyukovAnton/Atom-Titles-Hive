@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Group } from '../../entities/group.entity';
@@ -24,7 +24,9 @@ export class GroupsService {
     });
 
     const saved = await this.groupRepository.save(group);
-    await this.logger.log(`Group created: "${dto.name}" (ID: ${saved.id}) by user ${userId}`);
+    await this.logger.log(
+      `Group created: "${dto.name}" (ID: ${saved.id}) by user ${userId}`,
+    );
     return saved;
   }
 
@@ -49,11 +51,17 @@ export class GroupsService {
     return group;
   }
 
-  async update(id: number, userId: number, dto: UpdateGroupDto): Promise<Group> {
+  async update(
+    id: number,
+    userId: number,
+    dto: UpdateGroupDto,
+  ): Promise<Group> {
     const group = await this.findOne(id, userId);
 
     await this.groupRepository.update(id, dto);
-    await this.logger.log(`Group updated: ID ${id} ("${dto.name || group.name}") by user ${userId}`);
+    await this.logger.log(
+      `Group updated: ID ${id} ("${dto.name || group.name}") by user ${userId}`,
+    );
 
     return this.findOne(id, userId);
   }
@@ -63,26 +71,23 @@ export class GroupsService {
     const mediaCount = group.mediaEntries?.length || 0;
 
     // Перенести все записи в "Без группы" (groupId = null)
-    await this.mediaRepository.update(
-      { groupId: id },
-      { groupId: null }
-    );
+    await this.mediaRepository.update({ groupId: id }, { groupId: null });
 
     await this.groupRepository.remove(group);
     await this.logger.log(
-      `Group deleted: ID ${id} ("${group.name}"). ${mediaCount} media entries moved to ungrouped by user ${userId}`
+      `Group deleted: ID ${id} ("${group.name}"). ${mediaCount} media entries moved to ungrouped by user ${userId}`,
     );
   }
 
   async getGroupStats(userId: number) {
     const groups = await this.findAll(userId);
-    
+
     const ungroupedCount = await this.mediaRepository.count({
-      where: { userId, groupId: IsNull() }
+      where: { userId, groupId: IsNull() },
     });
 
     return {
-      groups: groups.map(group => ({
+      groups: groups.map((group) => ({
         id: group.id,
         name: group.name,
         count: group.mediaEntries?.length || 0,

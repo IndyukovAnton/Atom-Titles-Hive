@@ -42,7 +42,7 @@ export class LoggerService {
   private async writeToFile(level: string, message: string): Promise<void> {
     try {
       await this.ensureLogsDirectory();
-      
+
       const timeString = this.getTimeString();
       const logEntry = `[${timeString}] [${level}] ${message}\n`;
       const filePath = join(this.logsDir, this.getLogFileName());

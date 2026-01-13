@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -24,7 +28,9 @@ export class AuthService {
     });
 
     if (existingUser) {
-      await this.logger.warn(`Registration failed: Username or email already exists - ${dto.username}/${dto.email}`);
+      await this.logger.warn(
+        `Registration failed: Username or email already exists - ${dto.username}/${dto.email}`,
+      );
       throw new ConflictException('Username or email already exists');
     }
 
@@ -40,7 +46,9 @@ export class AuthService {
 
     await this.userRepository.save(user);
 
-    await this.logger.log(`New user registered: ${user.username} (ID: ${user.id})`);
+    await this.logger.log(
+      `New user registered: ${user.username} (ID: ${user.id})`,
+    );
 
     // Генерация JWT токена
     const payload = { sub: user.id, username: user.username };
@@ -63,7 +71,9 @@ export class AuthService {
     });
 
     if (!user) {
-      await this.logger.warn(`Failed login attempt: User not found - ${dto.username}`);
+      await this.logger.warn(
+        `Failed login attempt: User not found - ${dto.username}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -71,7 +81,9 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
-      await this.logger.warn(`Failed login attempt: Invalid password - ${dto.username}`);
+      await this.logger.warn(
+        `Failed login attempt: Invalid password - ${dto.username}`,
+      );
       throw new UnauthorizedException('Invalid credentials');
     }
 

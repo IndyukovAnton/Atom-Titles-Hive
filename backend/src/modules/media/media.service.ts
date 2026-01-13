@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { CreateMediaDto } from '../../dto/create-media.dto';
 import { UpdateMediaDto } from '../../dto/update-media.dto';
 import { LoggerService } from '../../utils/logger.service';
+import { MediaFilters } from '../../types/media-filters.interface';
 
 @Injectable()
 export class MediaService {
@@ -30,25 +31,22 @@ export class MediaService {
       media.endDate = dto.endDate ? new Date(dto.endDate) : null;
 
       const saved = await this.mediaRepository.save(media);
-      await this.logger.log(`Media created: "${dto.title}" (ID: ${saved.id}) by user ${userId}`);
+      await this.logger.log(
+        `Media created: "${dto.title}" (ID: ${saved.id}) by user ${userId}`,
+      );
       return saved;
     } catch (error) {
       await this.logger.error(
         `Failed to create media: ${dto.title} by user ${userId}`,
-        error instanceof Error ? error.stack : String(error)
+        error instanceof Error ? error.stack : String(error),
       );
       throw error;
     }
   }
 
-  async findAll(userId: number, filters?: {
-    groupId?: number;
-    category?: string;
-    search?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<MediaEntry[]> {
-    const query = this.mediaRepository.createQueryBuilder('media')
+  async findAll(userId: number, filters?: MediaFilters): Promise<MediaEntry[]> {
+    const query = this.mediaRepository
+      .createQueryBuilder('media')
       .where('media.userId = :userId', { userId });
 
     if (filters) {
@@ -56,16 +54,22 @@ export class MediaService {
         if (filters.groupId === null) {
           query.andWhere('media.groupId IS NULL');
         } else {
-          query.andWhere('media.groupId = :groupId', { groupId: filters.groupId });
+          query.andWhere('media.groupId = :groupId', {
+            groupId: filters.groupId,
+          });
         }
       }
 
       if (filters.category) {
-        query.andWhere('media.category = :category', { category: filters.category });
+        query.andWhere('media.category = :category', {
+          category: filters.category,
+        });
       }
 
       if (filters.search) {
-        query.andWhere('media.title LIKE :search', { search: `%${filters.search}%` });
+        query.andWhere('media.title LIKE :search', {
+          search: `%${filters.search}%`,
+        });
       }
     }
 
@@ -80,15 +84,15 @@ export class MediaService {
     }
 
     const result = await query.getMany();
-    
+
     // Парсим JSON поля
-    return result.map(media => this.parseJsonFields(media));
+    return result.map((media) => this.parseJsonFields(media));
   }
 
   async findOne(id: number, userId: number): Promise<MediaEntry> {
-    const media = await this.mediaRepository.findOne({ 
+    const media = await this.mediaRepository.findOne({
       where: { id, userId },
-      relations: ['group']
+      relations: ['group'],
     });
 
     if (!media) {
@@ -98,19 +102,37 @@ export class MediaService {
     return this.parseJsonFields(media);
   }
 
-  async update(id: number, userId: number, dto: UpdateMediaDto): Promise<MediaEntry> {
-    const media = await this.findOne(id, userId);
+  async update(
+    id: number,
+    userId: number,
+    dto: UpdateMediaDto,
+  ): Promise<MediaEntry> {
+    await this.findOne(id, userId);
 
-    const updateData: any = { ...dto };
-    
+    const updateData: Partial<MediaEntry> = {};
+
+    // Копируем простые поля
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.image !== undefined) updateData.image = dto.image;
+    if (dto.description !== undefined) updateData.description = dto.description;
+    if (dto.rating !== undefined) updateData.rating = dto.rating;
+    if (dto.category !== undefined) updateData.category = dto.category;
+    if (dto.groupId !== undefined) updateData.groupId = dto.groupId;
+
+    // Преобразуем массивы в JSON строки
     if (dto.genres !== undefined) {
-      updateData.genres = Array.isArray(dto.genres) ? JSON.stringify(dto.genres) : dto.genres;
-    }
-    
-    if (dto.tags !== undefined) {
-      updateData.tags = Array.isArray(dto.tags) ? JSON.stringify(dto.tags) : dto.tags;
+      updateData.genres = Array.isArray(dto.genres)
+        ? JSON.stringify(dto.genres)
+        : dto.genres;
     }
 
+    if (dto.tags !== undefined) {
+      updateData.tags = Array.isArray(dto.tags)
+        ? JSON.stringify(dto.tags)
+        : dto.tags;
+    }
+
+    // Преобразуем строки в даты
     if (dto.startDate) {
       updateData.startDate = new Date(dto.startDate);
     }
@@ -127,7 +149,9 @@ export class MediaService {
   async remove(id: number, userId: number): Promise<void> {
     const media = await this.findOne(id, userId);
     await this.mediaRepository.remove(media);
-    await this.logger.log(`Media deleted: ID ${id} ("${media.title}") by user ${userId}`);
+    await this.logger.log(
+      `Media deleted: ID ${id} ("${media.title}") by user ${userId}`,
+    );
   }
 
   async search(userId: number, query: string): Promise<MediaEntry[]> {
@@ -135,12 +159,12 @@ export class MediaService {
       where: [
         { userId, title: Like(`%${query}%`) },
         { userId, description: Like(`%${query}%`) },
-        { userId, category: Like(`%${query}%`) }
+        { userId, category: Like(`%${query}%`) },
       ],
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
-    return result.map(media => this.parseJsonFields(media));
+    return result.map((media) => this.parseJsonFields(media));
   }
 
   async getCategories(userId: number): Promise<string[]> {
@@ -149,17 +173,26 @@ export class MediaService {
       .select('DISTINCT media.category', 'category')
       .where('media.userId = :userId', { userId })
       .andWhere('media.category IS NOT NULL')
-      .getRawMany();
+      .getRawMany<{ category: string }>();
 
-    return result.map(r => r.category).filter(Boolean);
+    return result.map((r) => r.category).filter((c): c is string => Boolean(c));
   }
 
   private parseJsonFields(media: MediaEntry): MediaEntry {
-    const parsed = {
-      ...media,
-      genres: typeof media.genres === 'string' && media.genres ? JSON.parse(media.genres) : [],
-      tags: typeof media.tags === 'string' && media.tags ? JSON.parse(media.tags) : [],
-    };
-    return parsed as MediaEntry;
+    const result = { ...media };
+
+    if (typeof media.genres === 'string' && media.genres) {
+      (result as any).genres = JSON.parse(media.genres);
+    } else {
+      (result as any).genres = [];
+    }
+
+    if (typeof media.tags === 'string' && media.tags) {
+      (result as any).tags = JSON.parse(media.tags);
+    } else {
+      (result as any).tags = [];
+    }
+
+    return result;
   }
 }

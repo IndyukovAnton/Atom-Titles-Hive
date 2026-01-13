@@ -37,12 +37,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Логируем ошибку с stack trace
     if (exception instanceof Error) {
-      this.logger.error(
+      void this.logger.error(
         `${request.method} ${request.url} - ${status} - ${message}`,
         exception.stack,
       );
     } else {
-      this.logger.error(
+      void this.logger.error(
         `${request.method} ${request.url} - ${status} - ${message}`,
       );
     }

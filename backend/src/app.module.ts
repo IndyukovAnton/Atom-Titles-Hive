@@ -41,9 +41,6 @@ import { HttpLoggerMiddleware } from './utils/http-logger.middleware';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(HttpLoggerMiddleware)
-      .forRoutes('*'); // Применяем ко всем маршрутам
+    consumer.apply(HttpLoggerMiddleware).forRoutes('*'); // Применяем ко всем маршрутам
   }
 }
-

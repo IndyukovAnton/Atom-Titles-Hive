@@ -74,7 +74,7 @@ export class InitialSchema1736729735000 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX "IDX_media_entries_userId_category"`);
     await queryRunner.query(`DROP INDEX "IDX_media_entries_groupId"`);
     await queryRunner.query(`DROP INDEX "IDX_media_entries_userId"`);
-    
+
     // Drop tables in reverse order
     await queryRunner.query(`DROP TABLE "media_entries"`);
     await queryRunner.query(`DROP INDEX "IDX_groups_userId"`);

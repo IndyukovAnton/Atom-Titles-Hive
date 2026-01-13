@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { LoggerService } from './logger.service';
+import { AuthenticatedRequest } from '../types/authenticated-request.interface';
 
 @Injectable()
 export class HttpLoggerMiddleware implements NestMiddleware {
@@ -8,17 +9,24 @@ export class HttpLoggerMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     const { method, originalUrl } = req;
-    const userAgent = req.get('user-agent') || '';
-    const userId = (req as any).user?.userId || 'anonymous';
+    const userId =
+      (req as Partial<AuthenticatedRequest>).user?.userId || 'anonymous';
 
     const startTime = Date.now();
 
     // Логируем входящий запрос
-    this.logger.log(`${method} ${originalUrl} - User: ${userId}`);
+    void this.logger.log(`${method} ${originalUrl} - User: ${userId}`);
 
     // Переопределяем метод end для логирования после завершения запроса
-    const originalEnd = res.end;
-    res.end = function (chunk?: any, encoding?: any, callback?: any): any {
+    const originalEnd = res.end.bind(res);
+    const loggerInstance = this.logger;
+
+    res.end = function (
+      this: Response,
+      chunk?: unknown,
+      encoding?: BufferEncoding | (() => void),
+      callback?: () => void,
+    ): Response {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode;
 
@@ -27,19 +35,28 @@ export class HttpLoggerMiddleware implements NestMiddleware {
         // Ошибки
         const level = statusCode >= 500 ? 'ERROR' : 'WARN';
         const logMessage = `${method} ${originalUrl} - ${statusCode} - ${duration}ms - User: ${userId}`;
-        
+
         if (level === 'ERROR') {
-          logger.error(logMessage);
+          void loggerInstance.error(logMessage);
         } else {
-          logger.warn(logMessage);
+          void loggerInstance.warn(logMessage);
         }
       } else {
         // Успешные запросы
-        logger.log(`${method} ${originalUrl} - ${statusCode} - ${duration}ms`);
+        void loggerInstance.log(
+          `${method} ${originalUrl} - ${statusCode} - ${duration}ms`,
+        );
       }
 
       // Вызываем оригинальный метод end
-      return originalEnd.call(this, chunk, encoding, callback);
+      if (typeof encoding === 'function') {
+        return originalEnd(chunk, encoding) as Response;
+      }
+      return originalEnd(
+        chunk,
+        encoding as BufferEncoding,
+        callback,
+      ) as Response;
     };
 
     next();
