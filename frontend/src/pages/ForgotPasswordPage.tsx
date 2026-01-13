@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaCheckCircle } from 'react-icons/fa';
+import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
 import AuthLayout from '../layouts/AuthLayout';
-import '../styles/Auth.css';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -33,14 +35,16 @@ export default function ForgotPasswordPage() {
   if (isSuccess) {
     return (
       <AuthLayout title="Письмо отправлено!">
-        <div className="success-content" style={{ textAlign: 'center', padding: '20px 0' }}>
-          <FaCheckCircle size={64} className="success-icon" style={{ color: 'var(--btn-primary-bg)', marginBottom: 24 }} />
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>
+        <div className="flex flex-col items-center justify-center py-6 text-center animate-in fade-in zoom-in-95 duration-500">
+          <CheckCircle2 className="h-16 w-16 text-primary mb-6 animate-bounce" />
+          <p className="text-muted-foreground mb-6">
             Проверьте ваш email для инструкций по восстановлению пароля.
           </p>
-          <Link to="/login" className="btn-primary" style={{ display: 'block', textDecoration: 'none' }}>
-            Вернуться к входу
-          </Link>
+          <Button asChild className="w-full">
+            <Link to="/login">
+              Вернуться к входу
+            </Link>
+          </Button>
         </div>
       </AuthLayout>
     );
@@ -52,14 +56,14 @@ export default function ForgotPasswordPage() {
       subtitle="Восстановление пароля" 
       error={error}
     >
-      <p className="auth-description" style={{ color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 24, fontSize: 14 }}>
+      <p className="text-center text-muted-foreground text-sm mb-6">
         Введите email вашего аккаунта, и мы отправим инструкции по восстановлению пароля
       </p>
 
-      <form onSubmit={handleSubmit} className="auth-form">
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
             type="email"
             id="email"
             value={email}
@@ -69,22 +73,33 @@ export default function ForgotPasswordPage() {
             disabled={isLoading}
             autoFocus
             autoComplete="email"
+            className="h-11"
           />
         </div>
 
-        <button type="submit" className="btn-primary" disabled={isLoading}>
-          {isLoading && <span className="spinner"></span>}
+        <Button type="submit" className="w-full h-11 text-base shadow-lg hover:shadow-primary/25 transition-all" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isLoading ? 'Отправка...' : 'Отправить'}
-        </button>
+        </Button>
       </form>
 
-      <p className="auth-footer" style={{ marginTop: 32 }}>
-        Вспомнили пароль? <Link to="/login">Войти</Link>
-      </p>
-      <div style={{ textAlign: 'center', marginTop: 16 }}>
-        <Link to="/login" style={{ color: 'var(--text-secondary)', fontSize: 13, textDecoration: 'none' }}>
-           ← Назад
-        </Link>
+      <div className="space-y-4 mt-8">
+        <div className="text-center text-sm text-muted-foreground">
+          Вспомнили пароль?{' '}
+          <Link to="/login" className="text-primary hover:underline font-medium">
+            Войти
+          </Link>
+        </div>
+        
+        <div className="text-center">
+          <Link 
+            to="/login" 
+            className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="mr-1 h-3 w-3" />
+            Назад
+          </Link>
+        </div>
       </div>
     </AuthLayout>
   );

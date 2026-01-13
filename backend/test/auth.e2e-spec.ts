@@ -12,20 +12,19 @@ describe('AuthModule (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot(testDataSourceOptions),
-        AuthModule,
-      ],
+      imports: [TypeOrmModule.forRoot(testDataSourceOptions), AuthModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // Включаем валидацию, так как она используется в контроллерах
-    app.useGlobalPipes(new ValidationPipe({
-      whitelist: true,
-      transform: true,
-    }));
-    
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+      }),
+    );
+
     await app.init();
   });
 
@@ -93,6 +92,6 @@ describe('AuthModule (e2e)', () => {
         .expect(401);
     });
   });
-  
+
   // Примечание: тесты запускаются последовательно, так что юзер уже зарегистрирован в первом тесте
 });

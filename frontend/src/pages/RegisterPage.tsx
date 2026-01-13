@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import AuthLayout from '../layouts/AuthLayout';
-import '../styles/Auth.css';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -43,10 +45,10 @@ export default function RegisterPage() {
       subtitle="Создать аккаунт" 
       error={displayError}
     >
-      <form onSubmit={handleSubmit} className="auth-form">
-        <div className="form-group">
-          <label htmlFor="username">Имя пользователя</label>
-          <input
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="username">Имя пользователя</Label>
+          <Input
             type="text"
             id="username"
             value={username}
@@ -58,12 +60,13 @@ export default function RegisterPage() {
             disabled={isLoading}
             autoFocus
             autoComplete="username"
+            className="h-11"
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
             type="email"
             id="email"
             value={email}
@@ -72,13 +75,14 @@ export default function RegisterPage() {
             required
             disabled={isLoading}
             autoComplete="email"
+            className="h-11"
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="password">Пароль</label>
-          <div className="password-input-wrapper">
-            <input
+        <div className="space-y-2">
+          <Label htmlFor="password">Пароль</Label>
+          <div className="relative">
+            <Input
               type={showPassword ? 'text' : 'password'}
               id="password"
               value={password}
@@ -88,22 +92,24 @@ export default function RegisterPage() {
               minLength={6}
               disabled={isLoading}
               autoComplete="new-password"
+              className="pr-10 h-11"
             />
             <button
               type="button"
-              className="password-toggle"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+              tabIndex={-1}
             >
-              {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="confirmPassword">Подтвердите пароль</label>
-          <div className="password-input-wrapper">
-            <input
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
+          <div className="relative">
+            <Input
               type={showConfirmPassword ? 'text' : 'password'}
               id="confirmPassword"
               value={confirmPassword}
@@ -113,27 +119,32 @@ export default function RegisterPage() {
               minLength={6}
               disabled={isLoading}
               autoComplete="new-password"
+              className="pr-10 h-11"
             />
             <button
               type="button"
-              className="password-toggle"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               aria-label={showConfirmPassword ? 'Скрыть пароль' : 'Показать пароль'}
+              tabIndex={-1}
             >
-              {showConfirmPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
 
-        <button type="submit" className="btn-primary" disabled={isLoading}>
-          {isLoading && <span className="spinner"></span>}
+        <Button type="submit" className="w-full h-11 text-base shadow-lg hover:shadow-primary/25 transition-all mt-2" disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
-        </button>
+        </Button>
       </form>
 
-      <p className="auth-footer">
-        Уже есть аккаунт? <Link to="/login">Войти</Link>
-      </p>
+      <div className="text-center text-sm text-muted-foreground mt-6">
+        Уже есть аккаунт?{' '}
+        <Link to="/login" className="text-primary hover:underline font-medium">
+          Войти
+        </Link>
+      </div>
     </AuthLayout>
   );
 }

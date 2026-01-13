@@ -63,7 +63,7 @@ describe('MediaService', () => {
       getRepositoryToken(MediaEntry),
     );
     loggerService = module.get<LoggerService>(LoggerService);
-    
+
     // Сброс моков перед каждым тестом
     jest.clearAllMocks();
   });
@@ -97,9 +97,12 @@ describe('MediaService', () => {
 
       const result = await service.findAll(1);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('media.userId = :userId', {
-        userId: 1,
-      });
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'media.userId = :userId',
+        {
+          userId: 1,
+        },
+      );
       expect(result).toHaveLength(1);
       // Проверка что JSON распарсился
       expect(result[0].genres).toBeInstanceOf(Array);
@@ -112,17 +115,20 @@ describe('MediaService', () => {
         category: 'Movie',
         search: 'Test',
       };
-      
+
       mockQueryBuilder.getMany.mockResolvedValue([]);
-      
+
       await service.findAll(1, filters);
 
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('media.userId = :userId', {
-        userId: 1,
-      });
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'media.userId = :userId',
+        {
+          userId: 1,
+        },
+      );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'media.category = :category', 
-        { category: 'Movie' }
+        'media.category = :category',
+        { category: 'Movie' },
       );
     });
   });
@@ -172,7 +178,7 @@ describe('MediaService', () => {
   describe('remove', () => {
     it('should remove media entry', async () => {
       const mockMedia = createMockMediaEntry();
-      mockRepository.findOne.mockResolvedValue(mockMedia); 
+      mockRepository.findOne.mockResolvedValue(mockMedia);
       mockRepository.remove.mockResolvedValue(mockMedia);
 
       await service.remove(1, 1);

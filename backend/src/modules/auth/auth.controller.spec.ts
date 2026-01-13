@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
-import { mockRegisterDto, mockLoginDto } from '../../../test/fixtures/user.fixtures';
+import {
+  mockRegisterDto,
+  mockLoginDto,
+} from '../../../test/fixtures/user.fixtures';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -186,13 +189,8 @@ describe('AuthController', () => {
 
     it('should use JWT Guard for authentication', async () => {
       // Проверяем, что метод имеет @UseGuards(AuthGuard('jwt'))
-      const metadata = Reflect.getMetadata(
-        '__guards__',
-        controller.getProfile,
-      );
+      const metadata = Reflect.getMetadata('__guards__', controller.getProfile);
       expect(metadata).toBeDefined();
     });
-
-
   });
 });

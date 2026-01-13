@@ -25,8 +25,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    // Применяем тему к документу
-    document.documentElement.setAttribute('data-theme', theme);
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    root.setAttribute('data-theme', theme); // Keep for compatibility
     localStorage.setItem('theme', theme);
   }, [theme]);
 

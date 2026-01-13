@@ -25,16 +25,16 @@ describe('MediaModule (e2e)', () => {
 
     // Регистрация и логин для получения токена
     const registerDto = {
-        username: 'mediauser',
-        email: 'media@example.com',
-        password: 'password123',
+      username: 'mediauser',
+      email: 'media@example.com',
+      password: 'password123',
     };
-    
+
     const response = await request(app.getHttpServer())
       .post('/auth/register')
       .send(registerDto)
       .expect(201);
-      
+
     authToken = response.body.access_token;
   });
 
@@ -81,45 +81,45 @@ describe('MediaModule (e2e)', () => {
           expect(res.body.length).toBeGreaterThan(0);
         });
     });
-    
+
     it('should filter by search', () => {
-        return request(app.getHttpServer())
+      return request(app.getHttpServer())
         .get('/media')
         .query({ search: 'Movie' })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200)
         .expect((res) => {
-            expect(res.body[0].title).toContain('Movie');
+          expect(res.body[0].title).toContain('Movie');
         });
     });
   });
 
   describe('/media/:id (PATCH)', () => {
-      it('should update media', () => {
-          return request(app.getHttpServer())
-            .patch(`/media/${createdMediaId}`)
-            .set('Authorization', `Bearer ${authToken}`)
-            .send({ rating: 9 })
-            .expect(200)
-            .expect(res => {
-                expect(res.body.rating).toBe(9);
-            });
-      });
+    it('should update media', () => {
+      return request(app.getHttpServer())
+        .patch(`/media/${createdMediaId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ rating: 9 })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.rating).toBe(9);
+        });
+    });
   });
-  
+
   describe('/media/:id (DELETE)', () => {
-      it('should delete media', () => {
-          return request(app.getHttpServer())
-            .delete(`/media/${createdMediaId}`)
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
-      });
-      
-      it('should verify deletion', () => {
-          return request(app.getHttpServer())
-            .get(`/media/${createdMediaId}`)
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(404);
-      });
+    it('should delete media', () => {
+      return request(app.getHttpServer())
+        .delete(`/media/${createdMediaId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+    });
+
+    it('should verify deletion', () => {
+      return request(app.getHttpServer())
+        .get(`/media/${createdMediaId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+    });
   });
 });

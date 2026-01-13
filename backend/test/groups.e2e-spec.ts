@@ -27,16 +27,16 @@ describe('GroupsModule (e2e)', () => {
 
     // Register & Login
     const registerDto = {
-        username: 'groupsuser',
-        email: 'groups@example.com',
-        password: 'password123',
+      username: 'groupsuser',
+      email: 'groups@example.com',
+      password: 'password123',
     };
-    
+
     const response = await request(app.getHttpServer())
       .post('/auth/register')
       .send(registerDto)
       .expect(201);
-      
+
     authToken = response.body.access_token;
   });
 
@@ -73,26 +73,26 @@ describe('GroupsModule (e2e)', () => {
         });
     });
   });
-  
+
   describe('/groups/:id (PATCH)', () => {
-      it('should update group', () => {
-          return request(app.getHttpServer())
-            .patch(`/groups/${createdGroupId}`)
-            .set('Authorization', `Bearer ${authToken}`)
-            .send({ name: 'Updated Group' })
-            .expect(200)
-            .expect(res => {
-                expect(res.body.name).toBe('Updated Group');
-            });
-      });
+    it('should update group', () => {
+      return request(app.getHttpServer())
+        .patch(`/groups/${createdGroupId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Updated Group' })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.name).toBe('Updated Group');
+        });
+    });
   });
 
   describe('/groups/:id (DELETE)', () => {
-      it('should delete group', () => {
-          return request(app.getHttpServer())
-            .delete(`/groups/${createdGroupId}`)
-            .set('Authorization', `Bearer ${authToken}`)
-            .expect(200);
-      });
+    it('should delete group', () => {
+      return request(app.getHttpServer())
+        .delete(`/groups/${createdGroupId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+    });
   });
 });

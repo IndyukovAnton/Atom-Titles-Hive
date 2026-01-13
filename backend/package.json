@@ -22,7 +22,8 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d ormconfig.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d ormconfig.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d ormconfig.ts",
-    "test:ci": "jest --ci --coverage"
+    "test:ci": "jest --ci --coverage",
+    "generate:secret": "node scripts/generate-jwt-secret.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

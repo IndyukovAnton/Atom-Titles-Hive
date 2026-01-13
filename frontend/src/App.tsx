@@ -9,7 +9,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import MainLayout from './layouts/MainLayout';
-import './App.css';
+
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {

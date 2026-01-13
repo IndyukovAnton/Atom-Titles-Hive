@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { LoggerService } from './utils/logger.service';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -32,7 +33,8 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT || 1221;
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT') || 1221;
   await app.listen(port);
 
   const message = `Backend running on http://localhost:${port}`;
@@ -40,7 +42,7 @@ async function bootstrap() {
   await logger.log(message);
 
   // Запуск очистки старых логов при старте
-  const retentionDays = parseInt(process.env.LOG_RETENTION_DAYS || '30', 10);
+  const retentionDays = configService.get<number>('LOG_RETENTION_DAYS') || 30;
   await logger.cleanOldLogs(retentionDays);
 }
 

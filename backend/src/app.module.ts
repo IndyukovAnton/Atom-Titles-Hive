@@ -1,6 +1,6 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { User } from './entities/user.entity';
@@ -12,20 +12,27 @@ import { GroupsModule } from './modules/groups/groups.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { LoggerService } from './utils/logger.service';
 import { HttpLoggerMiddleware } from './utils/http-logger.middleware';
+import { validate } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate,
     }),
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'database/app.db',
-      entities: [User, MediaEntry, Group],
-      synchronize: false, // Отключено для production, используются миграции
-      migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-      migrationsRun: true, // Автоматический запуск миграций при старте
-      logging: process.env.NODE_ENV === 'development',
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'sqlite',
+        database: configService.get<string>('DATABASE_PATH')!,
+        entities: [User, MediaEntry, Group],
+        synchronize:
+          configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
+        migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+        migrationsRun: true,
+        logging: configService.get<string>('TYPEORM_LOGGING') === 'true',
+      }),
     }),
     AuthModule,
     MediaModule,

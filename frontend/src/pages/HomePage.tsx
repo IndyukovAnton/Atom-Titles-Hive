@@ -1,19 +1,45 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { mediaApi, type MediaEntry } from '../api/media';
 import { groupsApi, type GroupStats } from '../api/groups';
 import AddMediaModal from '../components/AddMediaModal';
 import CreateGroupModal from '../components/CreateGroupModal';
-import ContextMenu from '../components/ContextMenu';
-import { FaPlus, FaLayerGroup, FaEdit, FaTrash, FaCog, FaUser } from 'react-icons/fa';
-import '../styles/Home.css';
-
-// Using @hello-pangea/dnd for Drag and Drop
+import { 
+  Plus, 
+  Layers, 
+  FolderOpen, 
+  Edit, 
+  Trash, 
+  Settings, 
+  User, 
+  LogOut, 
+  Loader2, 
+  Star
+} from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const [mediaList, setMediaList] = useState<MediaEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,9 +53,6 @@ export default function HomePage() {
   const [groupStats, setGroupStats] = useState<GroupStats | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>('all');
   
-  // Context Menu
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; groupId: number } | null>(null);
-
   useEffect(() => {
     loadData();
   }, [selectedGroupId]);
@@ -67,16 +90,10 @@ export default function HomePage() {
     items.splice(result.destination.index, 0, reorderedItem);
 
     setGroupStats({ ...groupStats, groups: items });
-    // Note: Backend persistence for order is not implemented yet, so this is visual only for session
-  };
-
-  // Context Menu Handlers
-  const handleContextMenu = (e: React.MouseEvent, groupId: number) => {
-    e.preventDefault();
-    setContextMenu({ x: e.pageX, y: e.pageY, groupId });
   };
 
   const handleDeleteGroup = async (id: number) => {
+    if (!window.confirm('Вы уверены, что хотите удалить эту группу?')) return;
     try {
       await groupsApi.delete(id);
       if (selectedGroupId === id) setSelectedGroupId('all');
@@ -94,59 +111,60 @@ export default function HomePage() {
     }
   };
 
-  return (
-    <div className="home-container" onClick={() => setContextMenu(null)}>
-      <header className="home-header">
-        <div className="header-content">
-          <Link to="/" style={{ textDecoration: 'none', color: 'white' }}>
-            <h1>Web Titles Tracker</h1>
-          </Link>
-          <div className="user-section">
-            <Link to="/profile" className="nav-link" title="Профиль">
-              <FaUser /> {user?.username}
-            </Link>
-            <Link to="/settings" className="nav-link" title="Настройки">
-              <FaCog />
-            </Link>
-            <button onClick={logout} className="btn-logout">Выйти</button>
-          </div>
-        </div>
-      </header>
+  const getPageTitle = () => {
+    if (selectedGroupId === 'all') return 'Моя медиатека';
+    if (selectedGroupId === null) return 'Без группы';
+    return groupStats?.groups.find(g => g.id === selectedGroupId)?.name || 'Группа';
+  };
 
-      <div className="main-layout-wrapper">
+  return (
+    <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
+      {/* Sidebar */}
+      <aside className="w-64 border-r bg-muted/20 flex flex-col shrink-0">
+        <div className="p-4 border-b flex items-center justify-between h-14">
+          <span className="font-semibold tracking-tight">Группы</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => { setEditingGroup(null); setIsGroupModalOpen(true); }} 
+            title="Создать группу"
+            className="h-8 w-8"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
         
-        {/* Sidebar */}
-        <aside className="sidebar">
-          <div className="sidebar-header">
-            <h3>Группы</h3>
-            <button className="btn-icon" onClick={() => { setEditingGroup(null); setIsGroupModalOpen(true); }} title="Создать группу">
-              <FaPlus size={12} />
-            </button>
-          </div>
-          
-          <div className="groups-list">
-            <div 
-              className={`group-item ${selectedGroupId === 'all' ? 'active' : ''}`}
+        <ScrollArea className="flex-1">
+          <div className="p-3 space-y-1">
+            <Button
+              variant={selectedGroupId === 'all' ? "secondary" : "ghost"}
+              className={cn("w-full justify-start", selectedGroupId === 'all' && "bg-secondary/50 font-medium")}
               onClick={() => setSelectedGroupId('all')}
             >
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <FaLayerGroup />
-                <span>Все записи</span>
-              </div>
-            </div>
+              <Layers className="mr-2 h-4 w-4" />
+              Все записи
+            </Button>
 
-            <div 
-              className={`group-item ${selectedGroupId === null ? 'active' : ''}`}
+            <Button
+              variant={selectedGroupId === null ? "secondary" : "ghost"}
+              className={cn("w-full justify-start justify-between group", selectedGroupId === null && "bg-secondary/50 font-medium")}
               onClick={() => setSelectedGroupId(null)}
             >
-              <span>📂 Без группы</span>
-              <span className="count">{groupStats?.ungrouped || 0}</span>
-            </div>
+              <div className="flex items-center">
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Без группы
+              </div>
+              {groupStats?.ungrouped ? (
+                <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full">{groupStats.ungrouped}</span>
+              ) : null}
+            </Button>
 
+            <div className="my-2 border-t border-border/50" />
+            
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="groups">
                 {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef}>
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                     {groupStats?.groups.map((group, index) => (
                       <Draggable key={group.id} draggableId={group.id.toString()} index={index}>
                         {(provided) => (
@@ -154,13 +172,29 @@ export default function HomePage() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className={`group-item ${selectedGroupId === group.id ? 'active' : ''}`}
-                            onClick={() => setSelectedGroupId(group.id)}
-                            onContextMenu={(e) => handleContextMenu(e, group.id)}
-                            style={{ ...provided.draggableProps.style }}
                           >
-                            <span>📁 {group.name}</span>
-                            <span className="count">{group.count}</span>
+                            <ContextMenu>
+                              <ContextMenuTrigger asChild>
+                                <Button
+                                  variant={selectedGroupId === group.id ? "secondary" : "ghost"}
+                                  className={cn("w-full justify-start justify-between font-normal", selectedGroupId === group.id && "bg-secondary/50 font-medium")}
+                                  onClick={() => setSelectedGroupId(group.id)}
+                                >
+                                  <span className="truncate">{group.name}</span>
+                                  {group.count > 0 && (
+                                    <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full ml-auto">{group.count}</span>
+                                  )}
+                                </Button>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent>
+                                <ContextMenuItem onClick={() => handleEditGroup(group.id)}>
+                                  <Edit className="mr-2 h-4 w-4" /> Редактировать
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => handleDeleteGroup(group.id)} className="text-destructive focus:text-destructive">
+                                  <Trash className="mr-2 h-4 w-4" /> Удалить
+                                </ContextMenuItem>
+                              </ContextMenuContent>
+                            </ContextMenu>
                           </div>
                         )}
                       </Draggable>
@@ -171,69 +205,123 @@ export default function HomePage() {
               </Droppable>
             </DragDropContext>
           </div>
-        </aside>
+        </ScrollArea>
+      </aside>
 
-        <main className="home-main">
-          <div className="content-wrapper">
-            <div className="page-header">
-              <h2>
-                {selectedGroupId === 'all' ? 'Моя медиатека' : 
-                 selectedGroupId === null ? 'Без группы' : 
-                 groupStats?.groups.find(g => g.id === selectedGroupId)?.name || 'Группа'}
-              </h2>
-              <button className="btn-add" onClick={() => setIsAddModalOpen(true)}>+ Добавить</button>
-            </div>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-full min-w-0">
+        <header className="h-14 border-b flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+          <h1 className="font-bold text-lg tracking-tight hidden md:block">Titles Tracker</h1>
+          <h2 className="text-base font-medium md:hidden">{getPageTitle()}</h2>
+          
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-medium text-muted-foreground hidden md:block border-r pr-4 mr-2">
+              {getPageTitle()}
+            </h2>
 
-            {isLoading && (
-              <div className="loading-state">
-                <div className="spinner"></div>
-                <p>Загрузка...</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="error-state">
-                <p>{error}</p>
-                <button onClick={handleRefresh} className="btn-retry">Попробовать снова</button>
-              </div>
-            )}
-
-            {!isLoading && !error && mediaList.length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon">📭</div>
-                <h3>Список пуст</h3>
-                <p>В этой категории пока нет записей</p>
-                <button className="btn-add-large" onClick={() => setIsAddModalOpen(true)}>+ Добавить запись</button>
-              </div>
-            )}
-
-            {!isLoading && !error && mediaList.length > 0 && (
-              <div className="media-grid">
-                {mediaList.map(media => (
-                  <div key={media.id} className="media-card">
-                    {media.image && (
-                      <div className="media-image">
-                        <img src={media.image} alt={media.title} />
-                      </div>
-                    )}
-                    <div className="media-content">
-                      <h3 className="media-title">{media.title}</h3>
-                      {media.category && <span className="media-category">{media.category}</span>}
-                      <div className="media-rating">
-                        <span className="rating-stars">{'⭐'.repeat(Math.round(media.rating / 2))}</span>
-                        <span className="rating-value">{media.rating}/10</span>
-                      </div>
-                      {media.description && (
-                        <p className="media-description">{media.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Button onClick={() => setIsAddModalOpen(true)} size="sm">
+              <Plus className="mr-2 h-4 w-4" /> Добавить
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">{user?.username}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" /> Профиль
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" /> Настройки
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" /> Выйти
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </main>
-      </div>
+        </header>
+
+        <div className="flex-1 overflow-hidden relative bg-muted/10">
+          <ScrollArea className="h-full w-full">
+             <div className="p-6">
+                {isLoading && (
+                  <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                    <p>Загрузка...</p>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="flex flex-col items-center justify-center h-[50vh] text-destructive">
+                    <p className="mb-4">{error}</p>
+                    <Button onClick={handleRefresh} variant="outline">Попробовать снова</Button>
+                  </div>
+                )}
+
+                {!isLoading && !error && mediaList.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground space-y-4">
+                    <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center text-4xl">
+                      📭
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-semibold text-lg text-foreground">Список пуст</h3>
+                      <p>В этой категории пока нет записей</p>
+                    </div>
+                    <Button onClick={() => setIsAddModalOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" /> Добавить запись
+                    </Button>
+                  </div>
+                )}
+
+                {!isLoading && !error && mediaList.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-12">
+                    {mediaList.map(media => (
+                      <Card key={media.id} className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] group border-muted">
+                        <div className="aspect-[2/3] relative bg-muted overflow-hidden">
+                          {media.image ? (
+                            <img 
+                              src={media.image} 
+                              alt={media.title} 
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-secondary/50 text-muted-foreground">
+                              No Image
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-md flex items-center">
+                            <Star className="h-3 w-3 text-yellow-400 mr-1 fill-yellow-400" />
+                            {media.rating}
+                          </div>
+                          {media.category && (
+                            <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                              {media.category}
+                            </div>
+                          )}
+                        </div>
+                        <CardHeader className="p-4 pb-2">
+                          <CardTitle className="leading-tight text-base line-clamp-1" title={media.title}>
+                             {media.title}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 h-20">
+                          <p className="text-sm text-muted-foreground line-clamp-3">
+                            {media.description || 'Нет описания'}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+             </div>
+          </ScrollArea>
+        </div>
+      </main>
 
       <AddMediaModal 
         isOpen={isAddModalOpen} 
@@ -247,28 +335,6 @@ export default function HomePage() {
         onSuccess={handleRefresh}
         initialData={editingGroup}
       />
-
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={() => setContextMenu(null)}
-          options={[
-            {
-              label: 'Редактировать',
-              icon: <FaEdit />,
-              onClick: () => handleEditGroup(contextMenu.groupId),
-            },
-            {
-              label: 'Удалить',
-              icon: <FaTrash />,
-              confirm: true,
-              color: '#ef4444',
-              onClick: () => handleDeleteGroup(contextMenu.groupId),
-            },
-          ]}
-        />
-      )}
     </div>
   );
 }

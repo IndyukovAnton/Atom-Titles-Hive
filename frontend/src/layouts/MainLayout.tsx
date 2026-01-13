@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import ThemeToggle from '../components/ThemeToggle';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -7,8 +6,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="main-layout">
-      <ThemeToggle />
+    <div className="min-h-screen bg-background font-sans antialiased">
       {children}
     </div>
   );

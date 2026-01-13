@@ -57,6 +57,9 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Configuration
+See [docs/environment-setup.md](docs/environment-setup.md) for detailed environment configuration.
+
 ## Database Migrations
 
 This project uses TypeORM migrations for database schema management.

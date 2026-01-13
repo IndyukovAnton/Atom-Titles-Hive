@@ -79,8 +79,8 @@ describe('ProfileController', () => {
   describe('updateProfile', () => {
     it('should update user profile', async () => {
       const expectedResult = createMockUser({
-         username: mockUpdateProfileDto.username,
-         email: mockUpdateProfileDto.email
+        username: mockUpdateProfileDto.username,
+        email: mockUpdateProfileDto.email,
       });
       mockProfileService.updateProfile.mockResolvedValue(expectedResult);
 

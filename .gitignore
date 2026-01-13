@@ -20,3 +20,6 @@ tmp
 
 # editor backup files
 *~
+.env
+*.env
+backend/.env

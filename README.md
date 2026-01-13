@@ -68,7 +68,7 @@ atom-titles-hive/
 - **Routing**: React Router DOM
 - **State Management**: Zustand
 - **HTTP Client**: Axios
-- **Styling**: CSS Modules / Tailwind CSS (optional)
+- **Styling**: Tailwind CSS v4 + shadcn/ui
 
 ### Desktop
 - **Platform**: Tauri 2.x

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { mediaApi } from '../api/media';
-import { FaUserCircle, FaStar, FaFilm, FaBook, FaCalendarAlt } from 'react-icons/fa';
-import '../styles/Profile.css';
+import { User, Star, Film, Book, Calendar } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface UserStats {
   totalItems: number;
   avgRating: number;
   byCategory: Record<string, number>;
   topCategory: string;
-  totalTime?: string; // Placeholder
 }
 
 export default function ProfilePage() {
@@ -50,58 +51,109 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) return <div className="loading-state"><div className="spinner"></div></div>;
+  if (isLoading) {
+    return (
+      <div className="container max-w-4xl py-10 px-4 mx-auto space-y-8 animate-in fade-in">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="h-20 w-20 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-[200px]" />
+            <Skeleton className="h-4 w-[150px]" />
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+          <Skeleton className="h-32 rounded-xl" />
+        </div>
+        <Skeleton className="h-[300px] w-full rounded-xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className="profile-container">
-      <div className="profile-header-card">
-        <div className="profile-avatar">
-          <FaUserCircle size={80} color="var(--primary-color)" />
+    <div className="container max-w-4xl py-10 px-4 mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-center gap-6 p-6 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/10 shadow-sm">
+        <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-inner">
+          <User size={48} />
         </div>
-        <div className="profile-info">
-          <h1>{user?.username}</h1>
-          <p className="profile-email">{user?.email || 'No email provided'}</p>
-          <p className="profile-joined"><FaCalendarAlt /> Joined recently</p>
-        </div>
-      </div>
-
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon"><FaFilm /></div>
-          <div className="stat-value">{stats?.totalItems}</div>
-          <div className="stat-label">Total Items</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon"><FaStar /></div>
-          <div className="stat-value">{stats?.avgRating}</div>
-          <div className="stat-label">Average Rating</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon"><FaBook /></div>
-          <div className="stat-value">{stats?.topCategory}</div>
-          <div className="stat-label">Top Category</div>
+        <div className="text-center md:text-left space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">{user?.username}</h1>
+          <p className="text-muted-foreground font-medium">{user?.email || 'No email provided'}</p>
+          <div className="flex items-center justify-center md:justify-start text-xs text-muted-foreground bg-background/50 px-2 py-1 rounded-full w-fit mx-auto md:mx-0 border">
+            <Calendar className="mr-1 h-3 w-3" /> 
+            Joined recently
+          </div>
         </div>
       </div>
 
-      <div className="stats-details">
-        <h3>Category Breakdown</h3>
-        <div className="category-bars">
-          {Object.entries(stats?.byCategory || {}).map(([cat, count]) => (
-            <div key={cat} className="category-bar-item">
-              <div className="cat-label">
-                <span>{cat}</span>
-                <span>{count}</span>
-              </div>
-              <div className="progress-bg">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${(count / (stats?.totalItems || 1)) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Stats Grid */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+            <Film className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalItems}</div>
+            <p className="text-xs text-muted-foreground">
+              titles in library
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.avgRating}</div>
+            <p className="text-xs text-muted-foreground">
+              out of 10
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Top Category</CardTitle>
+            <Book className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold truncate">{stats?.topCategory}</div>
+            <p className="text-xs text-muted-foreground">
+              favorite genre
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Detailed Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Category Breakdown</CardTitle>
+          <CardDescription>Distribution of your library by category</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {Object.entries(stats?.byCategory || {}).length === 0 ? (
+             <div className="text-center py-8 text-muted-foreground">No data available</div>
+          ) : (
+             Object.entries(stats?.byCategory || {})
+              .sort((a, b) => b[1] - a[1]) // Sort by count desc
+              .map(([cat, count]) => (
+              <div key={cat} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="font-medium flex items-center">
+                     {cat}
+                  </div>
+                  <span className="text-muted-foreground">{count} items</span>
+                </div>
+                <Progress value={(count / (stats?.totalItems || 1)) * 100} className="h-2" />
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
