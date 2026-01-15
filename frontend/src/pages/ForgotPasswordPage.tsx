@@ -1,34 +1,44 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
 import AuthLayout from '../layouts/AuthLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FormInput } from '@/components/Form';
+import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/schemas/authSchema';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const methods = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
+  const {
+    handleSubmit,
+    formState: { isSubmitting },
+  } = methods;
+
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     setError('');
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // TODO: Реализовать API для восстановления пароля
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log('Password reset for:', data.email);
       setIsSuccess(true);
-      
+
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (err: any) {
+    } catch {
       setError('Не удалось отправить письмо. Попробуйте позже.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -41,9 +51,7 @@ export default function ForgotPasswordPage() {
             Проверьте ваш email для инструкций по восстановлению пароля.
           </p>
           <Button asChild className="w-full">
-            <Link to="/login">
-              Вернуться к входу
-            </Link>
+            <Link to="/login">Вернуться к входу</Link>
           </Button>
         </div>
       </AuthLayout>
@@ -51,37 +59,35 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthLayout 
-      title="Titles Tracker" 
-      subtitle="Восстановление пароля" 
-      error={error}
-    >
+    <AuthLayout title="Atom Titles-Hive" subtitle="Восстановление пароля" error={error}>
       <p className="text-center text-muted-foreground text-sm mb-6">
         Введите email вашего аккаунта, и мы отправим инструкции по восстановлению пароля
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormInput
+            name="email"
+            label="Email"
             type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             placeholder="Введите ваш email"
             required
-            disabled={isLoading}
+            disabled={isSubmitting}
             autoFocus
             autoComplete="email"
             className="h-11"
           />
-        </div>
 
-        <Button type="submit" className="w-full h-11 text-base shadow-lg hover:shadow-primary/25 transition-all" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isLoading ? 'Отправка...' : 'Отправить'}
-        </Button>
-      </form>
+          <Button
+            type="submit"
+            className="w-full h-11 text-base shadow-lg hover:shadow-primary/25 transition-all"
+            disabled={isSubmitting}
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Отправка...' : 'Отправить'}
+          </Button>
+        </form>
+      </FormProvider>
 
       <div className="space-y-4 mt-8">
         <div className="text-center text-sm text-muted-foreground">
@@ -90,10 +96,10 @@ export default function ForgotPasswordPage() {
             Войти
           </Link>
         </div>
-        
+
         <div className="text-center">
-          <Link 
-            to="/login" 
+          <Link
+            to="/login"
             className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="mr-1 h-3 w-3" />

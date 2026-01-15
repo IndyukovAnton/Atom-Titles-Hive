@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength, IsOptional } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsOptional, IsDateString, IsObject, IsBoolean } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -19,4 +19,20 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(6)
   newPassword?: string;
+
+  @IsOptional()
+  @IsDateString()
+  birthDate?: string;
+
+  @IsOptional()
+  @IsObject()
+  preferences?: {
+    theme?: string;
+    background?: string;
+    fontSize?: number;
+  };
+
+  @IsOptional()
+  @IsBoolean()
+  hasCompletedOnboarding?: boolean;
 }

@@ -11,13 +11,31 @@ export interface RegisterData {
   password: string;
 }
 
+export interface UserPreferences {
+  background?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  language?: string;
+  aiProvider?: string;
+  aiKey?: string;
+  aiLimits?: {
+    dailyRequests?: number;
+    maxTokens?: number;
+  };
+}
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  birthDate?: string;
+  preferences?: UserPreferences;
+  hasCompletedOnboarding: boolean;
+}
+
 export interface AuthResponse {
   access_token: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-  };
+  user: UserProfile;
 }
 
 export const authApi = {
@@ -31,8 +49,13 @@ export const authApi = {
     return response.data;
   },
 
-  getProfile: async (): Promise<AuthResponse['user']> => {
-    const response = await apiClient.get('/auth/profile');
+  getProfile: async (): Promise<UserProfile> => {
+    const response = await apiClient.get('/profile');
+    return response.data;
+  },
+
+  updateProfile: async (data: Partial<UserProfile>): Promise<UserProfile> => {
+    const response = await apiClient.patch('/profile', data);
     return response.data;
   },
 };

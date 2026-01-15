@@ -1,5 +1,13 @@
 import apiClient from './client';
 
+export interface MediaFile {
+  id: number;
+  url: string;
+  type: 'image' | 'video';
+  mediaId: number;
+  createdAt: string;
+}
+
 export interface MediaEntry {
   id: number;
   title: string;
@@ -11,6 +19,7 @@ export interface MediaEntry {
   genres?: string[];
   category?: string | null;
   tags?: string[];
+  files?: MediaFile[];
   groupId?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -78,5 +87,14 @@ export const mediaApi = {
   getCategories: async (): Promise<string[]> => {
     const response = await apiClient.get('/media/categories');
     return response.data;
+  },
+
+  addFile: async (id: number, data: { url: string; type: 'image' | 'video' }): Promise<any> => {
+    const response = await apiClient.post(`/media/${id}/files`, data);
+    return response.data;
+  },
+
+  removeFile: async (fileId: number): Promise<void> => {
+    await apiClient.delete(`/media/files/${fileId}`);
   },
 };

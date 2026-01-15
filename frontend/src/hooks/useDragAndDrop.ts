@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { DropResult } from '@hello-pangea/dnd';
-import { GroupStats } from '../api/groups';
+import type { DropResult } from '@hello-pangea/dnd';
+import type { GroupStats } from '../api/groups';
 
 export function useDragAndDrop(
   groupStats: GroupStats | null,

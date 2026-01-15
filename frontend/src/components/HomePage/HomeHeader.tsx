@@ -27,7 +27,7 @@ export const HomeHeader = ({
 }: HomeHeaderProps) => {
   return (
     <header className="h-14 border-b flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-      <h1 className="font-bold text-lg tracking-tight hidden md:block">Titles Tracker</h1>
+      <h1 className="font-bold text-lg tracking-tight hidden md:block">Atom Titles-Hive</h1>
       <h2 className="text-base font-medium md:hidden">{title}</h2>
       
       <div className="flex items-center gap-4">

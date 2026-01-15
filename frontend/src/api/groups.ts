@@ -4,6 +4,7 @@ export interface Group {
   id: number;
   name: string;
   userId: number;
+  parentId?: number | null;
   createdAt: string;
   updatedAt: string;
   count?: number; // From stats
@@ -11,12 +12,14 @@ export interface Group {
 
 export interface CreateGroupData {
   name: string;
+  parentId?: number;
 }
 
 export interface GroupStats {
   groups: {
     id: number;
     name: string;
+    parentId?: number | null;
     count: number;
   }[];
   ungrouped: number;

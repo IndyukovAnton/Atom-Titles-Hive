@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import type { MediaEntry } from '../../api/media';
 
 interface MediaCardProps {
@@ -8,9 +11,25 @@ interface MediaCardProps {
 }
 
 export const MediaCard = React.memo(({ media }: MediaCardProps) => {
+  const navigate = useNavigate();
+  
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `media-${media.id}`,
+    data: media,
+  });
+
+  const style = transform ? {
+    transform: CSS.Translate.toString(transform),
+    touchAction: 'none',
+  } : undefined;
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] group border-muted">
-      <div className="aspect-[2/3] relative bg-muted overflow-hidden">
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="h-full">
+      <Card 
+        onClick={() => navigate(`/media/${media.id}`)}
+        className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] group border-muted h-full flex flex-col cursor-pointer"
+      >
+        <div className="aspect-[2/3] relative bg-muted overflow-hidden shrink-0">
         {media.image ? (
           <img 
             src={media.image} 
@@ -32,16 +51,17 @@ export const MediaCard = React.memo(({ media }: MediaCardProps) => {
           </div>
         )}
       </div>
-      <CardHeader className="p-4 pb-2">
+      <CardHeader className="p-4 pb-2 space-y-0">
         <CardTitle className="leading-tight text-base line-clamp-1" title={media.title}>
             {media.title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0 h-20">
+      <CardContent className="p-4 pt-0 flex-1">
         <p className="text-sm text-muted-foreground line-clamp-3">
           {media.description || 'Нет описания'}
         </p>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 });

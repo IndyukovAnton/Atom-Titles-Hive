@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Инициализация при монтировании
   useEffect(() => {
     authStore.initializeAuth();
-  }, []);
+  }, [authStore]);
 
   return (
     <AuthContext.Provider value={authStore}>
@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

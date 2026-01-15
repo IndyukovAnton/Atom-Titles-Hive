@@ -1,15 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { authApi } from '../api/auth';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-}
+import { authApi, type UserProfile } from '../api/auth';
+import { AxiosError } from 'axios';
 
 interface AuthState {
-  user: User | null;
+  user: UserProfile | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -20,6 +15,11 @@ interface AuthState {
   logout: () => void;
   clearError: () => void;
   initializeAuth: () => Promise<void>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+}
+
+interface ApiErrorResponse {
+  message: string;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -41,9 +41,10 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as AxiosError<ApiErrorResponse>;
           set({
-            error: error.response?.data?.message || 'Login failed',
+            error: err.response?.data?.message || 'Login failed',
             isLoading: false,
           });
           throw error;
@@ -60,9 +61,10 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as AxiosError<ApiErrorResponse>;
           set({
-            error: error.response?.data?.message || 'Registration failed',
+            error: err.response?.data?.message || 'Registration failed',
             isLoading: false,
           });
           throw error;
@@ -89,6 +91,17 @@ export const useAuthStore = create<AuthState>()(
             console.error('Failed to fetch profile', e);
             get().logout();
           }
+        }
+      },
+
+      updateProfile: async (data: Partial<UserProfile>) => {
+        try {
+          const updatedUser = await authApi.updateProfile(data);
+          set({ user: updatedUser });
+        } catch (error) {
+          const err = error as AxiosError<ApiErrorResponse>;
+          set({ error: err.response?.data?.message || 'Failed to update profile' });
+          throw error;
         }
       },
     }),

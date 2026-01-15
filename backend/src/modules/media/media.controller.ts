@@ -82,4 +82,23 @@ export class MediaController {
   remove(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.mediaService.remove(+id, req.user.userId);
   }
+
+  @Post(':id/files')
+  addFile(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { url: string; type: 'image' | 'video' },
+  ) {
+    return this.mediaService.addFile(
+      +id,
+      req.user.userId,
+      body.url,
+      body.type,
+    );
+  }
+
+  @Delete('files/:fileId')
+  removeFile(@Request() req: AuthenticatedRequest, @Param('fileId') fileId: string) {
+    return this.mediaService.removeFile(+fileId, req.user.userId);
+  }
 }

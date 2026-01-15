@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { User } from './entities/user.entity';
 import { MediaEntry } from './entities/media-entry.entity';
+import { MediaFile } from './entities/media-file.entity';
 import { Group } from './entities/group.entity';
 import { AuthModule } from './modules/auth/auth.module';
 import { MediaModule } from './modules/media/media.module';
@@ -26,7 +27,7 @@ import { validate } from './config/env.validation';
       useFactory: (configService: ConfigService) => ({
         type: 'sqlite',
         database: configService.get<string>('DATABASE_PATH')!,
-        entities: [User, MediaEntry, Group],
+        entities: [User, MediaEntry, MediaFile, Group],
         synchronize:
           configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],

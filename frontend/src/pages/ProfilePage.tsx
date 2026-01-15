@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { mediaApi } from '../api/media';
-import { User, Star, Film, Book, Calendar } from 'lucide-react';
+import { User, Star, Film, Book, Calendar, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface UserStats {
   totalItems: number;
@@ -74,6 +75,16 @@ export default function ProfilePage() {
   return (
     <div className="container max-w-4xl py-10 px-4 mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
+      <div className="mb-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => window.history.back()}
+          className="hover:bg-muted/50"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Назад
+        </Button>
+      </div>
+
       <div className="flex flex-col md:flex-row items-center gap-6 p-6 rounded-2xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/10 shadow-sm">
         <div className="h-24 w-24 rounded-full bg-primary/20 flex items-center justify-center text-primary shadow-inner">
           <User size={48} />

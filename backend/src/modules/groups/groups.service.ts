@@ -21,6 +21,7 @@ export class GroupsService {
     const group = this.groupRepository.create({
       name: dto.name,
       userId,
+      parentId: dto.parentId,
     });
 
     const saved = await this.groupRepository.save(group);
@@ -90,6 +91,7 @@ export class GroupsService {
       groups: groups.map((group) => ({
         id: group.id,
         name: group.name,
+        parentId: group.parentId,
         count: group.mediaEntries?.length || 0,
       })),
       ungrouped: ungroupedCount,

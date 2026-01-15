@@ -1,4 +1,3 @@
-import React from 'react';
 import type { MediaEntry } from '../../api/media';
 import { MediaCard } from './MediaCard';
 import { Loader2, Plus } from 'lucide-react';

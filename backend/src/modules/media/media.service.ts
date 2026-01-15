@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
+import { MediaFile } from '../../entities/media-file.entity';
 import { CreateMediaDto } from '../../dto/create-media.dto';
 import { UpdateMediaDto } from '../../dto/update-media.dto';
 import { LoggerService } from '../../utils/logger.service';
@@ -12,6 +13,8 @@ export class MediaService {
   constructor(
     @InjectRepository(MediaEntry)
     private mediaRepository: Repository<MediaEntry>,
+    @InjectRepository(MediaFile)
+    private mediaFileRepository: Repository<MediaFile>,
     private logger: LoggerService,
   ) {}
 
@@ -92,7 +95,7 @@ export class MediaService {
   async findOne(id: number, userId: number): Promise<MediaEntry> {
     const media = await this.mediaRepository.findOne({
       where: { id, userId },
-      relations: ['group'],
+      relations: ['group', 'files'],
     });
 
     if (!media) {
@@ -194,5 +197,27 @@ export class MediaService {
     }
 
     return result;
+  }
+
+  async addFile(id: number, userId: number, url: string, type: 'image' | 'video'): Promise<MediaFile> {
+    const media = await this.findOne(id, userId);
+    const file = new MediaFile();
+    file.url = url;
+    file.type = type;
+    file.media = media;
+    return this.mediaFileRepository.save(file);
+  }
+
+  async removeFile(fileId: number, userId: number): Promise<void> {
+    const file = await this.mediaFileRepository.findOne({ 
+        where: { id: fileId },
+        relations: ['media']
+    });
+    
+    if (!file || file.media.userId !== userId) {
+        throw new NotFoundException('File not found or access denied');
+    }
+
+    await this.mediaFileRepository.remove(file);
   }
 }

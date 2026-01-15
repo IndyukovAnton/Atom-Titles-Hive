@@ -1,252 +1,394 @@
-import { useState, type FormEvent, useEffect } from 'react';
-import { mediaApi, type CreateMediaData } from '../api/media';
+import { useEffect, useCallback, useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { mediaApi, type CreateMediaData, type MediaEntry } from '../api/media';
 import { groupsApi, type Group } from '../api/groups';
-import { Button } from "@/components/ui/button";
+import { AxiosError } from 'axios';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, X } from 'lucide-react';
+import { FormInput, FormSelect, FormTextarea, FormDateInput } from '@/components/Form';
+import { mediaSchema, type MediaFormData } from '@/schemas/mediaSchema';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface AddMediaModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialData?: MediaEntry | null;
 }
 
-export default function AddMediaModal({ isOpen, onClose, onSuccess }: AddMediaModalProps) {
-  const [formData, setFormData] = useState<CreateMediaData>({
-    title: '',
-    rating: 5,
-    category: 'Movie',
-    description: '',
-    image: '',
-    startDate: '',
-    endDate: '',
-    groupId: null,
-  });
+const PREDEFINED_TAGS = ['Favorites', 'ToWatch', 'Reading', 'Completed', 'Dropped', 'OnHold', 'Rewatch'];
+
+const CATEGORY_OPTIONS = [
+  { value: 'Movie', label: 'Фильм' },
+  { value: 'Series', label: 'Сериал' },
+  { value: 'Book', label: 'Книга' },
+  { value: 'Game', label: 'Игра' },
+  { value: 'Anime', label: 'Аниме' },
+  { value: 'Manga', label: 'Манга' },
+];
+
+export default function AddMediaModal({ isOpen, onClose, onSuccess, initialData }: AddMediaModalProps) {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [coverMode, setCoverMode] = useState<'url' | 'file'>('url');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
 
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        title: '',
-        rating: 5,
-        category: 'Movie',
-        description: '',
-        image: '',
-        startDate: '',
-        endDate: '',
-        groupId: null,
-      });
-      setError(null);
-      loadGroups();
+  const methods = useForm<MediaFormData>({
+    resolver: zodResolver(mediaSchema),
+    defaultValues: {
+      title: '',
+      rating: 5,
+      category: 'Movie',
+      description: '',
+      image: '',
+      startDate: '',
+      endDate: '',
+      groupId: null,
+    },
+  });
+
+  const {
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { isSubmitting },
+  } = methods;
+
+  const currentCategory = watch('category');
+
+  // Handle Tag Management
+  const addTag = (tag: string) => {
+    if (tag && !tags.includes(tag)) {
+      const newTags = [...tags, tag];
+      setTags(newTags);
+      setValue('tags', newTags);
     }
-  }, [isOpen]);
+    setTagInput('');
+  };
 
-  const loadGroups = async () => {
+  const removeTag = (tag: string) => {
+    const newTags = tags.filter(t => t !== tag);
+    setTags(newTags);
+    setValue('tags', newTags);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File size too large (max 5MB)");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+         setValue('image', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getDateLabels = (category: string) => {
+    switch (category) {
+      case 'Book':
+      case 'Manga':
+        return { start: 'Дата начала чтения', end: 'Дата окончания чтения', showEnd: true };
+      case 'Movie':
+      case 'Anime': // Often single viewing unless series
+        return { start: 'Дата просмотра', end: '', showEnd: false }; 
+      case 'Series':
+        return { start: 'Дата начала просмотра', end: 'Дата окончания просмотра', showEnd: true };
+      case 'Game':
+        return { start: 'Дата начала игры', end: 'Дата прохождения', showEnd: true };
+      default:
+        return { start: 'Дата начала', end: 'Дата окончания', showEnd: true };
+    }
+  };
+
+  const dateLabels = getDateLabels(currentCategory || 'Movie');
+
+
+  const loadGroups = useCallback(async () => {
     try {
       const data = await groupsApi.getAll();
       setGroups(data);
     } catch (e) {
       console.error('Failed to load groups for select', e);
     }
-  };
+  }, []);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        reset({
+          title: initialData.title,
+          rating: initialData.rating,
+          category: initialData.category as any,
+          description: initialData.description || '',
+          image: initialData.image || '',
+          startDate: initialData.startDate || '',
+          endDate: initialData.endDate || '',
+          groupId: initialData.groupId,
+          tags: initialData.tags || [],
+        });
+        setTags(initialData.tags || []);
+        // Check if image is base64 or url to set mode? defaulting to url is fine usually, 
+        // but if we want to be smart:
+        setCoverMode('url'); 
+      } else {
+        reset({
+            title: '',
+            rating: 5,
+            category: 'Movie',
+            description: '',
+            image: '',
+            startDate: '',
+            endDate: '',
+            groupId: null,
+            tags: [],
+        });
+        setTags([]);
+        setCoverMode('url');
+      }
+    }
+  }, [isOpen, reset, initialData]);
+
+  useEffect(() => {
+    if (isOpen) {
+      queueMicrotask(() => {
+        void loadGroups();
+      });
+    }
+  }, [isOpen, loadGroups]);
+
+  const onSubmit = useCallback(async (data: MediaFormData) => {
     setError(null);
 
     try {
-      const dataToSend = { ...formData };
-      
-      if (!dataToSend.startDate) delete dataToSend.startDate;
-      if (!dataToSend.endDate) delete dataToSend.endDate;
-      if (!dataToSend.image) delete dataToSend.image;
-      if (!dataToSend.description) delete dataToSend.description;
-      if (dataToSend.groupId === null) delete dataToSend.groupId;
+      // Формируем объект для отправки, исключая пустые необязательные поля
+      const dataToSend: Record<string, unknown> = {
+        title: data.title,
+        rating: data.rating,
+        category: data.category,
+      };
 
-      await mediaApi.create(dataToSend);
+      if (data.description) dataToSend.description = data.description;
+      if (data.image) dataToSend.image = data.image;
+      if (data.startDate) dataToSend.startDate = data.startDate;
+      if (data.endDate) dataToSend.endDate = data.endDate;
+      if (data.groupId !== null) dataToSend.groupId = data.groupId;
+
+      if (data.tags) dataToSend.tags = data.tags;
+
+      if (initialData?.id) {
+         await mediaApi.update(initialData.id, dataToSend as unknown as Partial<CreateMediaData>);
+      } else {
+         await mediaApi.create(dataToSend as unknown as CreateMediaData);
+      }
+      
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create media');
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      const error = err as AxiosError<{ message: string }>;
+      setError(error.response?.data?.message || 'Не удалось создать запись');
     }
-  };
+  }, [onSuccess, onClose, initialData?.id]);
+
+  const handleClose = useCallback(() => {
+    if (!isSubmitting) {
+      onClose();
+    }
+  }, [isSubmitting, onClose]);
+
+  // Опции для селекта групп
+  const groupOptions = [
+    { value: 'null', label: 'Без группы' },
+    ...groups.map((g) => ({ value: g.id.toString(), label: g.name })),
+  ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Добавить запись</DialogTitle>
+          <DialogTitle>{initialData ? 'Редактировать запись' : 'Добавить запись'}</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="flex-1 p-6 pt-2">
           {error && (
-            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4">
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md mb-4" role="alert">
               {error}
             </div>
           )}
 
-          <form id="add-media-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Название <span className="text-destructive">*</span></Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
+          <FormProvider {...methods}>
+            <form id="add-media-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <FormInput
+                name="title"
+                label="Название"
                 placeholder="Введите название"
                 required
                 autoFocus
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Категория</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(val) => setFormData({ ...formData, category: val })}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Выберите категорию" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Movie">Фильм</SelectItem>
-                    <SelectItem value="Series">Сериал</SelectItem>
-                    <SelectItem value="Book">Книга</SelectItem>
-                    <SelectItem value="Game">Игра</SelectItem>
-                    <SelectItem value="Anime">Аниме</SelectItem>
-                    <SelectItem value="Manga">Манга</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormSelect
+                  name="category"
+                  label="Категория"
+                  options={CATEGORY_OPTIONS}
+                  disabled={isSubmitting}
+                />
 
-              <div className="space-y-2">
-                <Label htmlFor="rating">Оценка (1-10) <span className="text-destructive">*</span></Label>
-                <Input
+                <FormInput
+                  name="rating"
+                  label="Оценка (1-10)"
                   type="number"
-                  id="rating"
-                  min="1"
-                  max="10"
-                  value={formData.rating}
-                  onChange={e => {
-                    const val = parseInt(e.target.value);
-                    if (val >= 1 && val <= 10) {
-                      setFormData({ ...formData, rating: val });
-                    } else if (e.target.value === '') {
-                         // handle empty
-                    }
-                  }}
-                  onBlur={e => {
-                    let val = parseInt(e.target.value);
-                    if (isNaN(val) || val < 1) val = 1;
-                    if (val > 10) val = 10;
-                    setFormData({ ...formData, rating: val });
-                  }}
+                  min={1}
+                  max={10}
                   required
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="group">Группа</Label>
-              <Select
-                value={formData.groupId?.toString() || "null"}
-                onValueChange={(val) => setFormData({ ...formData, groupId: val === "null" ? null : Number(val) })}
-                disabled={isLoading}
-              >
-                <SelectTrigger id="group">
-                  <SelectValue placeholder="Без группы" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="null">Без группы</SelectItem>
-                  {groups.map(g => (
-                    <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image">URL обложки</Label>
-              <Input
-                type="url"
-                id="image"
-                value={formData.image}
-                onChange={e => setFormData({ ...formData, image: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                disabled={isLoading}
+              <FormSelect
+                name="groupId"
+                label="Группа"
+                placeholder="Без группы"
+                options={groupOptions}
+                disabled={isSubmitting}
               />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Описание / Заметки</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
+
+
+              {/* Cover Image Section */}
+              <div className="space-y-2">
+                <Label>Обложка</Label>
+                <Tabs value={coverMode} onValueChange={(v) => setCoverMode(v as 'url' | 'file')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="url">Ссылка URL</TabsTrigger>
+                    <TabsTrigger value="file">Загрузка файла</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="url" className="pt-2">
+                    <FormInput
+                      name="image"
+                      // label="URL обложки" 
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      disabled={isSubmitting}
+                      className="mt-0"
+                    />
+                  </TabsContent>
+                  <TabsContent value="file" className="pt-2">
+                     <div className="flex items-center gap-4">
+                        <Input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleFileUpload} 
+                            disabled={isSubmitting}
+                        />
+                        {watch('image') && watch('image')?.startsWith('data:') && (
+                            <Badge variant="outline" className="text-green-600 border-green-200">
+                                Загружено
+                            </Badge>
+                        )}
+                     </div>
+                     <p className="text-xs text-muted-foreground mt-1">Максимальный размер: 5MB</p>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              <FormTextarea
+                name="description"
+                label="Описание / Заметки"
                 placeholder="Ваши мысли..."
                 rows={3}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Дата начала</Label>
-                <Input
-                  type="date"
-                  id="startDate"
-                  value={formData.startDate}
-                  onChange={e => setFormData({ ...formData, startDate: e.target.value })}
-                  disabled={isLoading}
-                />
+              <div className="border rounded-md p-4 bg-muted/20 space-y-3">
+                 <Label>Теги и критерии</Label>
+                 <div className="flex gap-2">
+                    <Input 
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                addTag(tagInput);
+                            }
+                        }}
+                        placeholder="Введите тег и нажмите Enter"
+                        disabled={isSubmitting}
+                    />
+                    <Button type="button" variant="secondary" onClick={() => addTag(tagInput)} disabled={!tagInput}>Add</Button>
+                 </div>
+                 
+                 {/* Suggested Tags (Optional) */}
+                 <div className="flex flex-wrap gap-1 mt-2">
+                    {PREDEFINED_TAGS.map(tag => (
+                        <Badge 
+                            key={tag} 
+                            variant="outline" 
+                            className="cursor-pointer hover:bg-secondary/80"
+                            onClick={() => addTag(tag)}
+                        >
+                            {tag}
+                        </Badge>
+                    ))}
+                 </div>
+
+                 {/* Selected Tags */}
+                 {tags.length > 0 && (
+                     <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t">
+                        {tags.map(tag => (
+                            <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                                {tag}
+                                <X className="h-3 w-3 cursor-pointer hover:text-destructive" onClick={() => removeTag(tag)}/>
+                            </Badge>
+                        ))}
+                     </div>
+                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="endDate">Дата окончания</Label>
-                <Input
-                  type="date"
-                  id="endDate"
-                  value={formData.endDate}
-                  onChange={e => setFormData({ ...formData, endDate: e.target.value })}
-                  disabled={isLoading}
+              <div className="grid grid-cols-2 gap-4">
+                <FormDateInput
+                  name="startDate"
+                  label={dateLabels.start}
+                  disabled={isSubmitting}
                 />
+
+                {dateLabels.showEnd && (
+                    <FormDateInput
+                      name="endDate"
+                      label={dateLabels.end}
+                      disabled={isSubmitting}
+                    />
+                )}
               </div>
-            </div>
-          </form>
+            </form>
+          </FormProvider>
         </ScrollArea>
 
         <DialogFooter className="p-6 pt-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Отмена
           </Button>
-          <Button type="submit" form="add-media-form" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Сохранение...' : 'Сохранить'}
+          <Button type="submit" form="add-media-form" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Сохранение...' : 'Сохранить'}
           </Button>
         </DialogFooter>
       </DialogContent>

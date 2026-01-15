@@ -7,7 +7,9 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  OneToMany,
 } from 'typeorm';
+import { MediaFile } from './media-file.entity';
 
 @Entity('media_entries')
 @Index(['userId'])
@@ -63,4 +65,7 @@ export class MediaEntry {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => MediaFile, (file) => file.media, { cascade: true })
+  files: MediaFile[];
 }

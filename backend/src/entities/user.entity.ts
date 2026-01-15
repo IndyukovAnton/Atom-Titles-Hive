@@ -7,6 +7,19 @@ import {
   OneToMany,
 } from 'typeorm';
 
+export interface UserPreferences {
+  background?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  language?: string;
+  aiProvider?: string;
+  aiKey?: string;
+  aiLimits?: {
+    dailyRequests?: number;
+    maxTokens?: number;
+  };
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -20,6 +33,15 @@ export class User {
 
   @Column({ length: 255 })
   password: string; // Будет храниться хеш
+
+  @Column({ type: 'date', nullable: true })
+  birthDate?: Date | null;
+
+  @Column({ type: 'json', nullable: true })
+  preferences?: UserPreferences | null;
+
+  @Column({ default: false })
+  hasCompletedOnboarding: boolean;
 
   @OneToMany('MediaEntry', 'user')
   mediaEntries: any[];

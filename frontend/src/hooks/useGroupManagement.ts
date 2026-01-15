@@ -9,6 +9,7 @@ export function useGroupManagement(selectedGroupId: number | null | 'all', setSe
   // Modal states
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<{id: number, name: string} | null>(null);
+  const [targetParentId, setTargetParentId] = useState<number | undefined>(undefined);
 
   const loadGroups = useCallback(async () => {
     try {
@@ -31,13 +32,14 @@ export function useGroupManagement(selectedGroupId: number | null | 'all', setSe
       await groupsApi.delete(id);
       if (selectedGroupId === id) setSelectedGroupId('all');
       await loadGroups();
-    } catch (e) {
+    } catch {
       alert('Ошибка при удалении группы');
     }
   }, [selectedGroupId, setSelectedGroupId, loadGroups]);
 
-  const openCreateGroupModal = useCallback(() => {
+  const openCreateGroupModal = useCallback((parentId?: number) => {
     setEditingGroup(null);
+    setTargetParentId(parentId);
     setIsGroupModalOpen(true);
   }, []);
 
@@ -64,6 +66,7 @@ export function useGroupManagement(selectedGroupId: number | null | 'all', setSe
     editingGroup,
     openCreateGroupModal,
     openEditGroupModal,
-    closeGroupModal
+    closeGroupModal,
+    targetParentId
   };
 }

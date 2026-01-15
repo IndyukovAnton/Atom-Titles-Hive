@@ -38,10 +38,14 @@ export class ProfileService {
       username: user.username,
       email: user.email,
       createdAt: user.createdAt,
+      birthDate: user.birthDate,
+      preferences: user.preferences,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
     };
   }
 
   async updateProfile(userId: number, dto: UpdateProfileDto) {
+    // Trigger rebuild 1
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
@@ -84,6 +88,22 @@ export class ProfileService {
       changes.push('email');
     }
 
+    if (dto.birthDate !== undefined) {
+      user.birthDate = dto.birthDate ? new Date(dto.birthDate) : null;
+      changes.push('birthDate');
+    }
+
+    if (dto.preferences !== undefined) {
+      user.preferences = dto.preferences;
+      changes.push('preferences');
+    }
+
+    if (dto.hasCompletedOnboarding !== undefined) {
+      user.hasCompletedOnboarding = dto.hasCompletedOnboarding;
+      changes.push('hasCompletedOnboarding');
+    }
+
+    // Trigger rebuild 2
     await this.userRepository.save(user);
     await this.logger.log(
       `Profile updated for user ${userId} (${user.username}). Changed fields: ${changes.join(', ')}`,
@@ -93,6 +113,9 @@ export class ProfileService {
       id: user.id,
       username: user.username,
       email: user.email,
+      birthDate: user.birthDate,
+      preferences: user.preferences,
+      hasCompletedOnboarding: user.hasCompletedOnboarding,
     };
   }
 

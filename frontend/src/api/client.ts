@@ -1,10 +1,10 @@
 import axios from 'axios';
-
-const API_URL = 'http://localhost:1221';
+import { config } from '../config';
 
 // Создаем экземпляр axios с базовыми настройками
 const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: config.apiUrl,
+  timeout: config.apiTimeout,
   headers: {
     'Content-Type': 'application/json',
   },
