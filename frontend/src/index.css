@@ -5,34 +5,43 @@
 
 :root {
   /* Base Colors */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --background: oklch(0.99 0.002 270);
+  --foreground: oklch(0.15 0.01 270);
 
   /* Component Colors */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.15 0.01 270);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
+  --popover-foreground: oklch(0.15 0.01 270);
   
-  /* Brand Colors */
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
+  /* Brand Colors - более насыщенные */
+  --primary: oklch(0.55 0.25 270);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.01 270);
+  --secondary-foreground: oklch(0.25 0.02 270);
+  --muted: oklch(0.96 0.005 270);
+  --muted-foreground: oklch(0.5 0.02 270);
+  --accent: oklch(0.94 0.02 270);
+  --accent-foreground: oklch(0.25 0.02 270);
   
-  /* State Colors */
-  --destructive: oklch(0.577 0.245 27.325);
+  /* State Colors - расширенная палитра */
+  --destructive: oklch(0.6 0.24 25);
+  --success: oklch(0.65 0.2 145);
+  --warning: oklch(0.75 0.18 85);
+  --info: oklch(0.6 0.2 240);
+  
+  /* Accent Colors для секций */
+  --accent-blue: oklch(0.6 0.2 240);
+  --accent-purple: oklch(0.55 0.25 300);
+  --accent-orange: oklch(0.7 0.18 55);
+  --accent-green: oklch(0.65 0.2 145);
+  --accent-pink: oklch(0.65 0.2 0);
+  --accent-cyan: oklch(0.7 0.15 200);
   
   /* Form & Borders */
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  
-
+  --border: oklch(0.9 0.01 270);
+  --input: oklch(0.92 0.01 270);
+  --ring: oklch(0.55 0.25 270);
 }
 
 @theme inline {
@@ -58,44 +67,54 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 }
 
 .dark {
-  /* Base Colors */
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
+  /* Base Colors - более глубокие */
+  --background: oklch(0.14 0.015 270);
+  --foreground: oklch(0.95 0.005 270);
   
   /* Component Colors */
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0.015 270);
+  --card-foreground: oklch(0.95 0.005 270);
+  --popover: oklch(0.18 0.015 270);
+  --popover-foreground: oklch(0.95 0.005 270);
   
-  /* Brand Colors */
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Brand Colors - яркие в тёмной теме */
+  --primary: oklch(0.7 0.2 270);
+  --primary-foreground: oklch(0.14 0.015 270);
+  --secondary: oklch(0.25 0.02 270);
+  --secondary-foreground: oklch(0.95 0.005 270);
+  --muted: oklch(0.22 0.015 270);
+  --muted-foreground: oklch(0.65 0.02 270);
+  --accent: oklch(0.25 0.025 270);
+  --accent-foreground: oklch(0.95 0.005 270);
   
   /* State Colors */
-  --destructive: oklch(0.704 0.191 22.216);
+  --destructive: oklch(0.65 0.22 25);
+  --success: oklch(0.7 0.18 145);
+  --warning: oklch(0.8 0.15 85);
+  --info: oklch(0.7 0.18 240);
   
-  /* Form & Borders */
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
+  /* Accent Colors - светящиеся в темноте */
+  --accent-blue: oklch(0.7 0.18 240);
+  --accent-purple: oklch(0.65 0.22 300);
+  --accent-orange: oklch(0.75 0.16 55);
+  --accent-green: oklch(0.7 0.18 145);
+  --accent-pink: oklch(0.7 0.18 0);
+  --accent-cyan: oklch(0.75 0.14 200);
   
-
-
-
+  /* Form & Borders - subtle glow */
+  --border: oklch(0.35 0.02 270);
+  --input: oklch(0.25 0.02 270);
+  --ring: oklch(0.7 0.2 270);
 }
 
 @layer base {
@@ -106,7 +125,47 @@
     @apply bg-background text-foreground transition-colors duration-300;
   }
 
-  /* Фоновые градиенты */
+  /* Фоновые градиенты с overlay для читаемости */
+  body[data-background="default"],
+  body[data-background="liquid-ether"],
+  body[data-background="light-pillar"],
+  body[data-background="aurora"],
+  body[data-background="sunset"],
+  body[data-background="forest"],
+  body[data-background="midnight"],
+  body[data-background="cosmos"],
+  body[data-background="ocean"],
+  body[data-background="passion"] {
+    position: relative;
+  }
+  
+  body[data-background="default"]::before,
+  body[data-background="liquid-ether"]::before,
+  body[data-background="light-pillar"]::before,
+  body[data-background="aurora"]::before,
+  body[data-background="sunset"]::before,
+  body[data-background="forest"]::before,
+  body[data-background="midnight"]::before,
+  body[data-background="cosmos"]::before,
+  body[data-background="ocean"]::before,
+  body[data-background="passion"]::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* Overlay для тёмной темы — затемнение */
+  .dark body[data-background]::before {
+    background: rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Overlay для светлой темы — осветление */
+  body[data-background]:not(.dark *)::before {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
   body[data-background="default"] {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
@@ -136,6 +195,30 @@
   }
   body[data-background="passion"] {
     background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+  }
+  
+  /* Карточки на градиентных фонах получают усиленный backdrop-blur */
+  body[data-background] .bg-card,
+  body[data-background] [class*="Card"] {
+    background: oklch(1 0 0 / 0.85) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  .dark body[data-background] .bg-card,
+  .dark body[data-background] [class*="Card"] {
+    background: oklch(0.12 0.02 270 / 0.9) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  
+  /* Текст на градиентах должен быть контрастным */
+  body[data-background] .text-foreground {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark body[data-background] .text-foreground {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   /* GPU Acceleration для анимаций */
@@ -168,5 +251,76 @@
   .slide-in-from-bottom-4 {
     animation: slide-in-from-bottom 0.5s ease-out;
   }
-}
 
+  /* Glassmorphism */
+  .glass {
+    background: oklch(1 0 0 / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(1 0 0 / 0.2);
+  }
+
+  .dark .glass {
+    background: oklch(0.18 0.015 270 / 0.7);
+    border: 1px solid oklch(1 0 0 / 0.1);
+  }
+
+  /* Shimmer Loading */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(0.95 0.005 270) 25%,
+      oklch(0.9 0.01 270) 50%,
+      oklch(0.95 0.005 270) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .dark .shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(0.22 0.015 270) 25%,
+      oklch(0.28 0.02 270) 50%,
+      oklch(0.22 0.015 270) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Pulse Glow */
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.25 270 / 0.4); }
+    50% { box-shadow: 0 0 20px 4px oklch(0.55 0.25 270 / 0.2); }
+  }
+
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: linear-gradient(135deg, oklch(0.6 0.2 270) 0%, oklch(0.6 0.2 200) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Card Hover Lift */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px -8px oklch(0 0 0 / 0.15);
+  }
+
+  .dark .hover-lift:hover {
+    box-shadow: 0 12px 40px -8px oklch(0 0 0 / 0.4);
+  }
+}

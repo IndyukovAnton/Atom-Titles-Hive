@@ -9,12 +9,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { FormInput } from '@/components/Form';
 import { groupSchema, type GroupFormData } from '@/schemas/groupSchema';
 import { useState } from 'react';
+import { toast } from 'sonner';
+
 
 interface CreateGroupModalProps {
   isOpen: boolean;
@@ -32,6 +35,7 @@ export default function CreateGroupModal({
   parentId,
 }: CreateGroupModalProps) {
   const [error, setError] = useState<string | null>(null);
+
 
   const methods = useForm<GroupFormData>({
     resolver: zodResolver(groupSchema),
@@ -61,14 +65,18 @@ export default function CreateGroupModal({
     try {
       if (initialData) {
         await groupsApi.update(initialData.id, data);
+        toast.success('Группа обновлена');
       } else {
         await groupsApi.create(data);
+        toast.success('Группа создана');
       }
       onSuccess();
       onClose();
     } catch (err) {
       const error = err as AxiosError<{ message: string }>;
-      setError(error.response?.data?.message || 'Не удалось сохранить группу');
+      const errorMessage = error.response?.data?.message || 'Не удалось сохранить группу';
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   }, [initialData, onSuccess, onClose]);
 
@@ -99,6 +107,11 @@ export default function CreateGroupModal({
           <DialogTitle>
             {initialData ? 'Редактировать группу' : 'Создать группу'}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {initialData
+              ? 'Форма редактирования группы'
+              : 'Форма создания новой группы'}
+          </DialogDescription>
         </DialogHeader>
 
         {error && (

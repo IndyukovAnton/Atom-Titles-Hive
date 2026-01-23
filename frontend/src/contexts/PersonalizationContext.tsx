@@ -1,23 +1,7 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../store/authStore';
 import type { UserPreferences } from '../api/auth';
-
-type Theme = 'light' | 'dark';
-
-interface PersonalizationContextType {
-  theme: Theme;
-  background: string;
-  fontSize: number;
-  fontFamily: string;
-  toggleTheme: () => void;
-  setTheme: (theme: Theme) => void;
-  setBackground: (background: string) => void;
-  setFontSize: (fontSize: number) => void;
-  setFontFamily: (fontFamily: string) => void;
-  savePreferences: () => Promise<void>;
-}
-
-const PersonalizationContext = createContext<PersonalizationContextType | undefined>(undefined);
+import { PersonalizationContext, type Theme } from './PersonalizationContextDefinition';
 
 const DEFAULT_BACKGROUND = 'default';
 const DEFAULT_FONT_SIZE = 16;
@@ -28,7 +12,6 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem('theme') as Theme | null;
     if (saved) return saved;
-    // По умолчанию темная тема
     return 'dark';
   });
 
@@ -41,15 +24,43 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
   const [fontFamily, setFontFamilyState] = useState<string>(
     () => user?.preferences?.fontFamily || DEFAULT_FONT_FAMILY
   );
+  
+  const [aiKey, setAiKeyState] = useState<string>('');
+  
+  const [privacySettings, setPrivacySettingsState] = useState({
+    shareWatchHistory: false,
+    shareBirthDate: false,
+  });
 
-  // Синхронизация с профилем пользователя
-  useEffect(() => {
+  // Synchronize local state with user profile when user changes
+  const [lastUserPref, setLastUserPref] = useState(user?.preferences);
+  if (user?.preferences !== lastUserPref) {
+    setLastUserPref(user?.preferences);
     if (user?.preferences) {
-      if (user.preferences.background) setBackgroundState(user.preferences.background);
-      if (user.preferences.fontSize) setFontSizeState(user.preferences.fontSize);
-      if (user.preferences.fontFamily) setFontFamilyState(user.preferences.fontFamily);
+      const prefs = user.preferences;
+      if (prefs.background) setBackgroundState(prefs.background);
+      if (prefs.fontSize) setFontSizeState(prefs.fontSize);
+      if (prefs.fontFamily) setFontFamilyState(prefs.fontFamily);
+      
+      if (prefs.privacySettings) {
+        setPrivacySettingsState({
+          shareWatchHistory: prefs.privacySettings.shareWatchHistory ?? false,
+          shareBirthDate: prefs.privacySettings.shareBirthDate ?? false,
+        });
+      }
     }
-  }, [user]);
+  }
+
+  // Load secure key from localStorage when user changes
+  const [lastUserId, setLastUserId] = useState(user?.id);
+  if (user?.id !== lastUserId) {
+    setLastUserId(user?.id);
+    if (user?.id) {
+       const savedKey = localStorage.getItem(`ai_secure_key_${user.id}`);
+       setAiKeyState(savedKey || '');
+    }
+  }
+
 
   // Применение темы
   useEffect(() => {
@@ -94,11 +105,31 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     setFontFamilyState(newFontFamily);
   };
 
+  const setAiKey = (key: string) => {
+      setAiKeyState(key);
+  };
+
+  const setPrivacySettings = (settings: { shareWatchHistory: boolean; shareBirthDate: boolean }) => {
+      setPrivacySettingsState(settings);
+  };
+
   const savePreferences = async () => {
+    // Безопасно сохраняем ключ локально
+    if (user?.id) {
+        if (aiKey) {
+            localStorage.setItem(`ai_secure_key_${user.id}`, aiKey);
+        } else {
+            localStorage.removeItem(`ai_secure_key_${user.id}`);
+        }
+    }
+
     const preferences: UserPreferences = {
       background,
       fontSize,
       fontFamily,
+      privacySettings,
+      // Не отправляем ключ на сервер в открытом виде, если он там не нужен для прокси
+      // В данном случае мы реализуем "Client-side storage" вариант безопасности
     };
 
     await updateProfile({ preferences });
@@ -111,11 +142,15 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
         background,
         fontSize,
         fontFamily,
+        aiKey,
+        privacySettings,
         toggleTheme,
         setTheme,
         setBackground,
         setFontSize,
         setFontFamily,
+        setAiKey,
+        setPrivacySettings,
         savePreferences,
       }}
     >
@@ -124,17 +159,8 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function usePersonalization() {
-  const context = useContext(PersonalizationContext);
 
-  if (context === undefined) {
-    throw new Error('usePersonalization must be used within PersonalizationProvider');
-  }
-  return context;
-}
 
-// Обратная совместимость с useTheme
-export const useTheme = () => {
-  const { theme, toggleTheme, setTheme } = usePersonalization();
-  return { theme, toggleTheme, setTheme };
-};
+
+
+

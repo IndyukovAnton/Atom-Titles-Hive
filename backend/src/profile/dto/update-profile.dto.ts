@@ -1,4 +1,12 @@
-import { IsOptional, IsDateString, IsBoolean, IsObject, IsString, IsNumber, ValidateNested } from 'class-validator';
+import {
+  IsOptional,
+  IsDateString,
+  IsBoolean,
+  IsObject,
+  IsString,
+  IsNumber,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class AiLimitsDto {

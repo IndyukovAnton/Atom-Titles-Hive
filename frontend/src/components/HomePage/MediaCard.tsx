@@ -6,6 +6,8 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { MediaEntry } from '../../api/media';
 
+import { localizeCategory } from '../../utils/localization';
+
 interface MediaCardProps {
   media: MediaEntry;
 }
@@ -47,7 +49,7 @@ export const MediaCard = React.memo(({ media }: MediaCardProps) => {
         </div>
         {media.category && (
           <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
-            {media.category}
+            {localizeCategory(media.category)}
           </div>
         )}
       </div>

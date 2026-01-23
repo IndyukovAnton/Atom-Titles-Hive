@@ -8,10 +8,10 @@ import {
   mockUpdateGroupDto,
 } from '../../../test/fixtures/group.fixtures';
 import { NotFoundException } from '@nestjs/common';
+import { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 
 describe('GroupsController', () => {
   let controller: GroupsController;
-  let service: GroupsService;
 
   const mockGroupsService = {
     create: jest.fn(),
@@ -23,8 +23,8 @@ describe('GroupsController', () => {
   };
 
   const mockAuthenticatedRequest = {
-    user: { userId: 1 },
-  } as any;
+    user: { userId: 1, username: 'testuser' },
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,7 +41,6 @@ describe('GroupsController', () => {
       .compile();
 
     controller = module.get<GroupsController>(GroupsController);
-    service = module.get<GroupsService>(GroupsService);
   });
 
   afterEach(() => {
@@ -58,7 +57,10 @@ describe('GroupsController', () => {
         mockCreateGroupDto,
       );
 
-      expect(service.create).toHaveBeenCalledWith(1, mockCreateGroupDto);
+      expect(mockGroupsService.create).toHaveBeenCalledWith(
+        1,
+        mockCreateGroupDto,
+      );
       expect(result).toEqual(expectedResult);
     });
   });
@@ -70,7 +72,7 @@ describe('GroupsController', () => {
 
       const result = await controller.findAll(mockAuthenticatedRequest);
 
-      expect(service.findAll).toHaveBeenCalledWith(1);
+      expect(mockGroupsService.findAll).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
     });
   });
@@ -85,7 +87,7 @@ describe('GroupsController', () => {
 
       const result = await controller.getStats(mockAuthenticatedRequest);
 
-      expect(service.getGroupStats).toHaveBeenCalledWith(1);
+      expect(mockGroupsService.getGroupStats).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
     });
   });
@@ -97,7 +99,7 @@ describe('GroupsController', () => {
 
       const result = await controller.findOne(mockAuthenticatedRequest, '1');
 
-      expect(service.findOne).toHaveBeenCalledWith(1, 1);
+      expect(mockGroupsService.findOne).toHaveBeenCalledWith(1, 1);
       expect(result).toEqual(expectedResult);
     });
 
@@ -121,7 +123,11 @@ describe('GroupsController', () => {
         mockUpdateGroupDto,
       );
 
-      expect(service.update).toHaveBeenCalledWith(1, 1, mockUpdateGroupDto);
+      expect(mockGroupsService.update).toHaveBeenCalledWith(
+        1,
+        1,
+        mockUpdateGroupDto,
+      );
       expect(result).toEqual(expectedResult);
     });
   });
@@ -132,7 +138,7 @@ describe('GroupsController', () => {
 
       const result = await controller.remove(mockAuthenticatedRequest, '1');
 
-      expect(service.remove).toHaveBeenCalledWith(1, 1);
+      expect(mockGroupsService.remove).toHaveBeenCalledWith(1, 1);
       expect(result).toEqual({ message: 'Group deleted successfully' });
     });
   });

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
+import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { AlertCircle } from 'lucide-react';
 
 interface AuthLayoutProps {
@@ -14,8 +15,10 @@ export default function AuthLayout({ children, title, subtitle, error }: AuthLay
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-950 dark:to-slate-900 p-4 relative overflow-hidden">
       {/* Background decoration */}
+      {/* Background decoration */}
+      <AnimatedBackground />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:50px_50px] [mask-image:radial-gradient(ellipse_at_center,black,transparent)] opacity-50 dark:opacity-20 animate-[spin_120s_linear_infinite]" />
+        <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(var(--primary),0.05)_1px,transparent_1px)] bg-[length:50px_50px] [mask-image:radial-gradient(ellipse_at_center,black,transparent)] opacity-30 animate-[spin_240s_linear_infinite]" />
       </div>
 
       <Card className="w-full max-w-[440px] shadow-2xl backdrop-blur-xl bg-card/80 border-white/20 dark:border-white/10 relative z-10 animate-in fade-in zoom-in-95 duration-500 slide-in-from-bottom-4">

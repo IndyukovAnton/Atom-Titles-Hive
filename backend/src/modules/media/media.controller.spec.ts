@@ -8,10 +8,10 @@ import {
   createMockMediaEntry,
 } from '../../../test/fixtures/media.fixtures';
 import { NotFoundException } from '@nestjs/common';
+import { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 
 describe('MediaController', () => {
   let controller: MediaController;
-  let service: MediaService;
 
   const mockMediaService = {
     create: jest.fn(),
@@ -24,8 +24,8 @@ describe('MediaController', () => {
   };
 
   const mockAuthenticatedRequest = {
-    user: { userId: 1 },
-  } as any;
+    user: { userId: 1, username: 'testuser' },
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,7 +42,6 @@ describe('MediaController', () => {
       .compile();
 
     controller = module.get<MediaController>(MediaController);
-    service = module.get<MediaService>(MediaService);
   });
 
   afterEach(() => {
@@ -59,7 +58,10 @@ describe('MediaController', () => {
         mockCreateMediaDto,
       );
 
-      expect(service.create).toHaveBeenCalledWith(1, mockCreateMediaDto);
+      expect(mockMediaService.create).toHaveBeenCalledWith(
+        1,
+        mockCreateMediaDto,
+      );
       expect(result).toEqual(expectedResult);
     });
   });
@@ -76,7 +78,7 @@ describe('MediaController', () => {
         'query', // search
       );
 
-      expect(service.findAll).toHaveBeenCalledWith(1, {
+      expect(mockMediaService.findAll).toHaveBeenCalledWith(1, {
         groupId: 1,
         category: 'Film',
         search: 'query',
@@ -88,7 +90,7 @@ describe('MediaController', () => {
 
       await controller.findAll(mockAuthenticatedRequest, 'null');
 
-      expect(service.findAll).toHaveBeenCalledWith(1, {
+      expect(mockMediaService.findAll).toHaveBeenCalledWith(1, {
         groupId: null,
       });
     });
@@ -98,7 +100,7 @@ describe('MediaController', () => {
 
       await controller.findAll(mockAuthenticatedRequest);
 
-      expect(service.findAll).toHaveBeenCalledWith(1, {});
+      expect(mockMediaService.findAll).toHaveBeenCalledWith(1, {});
     });
   });
 
@@ -109,7 +111,7 @@ describe('MediaController', () => {
 
       const result = await controller.findOne(mockAuthenticatedRequest, '1');
 
-      expect(service.findOne).toHaveBeenCalledWith(1, 1);
+      expect(mockMediaService.findOne).toHaveBeenCalledWith(1, 1);
       expect(result).toEqual(expectedResult);
     });
 
@@ -133,7 +135,11 @@ describe('MediaController', () => {
         mockUpdateMediaDto,
       );
 
-      expect(service.update).toHaveBeenCalledWith(1, 1, mockUpdateMediaDto);
+      expect(mockMediaService.update).toHaveBeenCalledWith(
+        1,
+        1,
+        mockUpdateMediaDto,
+      );
       expect(result).toEqual(expectedResult);
     });
   });
@@ -144,7 +150,7 @@ describe('MediaController', () => {
 
       await controller.remove(mockAuthenticatedRequest, '1');
 
-      expect(service.remove).toHaveBeenCalledWith(1, 1);
+      expect(mockMediaService.remove).toHaveBeenCalledWith(1, 1);
     });
   });
 
@@ -155,7 +161,7 @@ describe('MediaController', () => {
 
       const result = await controller.search(mockAuthenticatedRequest, 'query');
 
-      expect(service.search).toHaveBeenCalledWith(1, 'query');
+      expect(mockMediaService.search).toHaveBeenCalledWith(1, 'query');
       expect(result).toEqual(expectedResult);
     });
   });
@@ -167,7 +173,7 @@ describe('MediaController', () => {
 
       const result = await controller.getCategories(mockAuthenticatedRequest);
 
-      expect(service.getCategories).toHaveBeenCalledWith(1);
+      expect(mockMediaService.getCategories).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
     });
   });

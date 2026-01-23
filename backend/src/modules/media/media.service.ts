@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, DataSource } from 'typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { MediaFile } from '../../entities/media-file.entity';
 import { CreateMediaDto } from '../../dto/create-media.dto';
@@ -16,6 +16,7 @@ export class MediaService {
     @InjectRepository(MediaFile)
     private mediaFileRepository: Repository<MediaFile>,
     private logger: LoggerService,
+    private dataSource: DataSource,
   ) {}
 
   async create(userId: number, dto: CreateMediaDto): Promise<MediaEntry> {
@@ -182,42 +183,80 @@ export class MediaService {
   }
 
   private parseJsonFields(media: MediaEntry): MediaEntry {
-    const result = { ...media };
+    const genres =
+      typeof media.genres === 'string' && media.genres
+        ? (JSON.parse(media.genres) as string[])
+        : [];
+    const tags =
+      typeof media.tags === 'string' && media.tags
+        ? (JSON.parse(media.tags) as string[])
+        : [];
 
-    if (typeof media.genres === 'string' && media.genres) {
-      (result as any).genres = JSON.parse(media.genres);
-    } else {
-      (result as any).genres = [];
-    }
-
-    if (typeof media.tags === 'string' && media.tags) {
-      (result as any).tags = JSON.parse(media.tags);
-    } else {
-      (result as any).tags = [];
-    }
-
-    return result;
+    return {
+      ...media,
+      genres: genres as unknown as string,
+      tags: tags as unknown as string,
+    } as MediaEntry;
   }
 
-  async addFile(id: number, userId: number, url: string, type: 'image' | 'video'): Promise<MediaFile> {
-    const media = await this.findOne(id, userId);
-    const file = new MediaFile();
-    file.url = url;
-    file.type = type;
-    file.media = media;
-    return this.mediaFileRepository.save(file);
+  async addFile(
+    id: number,
+    userId: number,
+    url: string,
+    type: 'image' | 'video',
+  ): Promise<MediaFile> {
+    try {
+      const media = await this.findOne(id, userId);
+      const file = new MediaFile();
+      file.url = url;
+      file.type = type;
+      file.media = media;
+      return await this.mediaFileRepository.save(file);
+    } catch (error) {
+      await this.logger.error(
+        `Failed to add file to media ${id} for user ${userId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   async removeFile(fileId: number, userId: number): Promise<void> {
-    const file = await this.mediaFileRepository.findOne({ 
-        where: { id: fileId },
-        relations: ['media']
+    const file = await this.mediaFileRepository.findOne({
+      where: { id: fileId },
+      relations: ['media'],
     });
-    
+
     if (!file || file.media.userId !== userId) {
-        throw new NotFoundException('File not found or access denied');
+      throw new NotFoundException('File not found or access denied');
     }
 
     await this.mediaFileRepository.remove(file);
+  }
+
+  async factoryReset(userId: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.query('PRAGMA foreign_keys = OFF;');
+
+      await queryRunner.query('DELETE FROM media_files;');
+      await queryRunner.query('DELETE FROM media_entries;');
+      await queryRunner.query('DELETE FROM groups;');
+
+      await queryRunner.query('PRAGMA foreign_keys = ON;');
+      await queryRunner.commitTransaction();
+
+      await this.logger.warn(
+        `User ${userId} performed a Factory Reset. All media data deleted.`,
+      );
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

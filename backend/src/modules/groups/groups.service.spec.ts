@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GroupsService } from './groups.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Group } from '../../entities/group.entity';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { LoggerService } from '../../utils/logger.service';
@@ -14,9 +13,6 @@ import {
 
 describe('GroupsService', () => {
   let service: GroupsService;
-  let groupRepository: Repository<Group>;
-  let mediaRepository: Repository<MediaEntry>;
-  let loggerService: LoggerService;
 
   const mockGroupRepository = {
     create: jest.fn(),
@@ -57,11 +53,6 @@ describe('GroupsService', () => {
     }).compile();
 
     service = module.get<GroupsService>(GroupsService);
-    groupRepository = module.get<Repository<Group>>(getRepositoryToken(Group));
-    mediaRepository = module.get<Repository<MediaEntry>>(
-      getRepositoryToken(MediaEntry),
-    );
-    loggerService = module.get<LoggerService>(LoggerService);
   });
 
   afterEach(() => {

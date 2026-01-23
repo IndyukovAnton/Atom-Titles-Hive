@@ -6,7 +6,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-background font-sans antialiased">
+    <div className="min-h-screen font-sans antialiased">
       {children}
     </div>
   );

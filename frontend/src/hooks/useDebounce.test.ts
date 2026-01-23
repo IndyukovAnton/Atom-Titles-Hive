@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useDebounce } from './useDebounce';
 
 describe('useDebounce', () => {
@@ -8,6 +8,7 @@ describe('useDebounce', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('должен вернуть начальное значение сразу', () => {
@@ -30,11 +31,10 @@ describe('useDebounce', () => {
     expect(result.current).toBe('initial');
 
     // Перематываем время на 300мс
-    vi.advanceTimersByTime(300);
-
-    await waitFor(() => {
-      expect(result.current).toBe('updated');
+    await act(async () => {
+      vi.advanceTimersByTime(300);
     });
+    expect(result.current).toBe('updated');
   });
 
   it('должен отменить предыдущий таймер при новом обновлении', async () => {
@@ -52,11 +52,10 @@ describe('useDebounce', () => {
     // Значение все еще начальное
     expect(result.current).toBe('initial');
 
-    vi.advanceTimersByTime(150);
-
-    await waitFor(() => {
-      expect(result.current).toBe('second');
+    await act(async () => {
+      vi.advanceTimersByTime(150);
     });
+    expect(result.current).toBe('second');
   });
 
   it('должен использовать кастомную задержку', async () => {
@@ -70,10 +69,9 @@ describe('useDebounce', () => {
     vi.advanceTimersByTime(300);
     expect(result.current).toBe('initial');
 
-    vi.advanceTimersByTime(200);
-
-    await waitFor(() => {
-      expect(result.current).toBe('updated');
+    await act(async () => {
+      vi.advanceTimersByTime(200);
     });
+    expect(result.current).toBe('updated');
   });
 });

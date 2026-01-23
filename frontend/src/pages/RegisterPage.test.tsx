@@ -30,7 +30,9 @@ describe('RegisterPage', () => {
         expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/^Пароль/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/^Подтвердите пароль/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /зарегистрироваться/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /^зарегистрироваться$/i }),
+        ).toBeInTheDocument();
     });
 
     it('should submit form and redirect on success', async () => {
@@ -44,7 +46,9 @@ describe('RegisterPage', () => {
         await user.type(screen.getByLabelText(/^Пароль/i), 'password123');
         await user.type(screen.getByLabelText(/^Подтвердите пароль/i), 'password123');
 
-        await user.click(screen.getByRole('button', { name: /зарегистрироваться/i }));
+        await user.click(
+          screen.getByRole('button', { name: /^зарегистрироваться$/i }),
+        );
 
         await waitFor(() => {
             expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -58,7 +62,9 @@ describe('RegisterPage', () => {
         await user.type(screen.getByLabelText(/^Пароль/i), 'password123');
         await user.type(screen.getByLabelText(/^Подтвердите пароль/i), 'passwordMISMATCH');
         
-        await user.click(screen.getByRole('button', { name: /зарегистрироваться/i }));
+        await user.click(
+          screen.getByRole('button', { name: /^зарегистрироваться$/i }),
+        );
 
         await waitFor(() => {
             // Check for Zod error message usually displayed below input
@@ -71,7 +77,7 @@ describe('RegisterPage', () => {
         const user = userEvent.setup();
         
         server.use(
-            http.post(`${config.apiUrl}/auth/register`, () => {
+            http.post(`${config.getApiUrl()}/auth/register`, () => {
                 return HttpResponse.json(
                     { message: 'Username already taken' },
                     { status: 400 }
@@ -86,7 +92,9 @@ describe('RegisterPage', () => {
         await user.type(screen.getByLabelText(/^Пароль/i), 'password123');
         await user.type(screen.getByLabelText(/^Подтвердите пароль/i), 'password123');
 
-        await user.click(screen.getByRole('button', { name: /зарегистрироваться/i }));
+        await user.click(
+          screen.getByRole('button', { name: /^зарегистрироваться$/i }),
+        );
 
         await waitFor(() => {
             expect(screen.getByText('Username already taken')).toBeInTheDocument();

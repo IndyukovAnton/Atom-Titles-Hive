@@ -1,0 +1,76 @@
+﻿
+> frontend@0.0.0 lint
+> eslint .
+
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\AddMediaModal.tsx
+  29:7  error  'PREDEFINED_TAGS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  40:6  error  'Step' is defined but never used                      @typescript-eslint/no-unused-vars
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\Form\TagInput.tsx
+   1:27  error  'useMemo' is defined but never used               @typescript-eslint/no-unused-vars
+   2:26  error  'TagIcon' is defined but never used               @typescript-eslint/no-unused-vars
+  30:41  error  'placeholder' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\NotificationCenter.tsx
+  71:2  error  Parsing error: Declaration or statement expected
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\PhotoViewer.tsx
+  49:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\PhotoViewer.tsx:49:5
+  47 |   // Reset zoom/position when changing images
+  48 |   useEffect(() => {
+> 49 |     setZoom(1);
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  50 |     setPosition({ x: 0, y: 0 });
+  51 |   }, [currentIndex]);
+  52 |  react-hooks/set-state-in-effect
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\ui\calendar.tsx
+  4:10  error  'ChevronLeft' is defined but never used   @typescript-eslint/no-unused-vars
+  4:23  error  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\components\ui\command.tsx
+  26:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\hooks\useMediaForm.ts
+  77:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\hooks\useMediaForm.ts:77:7
+  75 |   useEffect(() => {
+  76 |     if (isOpen) {
+> 77 |       setActiveStep('info');
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  78 |       if (initialData) {
+  79 |         reset({
+  80 |           title: initialData.title,  react-hooks/set-state-in-effect
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\pages\HomePage.tsx
+  51:6  warning  React Hook useEffect has a missing dependency: 'user'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\pages\MediaDetailPage.tsx
+  12:3   error  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+  24:3   error  'Clock' is defined but never used     @typescript-eslint/no-unused-vars
+  34:10  error  'cn' is defined but never used        @typescript-eslint/no-unused-vars
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\pages\ProfilePage.tsx
+  6:10  error  'Progress' is defined but never used  @typescript-eslint/no-unused-vars
+
+F:\projects\Portfolio\Web\Atom-Titles-Hive\frontend\src\pages\SettingsPage.tsx
+  276:26  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 17 problems (16 errors, 1 warning)
+

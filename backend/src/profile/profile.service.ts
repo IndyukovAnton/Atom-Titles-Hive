@@ -19,7 +19,10 @@ export class ProfileService {
     return user;
   }
 
-  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<User> {
+  async updateProfile(
+    userId: number,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<User> {
     const user = await this.getProfile(userId);
 
     // Обновляем основные поля

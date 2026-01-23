@@ -89,16 +89,20 @@ export class MediaController {
     @Param('id') id: string,
     @Body() body: { url: string; type: 'image' | 'video' },
   ) {
-    return this.mediaService.addFile(
-      +id,
-      req.user.userId,
-      body.url,
-      body.type,
-    );
+    return this.mediaService.addFile(+id, req.user.userId, body.url, body.type);
   }
 
   @Delete('files/:fileId')
-  removeFile(@Request() req: AuthenticatedRequest, @Param('fileId') fileId: string) {
+  removeFile(
+    @Request() req: AuthenticatedRequest,
+    @Param('fileId') fileId: string,
+  ) {
     return this.mediaService.removeFile(+fileId, req.user.userId);
+  }
+
+  @Post('reset')
+  async factoryReset(@Request() req: AuthenticatedRequest) {
+    await this.mediaService.factoryReset(req.user.userId);
+    return { message: 'Factory reset completed successfully.' };
   }
 }

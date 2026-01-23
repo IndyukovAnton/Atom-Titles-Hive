@@ -32,12 +32,12 @@ describe('GroupsModule (e2e)', () => {
       password: 'password123',
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(app.getHttpServer() as string)
       .post('/auth/register')
       .send(registerDto)
       .expect(201);
 
-    authToken = response.body.access_token;
+    authToken = (response.body as { access_token: string }).access_token;
   });
 
   afterAll(async () => {
@@ -48,48 +48,51 @@ describe('GroupsModule (e2e)', () => {
 
   describe('/groups (POST)', () => {
     it('should create a group', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/groups')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'My Group' })
         .expect(201)
-        .expect((res) => {
-          expect(res.body.id).toBeDefined();
-          createdGroupId = res.body.id;
-          expect(res.body.name).toBe('My Group');
+        .expect((res: request.Response) => {
+          const body = res.body as { id: number; name: string };
+          expect(body.id).toBeDefined();
+          createdGroupId = body.id;
+          expect(body.name).toBe('My Group');
         });
     });
   });
 
   describe('/groups (GET)', () => {
     it('should return groups list', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .get('/groups')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBeGreaterThan(0);
+        .expect((res: request.Response) => {
+          const body = res.body as unknown[];
+          expect(Array.isArray(body)).toBe(true);
+          expect(body.length).toBeGreaterThan(0);
         });
     });
   });
 
   describe('/groups/:id (PATCH)', () => {
     it('should update group', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .patch(`/groups/${createdGroupId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ name: 'Updated Group' })
         .expect(200)
-        .expect((res) => {
-          expect(res.body.name).toBe('Updated Group');
+        .expect((res: request.Response) => {
+          const body = res.body as { name: string };
+          expect(body.name).toBe('Updated Group');
         });
     });
   });
 
   describe('/groups/:id (DELETE)', () => {
     it('should delete group', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .delete(`/groups/${createdGroupId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);

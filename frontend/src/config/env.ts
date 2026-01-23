@@ -1,8 +1,15 @@
 export interface EnvConfig {
-  apiUrl: string;
-  apiTimeout: number;
-  appName: string;
+  readonly apiTimeout: number;
+  readonly appName: string;
+  /** API URL — может быть динамическим в Tauri */
+  getApiUrl(): string;
+  setApiUrl(url: string): void;
 }
+
+const BACKEND_URL_KEY = 'backend-url';
+
+/** Runtime хранилище для API URL (обновляется мгновенно, в отличие от localStorage) */
+let runtimeApiUrl: string | null = null;
 
 const getEnvVar = (key: string, required: boolean = true): string => {
   const value = import.meta.env[key];
@@ -12,8 +19,69 @@ const getEnvVar = (key: string, required: boolean = true): string => {
   return value as string;
 };
 
-export const config: EnvConfig = {
-  apiUrl: getEnvVar('VITE_API_URL'),
-  apiTimeout: Number(getEnvVar('VITE_API_TIMEOUT')),
-  appName: getEnvVar('VITE_APP_NAME'),
+/**
+ * Проверяет, запущено ли приложение в Tauri
+ */
+const isTauri = (): boolean => {
+  return (
+    typeof window !== 'undefined' &&
+    (('__TAURI_INTERNALS__' in window) || ('__TAURI__' in window))
+  );
 };
+
+/**
+ * Получает API URL.
+ * Приоритет: runtime переменная > localStorage > VITE_API_URL > fallback
+ */
+const getApiUrl = (): string => {
+  // 1. Runtime переменная (устанавливается через setApiUrl)
+  if (runtimeApiUrl) {
+    return runtimeApiUrl;
+  }
+  
+  // 2. localStorage (для перезагрузки страницы в Tauri)
+  if (isTauri()) {
+    const storedUrl = localStorage.getItem(BACKEND_URL_KEY);
+    if (storedUrl) {
+      runtimeApiUrl = storedUrl; // Кэшируем в runtime
+      return storedUrl;
+    }
+  }
+  
+  // 3. Переменная окружения (для браузера)
+  const envUrl = getEnvVar('VITE_API_URL', false);
+  if (envUrl) {
+    return envUrl;
+  }
+  
+  // 4. Fallback (не должен использоваться в production)
+  console.warn('[Config] No API URL configured, using fallback http://localhost:1221');
+  return 'http://localhost:1221';
+};
+
+/**
+ * Устанавливает API URL (для Tauri sidecar).
+ * Сохраняет и в runtime переменную, и в localStorage.
+ */
+const setApiUrl = (url: string): void => {
+  runtimeApiUrl = url;
+  localStorage.setItem(BACKEND_URL_KEY, url);
+};
+
+export const config: EnvConfig = {
+  apiTimeout: Number(getEnvVar('VITE_API_TIMEOUT', false)) || 30000,
+  appName: getEnvVar('VITE_APP_NAME', false) || 'Atom Titles-Hive',
+  getApiUrl,
+  setApiUrl,
+};
+
+/**
+ * Сбрасывает кэш API URL (вызывается при новом запуске Tauri).
+ */
+export const clearApiUrl = (): void => {
+  runtimeApiUrl = null;
+  localStorage.removeItem(BACKEND_URL_KEY);
+};
+
+/** Для обратной совместимости - реэкспорт из config */
+export { getApiUrl };

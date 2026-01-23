@@ -10,12 +10,15 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   
+  isServerAvailable: boolean;
+  setServerAvailable: (available: boolean) => void;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   initializeAuth: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  setToken: (token: string) => Promise<void>;
 }
 
 interface ApiErrorResponse {
@@ -30,6 +33,9 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      isServerAvailable: true,
+
+      setServerAvailable: (available) => set({ isServerAvailable: available }),
 
       login: async (username, password) => {
         set({ isLoading: true, error: null });
@@ -86,10 +92,15 @@ export const useAuthStore = create<AuthState>()(
         if (token) {
           try {
             const userData = await authApi.getProfile();
-            set({ user: userData, isAuthenticated: true });
+            set({ user: userData, isAuthenticated: true, isServerAvailable: true });
           } catch (e) {
             console.error('Failed to fetch profile', e);
-            get().logout();
+            const err = e as AxiosError;
+            if (err.code === 'ERR_NETWORK' || !err.response) {
+              set({ isServerAvailable: false });
+            } else {
+              get().logout();
+            }
           }
         }
       },
@@ -103,6 +114,11 @@ export const useAuthStore = create<AuthState>()(
           set({ error: err.response?.data?.message || 'Failed to update profile' });
           throw error;
         }
+      },
+
+      setToken: async (token: string) => {
+        set({ token, isAuthenticated: true });
+        await get().initializeAuth();
       },
     }),
     {

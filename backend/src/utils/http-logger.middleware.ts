@@ -18,7 +18,7 @@ export class HttpLoggerMiddleware implements NestMiddleware {
     void this.logger.log(`${method} ${originalUrl} - User: ${userId}`);
 
     // Переопределяем метод end для логирования после завершения запроса
-    const originalEnd = res.end.bind(res);
+    const originalEnd = res.end.bind(res) as typeof res.end;
     const loggerInstance = this.logger;
 
     res.end = function (
@@ -50,13 +50,9 @@ export class HttpLoggerMiddleware implements NestMiddleware {
 
       // Вызываем оригинальный метод end
       if (typeof encoding === 'function') {
-        return originalEnd(chunk, encoding) as Response;
+        return originalEnd(chunk, encoding);
       }
-      return originalEnd(
-        chunk,
-        encoding as BufferEncoding,
-        callback,
-      ) as Response;
+      return originalEnd(chunk, encoding as BufferEncoding, callback);
     };
 
     next();

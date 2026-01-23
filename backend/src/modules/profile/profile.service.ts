@@ -62,6 +62,13 @@ export class ProfileService {
         );
       }
 
+      if (!user.password) {
+        await this.logger.warn(
+          `Failed password change attempt for user ${userId}: User has no password (OAuth account)`,
+        );
+        throw new BadRequestException('User has no password set');
+      }
+
       const isPasswordValid = await bcrypt.compare(
         dto.currentPassword,
         user.password,

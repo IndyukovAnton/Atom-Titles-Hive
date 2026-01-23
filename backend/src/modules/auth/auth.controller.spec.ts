@@ -2,19 +2,25 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   mockRegisterDto,
   mockLoginDto,
 } from '../../../test/fixtures/user.fixtures';
+import { RegisterDto } from '../../dto/register.dto';
+import { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: AuthService;
 
   const mockAuthService = {
     register: jest.fn(),
     login: jest.fn(),
     getUserProfile: jest.fn(),
+  };
+
+  const mockConfigService = {
+    get: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -25,11 +31,14 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: mockAuthService,
         },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
       ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
   });
 
   afterEach(() => {
@@ -51,7 +60,7 @@ describe('AuthController', () => {
 
       const result = await controller.register(mockRegisterDto);
 
-      expect(authService.register).toHaveBeenCalledWith(mockRegisterDto);
+      expect(mockAuthService.register).toHaveBeenCalledWith(mockRegisterDto);
       expect(result).toEqual(expectedResult);
     });
 
@@ -97,9 +106,9 @@ describe('AuthController', () => {
         user: { id: 1, username: '', email: 'invalid-email' },
       });
 
-      await controller.register(invalidDto as any);
+      await controller.register(invalidDto as unknown as RegisterDto);
 
-      expect(authService.register).toHaveBeenCalledWith(invalidDto);
+      expect(mockAuthService.register).toHaveBeenCalledWith(invalidDto);
     });
   });
 
@@ -118,7 +127,7 @@ describe('AuthController', () => {
 
       const result = await controller.login(mockLoginDto);
 
-      expect(authService.login).toHaveBeenCalledWith(mockLoginDto);
+      expect(mockAuthService.login).toHaveBeenCalledWith(mockLoginDto);
       expect(result).toEqual(expectedResult);
       expect(result.access_token).toBeDefined();
     });
@@ -170,8 +179,8 @@ describe('AuthController', () => {
   describe('GET /auth/profile', () => {
     it('should return user profile for authenticated user', async () => {
       const mockRequest = {
-        user: { userId: 1 },
-      } as any;
+        user: { userId: 1, username: 'testuser' },
+      } as unknown as AuthenticatedRequest;
 
       const expectedProfile = {
         id: 1,
@@ -183,13 +192,15 @@ describe('AuthController', () => {
 
       const result = await controller.getProfile(mockRequest);
 
-      expect(authService.getUserProfile).toHaveBeenCalledWith(1);
+      expect(mockAuthService.getUserProfile).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedProfile);
     });
 
-    it('should use JWT Guard for authentication', async () => {
+    it('should use JWT Guard for authentication', () => {
       // Проверяем, что метод имеет @UseGuards(AuthGuard('jwt'))
-      const metadata = Reflect.getMetadata('__guards__', controller.getProfile);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const method = AuthController.prototype.getProfile;
+      const metadata = Reflect.getMetadata('__guards__', method) as unknown[];
       expect(metadata).toBeDefined();
     });
   });

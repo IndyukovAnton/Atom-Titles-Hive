@@ -63,19 +63,38 @@ function TreeItem<T = any>({ item, className, asChild, children, ...props }: Omi
   const parentContext = useTreeContext<T>();
   const { indent } = parentContext;
 
-  const itemProps = typeof item.getProps === 'function' ? item.getProps() : {};
+  // Безопасное получение props с обработкой ошибок
+  let itemProps = {};
+  try {
+    itemProps = typeof item.getProps === 'function' ? item.getProps() : {};
+  } catch (error) {
+    console.warn('TreeItem: Failed to get item props', error);
+  }
+  
   const mergedProps = { ...props, ...itemProps };
 
   // Extract style from mergedProps to merge with our custom styles
   const { style: propStyle, ...otherProps } = mergedProps;
 
+  // Безопасное получение метаданных
+  const level = item.getItemMeta?.()?.level ?? 0;
+
   // Merge styles
   const mergedStyle = {
     ...propStyle,
-    '--tree-padding': `${item.getItemMeta().level * indent}px`,
+    '--tree-padding': `${level * indent}px`,
   } as React.CSSProperties;
 
   const Comp = asChild ? SlotPrimitive : 'button';
+
+  // Безопасные проверки методов
+  const safeCheckMethod = (method: any) => {
+    try {
+      return typeof method === 'function' ? method() || false : false;
+    } catch {
+      return false;
+    }
+  };
 
   return (
     <TreeContext.Provider value={{ ...parentContext, currentItem: item }}>
@@ -86,12 +105,12 @@ function TreeItem<T = any>({ item, className, asChild, children, ...props }: Omi
           'z-10 ps-[var(--tree-padding)] outline-none select-none not-last:pb-0.5 focus:z-20 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
           className,
         )}
-        data-focus={typeof item.isFocused === 'function' ? item.isFocused() || false : undefined}
-        data-folder={typeof item.isFolder === 'function' ? item.isFolder() || false : undefined}
-        data-selected={typeof item.isSelected === 'function' ? item.isSelected() || false : undefined}
-        data-drag-target={typeof item.isDragTarget === 'function' ? item.isDragTarget() || false : undefined}
-        data-search-match={typeof item.isMatchingSearch === 'function' ? item.isMatchingSearch() || false : undefined}
-        aria-expanded={item.isExpanded()}
+        data-focus={safeCheckMethod(item.isFocused)}
+        data-folder={safeCheckMethod(item.isFolder)}
+        data-selected={safeCheckMethod(item.isSelected)}
+        data-drag-target={safeCheckMethod(item.isDragTarget)}
+        data-search-match={safeCheckMethod(item.isMatchingSearch)}
+        aria-expanded={typeof item.isExpanded === 'function' ? item.isExpanded() : undefined}
         {...otherProps}
       >
         {children}
@@ -113,6 +132,11 @@ function TreeItemLabel<T = any>({ item: propItem, children, className, ...props 
     return null;
   }
 
+  // Безопасная проверка isFolder
+  const isFolder = typeof item.isFolder === 'function' ? item.isFolder() : false;
+  const isExpanded = typeof item.isExpanded === 'function' ? item.isExpanded() : false;
+  const itemName = typeof item.getItemName === 'function' ? item.getItemName() : '';
+
   return (
     <span
       data-slot="tree-item-label"
@@ -122,9 +146,9 @@ function TreeItemLabel<T = any>({ item: propItem, children, className, ...props 
       )}
       {...props}
     >
-      {item.isFolder() &&
+      {isFolder &&
         (toggleIconType === 'plus-minus' ? (
-          item.isExpanded() ? (
+          isExpanded ? (
             <SquareMinus className="text-muted-foreground size-3.5" stroke="currentColor" strokeWidth="1" />
           ) : (
             <SquarePlus className="text-muted-foreground size-3.5" stroke="currentColor" strokeWidth="1" />
@@ -132,7 +156,7 @@ function TreeItemLabel<T = any>({ item: propItem, children, className, ...props 
         ) : (
           <ChevronDownIcon className="text-muted-foreground size-4 group-aria-[expanded=false]:-rotate-90" />
         ))}
-      {children || (typeof item.getItemName === 'function' ? item.getItemName() : null)}
+      {children || itemName}
     </span>
   );
 }

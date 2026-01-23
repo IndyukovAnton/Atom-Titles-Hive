@@ -60,7 +60,7 @@ export function FormSelect({
         control={control}
         render={({ field }) => (
           <Select
-            value={field.value?.toString()}
+            value={field.value?.toString() || ""}
             onValueChange={field.onChange}
             disabled={disabled}
           >

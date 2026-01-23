@@ -78,6 +78,13 @@ export class AuthService {
     }
 
     // Проверка пароля
+    if (!user.password) {
+      await this.logger.warn(
+        `Failed login attempt: User has no password (OAuth account) - ${dto.username}`,
+      );
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
@@ -109,6 +116,77 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     return user;
+  }
+
+  async googleLogin(req: unknown) {
+    type GoogleUserPayload = {
+      googleId: string;
+      email: string;
+      picture?: string | null;
+    };
+
+    const maybeReq = req as { user?: unknown } | null;
+    const maybeUser = maybeReq?.user as Partial<GoogleUserPayload> | null;
+
+    if (
+      !maybeUser ||
+      typeof maybeUser.googleId !== 'string' ||
+      typeof maybeUser.email !== 'string'
+    ) {
+      throw new UnauthorizedException('No user from google');
+    }
+
+    const googleId = maybeUser.googleId;
+    const email = maybeUser.email;
+    const picture =
+      typeof maybeUser.picture === 'string' ? maybeUser.picture : undefined;
+
+    // Поиск пользователя по googleId или email
+    let user = await this.userRepository.findOne({
+      where: [{ googleId }, { email }],
+    });
+
+    if (!user) {
+      // Автоматическая регистрация нового пользователя
+      // Генерируем уникальное имя пользователя из email
+      const username =
+        email.split('@')[0] + '_' + Math.random().toString(36).substring(2, 7);
+
+      user = this.userRepository.create({
+        googleId,
+        email,
+        username,
+        avatar: picture,
+        hasCompletedOnboarding: false,
+      });
+
+      await this.userRepository.save(user);
+      await this.logger.log(
+        `New user registered via Google: ${user.username} (ID: ${user.id})`,
+      );
+    } else if (!user.googleId) {
+      // Привязка Google к существующему аккаунту по email
+      user.googleId = googleId;
+      if (!user.avatar) user.avatar = picture;
+      await this.userRepository.save(user);
+      await this.logger.log(
+        `Google account linked to existing user: ${user.username} (ID: ${user.id})`,
+      );
+    }
+
+    // Генерация JWT токена
+    const payload = { sub: user.id, username: user.username };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+      },
+    };
   }
 
   async getUserProfile(userId: number) {

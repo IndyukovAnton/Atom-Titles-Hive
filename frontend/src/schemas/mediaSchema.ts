@@ -19,19 +19,24 @@ export const mediaSchema = z.object({
   
   description: z.string().optional(),
   
-  image: z
-    .string()
-    .url('Введите корректный URL')
-    .optional()
-    .or(z.literal('')),
+  image: z.string().optional().or(z.literal('')),
   
   startDate: z.string().optional().nullable().or(z.literal('')),
   
   endDate: z.string().optional().nullable().or(z.literal('')),
   
-  groupId: z.number().nullable().optional(),
+  groupId: z.union([z.number(), z.string(), z.null()])
+    .transform((val) => {
+      if (val === 'null' || val === '' || val === null) return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    })
+    .optional(),
 
   tags: z.array(z.string()).optional(),
+  
+  genres: z.array(z.string()).optional(),
 });
 
-export type MediaFormData = z.infer<typeof mediaSchema>;
+export type MediaFormInput = z.input<typeof mediaSchema>;
+export type MediaFormData = z.output<typeof mediaSchema>;

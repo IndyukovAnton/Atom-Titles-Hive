@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useSearch } from './useSearch';
 import { mediaApi } from '../api/media';
 import type { MediaEntry } from '../api/media';
@@ -24,12 +24,13 @@ describe('useSearch', () => {
   ];
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.useFakeTimers();
     vi.mocked(mediaApi.search).mockResolvedValue(mockMediaList);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('должен инициализироваться с пустым состоянием', () => {
@@ -58,14 +59,12 @@ describe('useSearch', () => {
     });
 
     // Перематываем время для debounce
-    act(() => {
-      vi.advanceTimersByTime(300);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
     });
 
-    await waitFor(() => {
-      expect(mediaApi.search).toHaveBeenCalledWith('movie');
-      expect(result.current.suggestions).toEqual(mockMediaList.slice(0, 5));
-    });
+    expect(mediaApi.search).toHaveBeenCalledWith('movie');
+    expect(result.current.suggestions).toEqual(mockMediaList.slice(0, 5));
   });
 
   it('не должен выполнять поиск для пустого запроса', async () => {
@@ -75,14 +74,12 @@ describe('useSearch', () => {
       result.current.setSearchQuery('');
     });
 
-    act(() => {
-      vi.advanceTimersByTime(300);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
     });
 
-    await waitFor(() => {
-      expect(mediaApi.search).not.toHaveBeenCalled();
-      expect(result.current.suggestions).toEqual([]);
-    });
+    expect(mediaApi.search).not.toHaveBeenCalled();
+    expect(result.current.suggestions).toEqual([]);
   });
 
   it('должен ограничивать количество подсказок до 5', async () => {
@@ -102,13 +99,11 @@ describe('useSearch', () => {
       result.current.setSearchQuery('movie');
     });
 
-    act(() => {
-      vi.advanceTimersByTime(300);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
     });
 
-    await waitFor(() => {
-      expect(result.current.suggestions).toHaveLength(5);
-    });
+    expect(result.current.suggestions).toHaveLength(5);
   });
 
   it('должен очистить поиск', async () => {
@@ -118,13 +113,11 @@ describe('useSearch', () => {
       result.current.setSearchQuery('test');
     });
 
-    act(() => {
-      vi.advanceTimersByTime(300);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
     });
 
-    await waitFor(() => {
-      expect(result.current.suggestions.length).toBeGreaterThan(0);
-    });
+    expect(result.current.suggestions.length).toBeGreaterThan(0);
 
     act(() => {
       result.current.clearSearch();
@@ -135,6 +128,7 @@ describe('useSearch', () => {
   });
 
   it('должен обработать ошибку поиска', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.mocked(mediaApi.search).mockRejectedValue(new Error('Search failed'));
 
     const { result } = renderHook(() => useSearch());
@@ -143,13 +137,13 @@ describe('useSearch', () => {
       result.current.setSearchQuery('error');
     });
 
-    act(() => {
-      vi.advanceTimersByTime(300);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
     });
 
-    await waitFor(() => {
-      expect(result.current.suggestions).toEqual([]);
-      expect(result.current.isSearching).toBe(false);
-    });
+    expect(result.current.suggestions).toEqual([]);
+    expect(result.current.isSearching).toBe(false);
+
+    consoleErrorSpy.mockRestore();
   });
 });

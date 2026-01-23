@@ -34,13 +34,7 @@ interface FilterPanelProps {
 }
 
 // Предопределенные статусы для фильтрации
-const STATUS_OPTIONS = [
-  { value: 'completed', label: 'Просмотрено' },
-  { value: 'watching', label: 'Смотрю' },
-  { value: 'planned', label: 'В планах' },
-  { value: 'dropped', label: 'Брошено' },
-  { value: 'on-hold', label: 'Отложено' },
-];
+
 
 export const FilterPanel = ({
   filters,
@@ -115,14 +109,15 @@ export const FilterPanel = ({
               )}
             </div>
             <Select
-              value={filters.category}
-              onValueChange={(value) => onUpdateFilter('category', value)}
+              value={filters.category ?? "all"}
+              onValueChange={(value) => onUpdateFilter('category', value === "all" ? undefined : value)}
               disabled={isLoadingCategories}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Все категории" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Все категории</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}

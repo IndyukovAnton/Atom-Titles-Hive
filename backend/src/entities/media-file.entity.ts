@@ -23,9 +23,6 @@ export class MediaFile {
   @JoinColumn({ name: 'mediaId' })
   media: MediaEntry;
 
-  @Column()
-  mediaId: number;
-
   @CreateDateColumn()
   createdAt: Date;
 }

@@ -2,6 +2,7 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { server } from './mocks/api';
+import { clearApiUrl } from '../config';
 
 // Setup MSW
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -10,6 +11,7 @@ afterEach(() => server.resetHandlers());
 
 // Cleanup after each test
 afterEach(() => {
+  clearApiUrl();
   cleanup();
 });
 
@@ -63,3 +65,8 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+// Mock confirm (happy-dom doesn't provide it by default)
+Object.defineProperty(window, 'confirm', {
+  writable: true,
+  value: vi.fn(),
+});

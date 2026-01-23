@@ -30,12 +30,12 @@ describe('MediaModule (e2e)', () => {
       password: 'password123',
     };
 
-    const response = await request(app.getHttpServer())
+    const response = await request(app.getHttpServer() as string)
       .post('/auth/register')
       .send(registerDto)
       .expect(201);
 
-    authToken = response.body.access_token;
+    authToken = (response.body as { access_token: string }).access_token;
   });
 
   afterAll(async () => {
@@ -46,7 +46,7 @@ describe('MediaModule (e2e)', () => {
 
   describe('/media (POST)', () => {
     it('should create media entry', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/media')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -55,15 +55,16 @@ describe('MediaModule (e2e)', () => {
           rating: 8,
         })
         .expect(201)
-        .expect((res) => {
-          expect(res.body.id).toBeDefined();
-          createdMediaId = res.body.id;
-          expect(res.body.title).toBe('My Movie');
+        .expect((res: request.Response) => {
+          const body = res.body as { id: number; title: string };
+          expect(body.id).toBeDefined();
+          createdMediaId = body.id;
+          expect(body.title).toBe('My Movie');
         });
     });
 
     it('should fail without auth', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/media')
         .send({ title: 'Fail' })
         .expect(401);
@@ -72,51 +73,54 @@ describe('MediaModule (e2e)', () => {
 
   describe('/media (GET)', () => {
     it('should return list of media', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .get('/media')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200)
-        .expect((res) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect(res.body.length).toBeGreaterThan(0);
+        .expect((res: request.Response) => {
+          const body = res.body as unknown[];
+          expect(Array.isArray(body)).toBe(true);
+          expect(body.length).toBeGreaterThan(0);
         });
     });
 
     it('should filter by search', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .get('/media')
         .query({ search: 'Movie' })
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200)
-        .expect((res) => {
-          expect(res.body[0].title).toContain('Movie');
+        .expect((res: request.Response) => {
+          const body = res.body as Array<{ title: string }>;
+          expect(body[0].title).toContain('Movie');
         });
     });
   });
 
   describe('/media/:id (PATCH)', () => {
     it('should update media', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .patch(`/media/${createdMediaId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ rating: 9 })
         .expect(200)
-        .expect((res) => {
-          expect(res.body.rating).toBe(9);
+        .expect((res: request.Response) => {
+          const body = res.body as { rating: number };
+          expect(body.rating).toBe(9);
         });
     });
   });
 
   describe('/media/:id (DELETE)', () => {
     it('should delete media', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .delete(`/media/${createdMediaId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
     });
 
     it('should verify deletion', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .get(`/media/${createdMediaId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);

@@ -22,6 +22,11 @@ export interface UserPreferences {
     dailyRequests?: number;
     maxTokens?: number;
   };
+  privacySettings?: {
+    shareWatchHistory?: boolean;
+    shareBirthDate?: boolean;
+  };
+  tmdbApiKey?: string;
 }
 
 export interface UserProfile {

@@ -1,8 +1,9 @@
-import { useState,  useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import AddMediaModal from '../components/AddMediaModal';
 import CreateGroupModal from '../components/CreateGroupModal';
+import { GuidedTour } from '../components/onboarding/GuidedTour';
 import {
   Sidebar,
   MediaGrid,
@@ -10,19 +11,21 @@ import {
   SearchBar,
   FilterPanel
 } from '../components/HomePage';
+import { ConfirmationDialog } from '../components/ui/confirmation-dialog';
 import { useMediaData } from '../hooks/useMediaData';
 import { useGroupManagement } from '../hooks/useGroupManagement';
 import { useSearch } from '../hooks/useSearch';
 import { useFilters } from '../hooks/useFilters';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DndContext, useSensor, useSensors, PointerSensor, type DragEndEvent } from '@dnd-kit/core';
-import { mediaApi } from '../api/media';
+import { mediaApi, type MediaEntry } from '../api/media';
 import { FallingText } from '../components/easter-eggs/FallingText';
 
 export default function HomePage() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>('all');
+  const location = useLocation();
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>(location.state?.groupId ?? 'all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Хуки для поиска и фильтрации
@@ -34,6 +37,69 @@ export default function HomePage() {
     clearSearch,
   } = useSearch();
 
+  // Onboarding Tour Logic
+  const [showTour, setShowTour] = useState(false);
+  
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('atom-titles-hive-tour-completed');
+    // Trigger if either local flag is missing OR backend profile says onboarding is not complete
+    if (!hasSeenTour || (user && !user.hasCompletedOnboarding)) {
+       // Wait longer to avoid splash overlap (4.1s splash + 0.9s margin)
+       const timer = setTimeout(() => setShowTour(true), 5000);
+       return () => clearTimeout(timer);
+    }
+  }, [user?.hasCompletedOnboarding, user]);
+
+  const { updateProfile } = useAuthStore();
+
+  const handleSkipTour = async () => {
+     setShowTour(false);
+     localStorage.setItem('atom-titles-hive-tour-completed', 'true');
+     try {
+       await updateProfile({ hasCompletedOnboarding: true });
+     } catch (e) {
+       console.error('Failed to sync onboarding status', e);
+     }
+  };
+
+  const handleCompleteTour = async () => {
+     setShowTour(false);
+     localStorage.setItem('atom-titles-hive-tour-completed', 'true');
+     try {
+       await updateProfile({ hasCompletedOnboarding: true });
+     } catch (e) {
+       console.error('Failed to sync onboarding status', e);
+     }
+  };
+  
+  const TOUR_STEPS = [
+      {
+          title: "Добро пожаловать!",
+          description: "Atom Titles-Hive — это ваше пространство для организации фильмов, книг, игр и аниме. Давайте быстро пробежимся по функционалу.",
+          position: "center" as const
+      },
+      {
+          targetId: "sidebar-tour-header",
+          title: "Ваши группы",
+          description: "Здесь вы можете создавать папки и подпапки для сортировки вашей коллекции. Перетаскивайте элементы, чтобы организовать их.",
+      },
+      {
+          targetId: "add-media-btn",
+          title: "Добавить запись",
+          description: "Нажмите эту кнопку, чтобы добавить новый фильм, книгу или игру в вашу коллекцию.",
+      },
+      {
+          targetId: "search-bar",
+          title: "Поиск и фильтры",
+          description: "Используйте поиск и фильтры для быстрого нахождения нужной записи по названию, тегам или рейтингу.",
+      },
+      {
+          title: "Готово!",
+          description: "Вы готовы к работе. Наслаждайтесь использованием Atom Titles-Hive!",
+          position: "center" as const
+      }
+  ];
+
   const {
     filters,
     updateFilter,
@@ -41,7 +107,7 @@ export default function HomePage() {
     clearFilters,
     hasActiveFilters,
     isFilterPanelOpen,
-    toggleFilterPanel,
+    // toggleFilterPanel, // unused
     setIsFilterPanelOpen,
   } = useFilters();
 
@@ -51,16 +117,21 @@ export default function HomePage() {
     filters,
   });
 
-  const { 
-    groupStats, 
-    loadGroups, 
-    deleteGroup, 
-    isGroupModalOpen, 
-    editingGroup, 
-    openCreateGroupModal, 
-    openEditGroupModal, 
+  const {
+    groupStats,
+    loadGroups,
+    isGroupModalOpen,
+    editingGroup,
+    openCreateGroupModal,
+    openEditGroupModal,
     closeGroupModal,
-    targetParentId
+    targetParentId,
+    moveGroup,
+    confirmDelete,
+    deleteGroup,
+    isDeleteConfirmOpen,
+    setIsDeleteConfirmOpen,
+    groupToDelete
   } = useGroupManagement(selectedGroupId, setSelectedGroupId);
   
   const sensors = useSensors(
@@ -93,12 +164,24 @@ export default function HomePage() {
         } catch (e) {
             console.error('Failed to move media', e);
         }
+    } else if (activeId.startsWith('group-') && overId.startsWith('group-')) {
+        const groupId = Number(activeId.replace('group-', ''));
+        const targetGroupIdRaw = overId.replace('group-', '');
+        
+        // Don't allow dropping a group into itself
+        if (activeId === overId) return;
+
+        const targetGroupId = targetGroupIdRaw === 'null' ? null : Number(targetGroupIdRaw);
+        
+        await moveGroup(groupId, targetGroupId);
+        await handleRefresh();
     }
   };
 
   // Пасхалка - тройной клик
   const clickCountRef = useRef(0);
-  const clickTimerRef = useRef<NodeJS.Timeout>();
+  // Используем any или ReturnType, так как NodeJS типы могут быть не видны
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { FallingTextComponent, activate: activateFallingText } = FallingText({});
 
   const handleTitleClick = () => {
@@ -124,7 +207,7 @@ export default function HomePage() {
     return groupStats?.groups.find(g => g.id === selectedGroupId)?.name || 'Группа';
   };
 
-  const handleSelectSuggestion = (media: any) => {
+  const handleSelectSuggestion = (media: MediaEntry) => {
     // Можно реализовать навигацию к выбранному медиа или другую логику
     console.log('Selected media:', media);
     // Например, можно открыть модальное окно с деталями
@@ -135,12 +218,13 @@ export default function HomePage() {
       {FallingTextComponent}
       <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
         <Sidebar 
+          key={groupStats ? `${groupStats.groups.length}-${groupStats.ungrouped}` : 'sidebar'}
           groupStats={groupStats}
           selectedGroupId={selectedGroupId}
           onSelectGroup={setSelectedGroupId}
           onCreateGroup={openCreateGroupModal}
           onEditGroup={openEditGroupModal}
-          onDeleteGroup={deleteGroup}
+          onDeleteGroup={confirmDelete}
         />
 
         <main className="flex-1 flex flex-col h-full min-w-0">
@@ -237,7 +321,23 @@ export default function HomePage() {
           initialData={editingGroup}
           parentId={targetParentId}
         />
+
+        <ConfirmationDialog
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => setIsDeleteConfirmOpen(false)}
+          onConfirm={() => groupToDelete && deleteGroup(groupToDelete)}
+          title="Удалить группу?"
+          description="Это действие нельзя отменить. Все записи внутри группы станут нераспределенными."
+          confirmText="Удалить"
+          variant="destructive"
+        />
       </div>
+        <GuidedTour 
+          isOpen={showTour}
+          onSkip={handleSkipTour}
+          onComplete={handleCompleteTour}
+          steps={TOUR_STEPS}
+        />
     </DndContext>
   );
 }

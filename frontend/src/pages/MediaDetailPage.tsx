@@ -2,26 +2,33 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { mediaApi, type MediaEntry } from '../api/media';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+
+
+import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Star, 
-  Calendar, 
-  FileText, 
-  Tag, 
+  Hash, 
   Layers, 
   Edit2, 
   Plus, 
   Trash2, 
-  Maximize2 
+  Maximize2,
+
+  Play,
+  Image as ImageIcon,
+  BookOpen,
+  Gamepad2,
+  Tv,
+  Film,
+
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+
 import AddMediaModal from '@/components/AddMediaModal';
+import PhotoViewer from '@/components/PhotoViewer';
+import { localizeCategory, localizeGenre, localizeTag } from '@/utils/localization';
 
 export default function MediaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -60,7 +67,7 @@ export default function MediaDetailPage() {
     if (!file || !media) return;
 
     if (file.size > 10 * 1024 * 1024) {
-        alert("File too large (max 10MB)");
+        alert("Файл слишком большой (макс 10MB)");
         return;
     }
 
@@ -74,20 +81,20 @@ export default function MediaDetailPage() {
             fetchMedia();
         } catch (e) {
             console.error(e);
-            alert("Failed to upload file");
+            alert("Не удалось загрузить файл");
         }
     };
     reader.readAsDataURL(file);
   };
 
   const handleDeleteFile = async (fileId: number) => {
-      if(!confirm("Delete this file?")) return;
+      if(!confirm("Удалить этот файл?")) return;
       try {
           await mediaApi.removeFile(fileId);
           fetchMedia();
       } catch(e) {
           console.error(e);
-          alert("Failed to delete file");
+          alert("Не удалось удалить файл");
       }
   }
 
@@ -102,225 +109,290 @@ export default function MediaDetailPage() {
     }
   };
 
+
+
+  // ... (inside component)
+
+  const getCategoryIcon = (categoryRaw?: string | null) => {
+
+    // We can use the localized string for matching if we want, OR better, map based on the original raw value if possible to keep icon logic stable.
+    // However, the function receives the *value* from media.category. 
+    // Let's check existing usage. It was `switch(category) { case 'Movie': ... }`
+    // So we should pass the RAW category to getCategoryIcon, but display the LOCALIZED category.
+    
+    // Actually, let's keep getCategoryIcon logic on raw values (English) as they are likely stable keys.
+    switch(categoryRaw) {
+      case 'Movie': return <Film className="w-4 h-4" />;
+      case 'Series': return <Tv className="w-4 h-4" />;
+      case 'Anime': return <Play className="w-4 h-4" />;
+      case 'Game': return <Gamepad2 className="w-4 h-4" />;
+      case 'Book':
+      case 'Manga': return <BookOpen className="w-4 h-4" />;
+      default: return <Layers className="w-4 h-4" />;
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="container max-w-6xl py-10 px-4 mx-auto animate-in fade-in">
-        <Button variant="ghost" className="mb-6" disabled>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Назад
-        </Button>
-        <div className="grid md:grid-cols-[300px_1fr] gap-8">
-           <Skeleton className="h-[450px] w-full rounded-xl" />
-           <div className="space-y-4">
-             <Skeleton className="h-10 w-2/3" />
-             <div className="flex gap-2">
-               <Skeleton className="h-6 w-20" />
-               <Skeleton className="h-6 w-20" />
-             </div>
-             <Skeleton className="h-40 w-full" />
-           </div>
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </div>
     );
   }
 
   if (error || !media) {
     return (
-      <div className="container flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <h2 className="text-2xl font-bold text-destructive">Ошибка</h2>
-        <p className="text-muted-foreground">{error || 'Запись не найдена'}</p>
-        <Button onClick={() => navigate(-1)}>Вернуться назад</Button>
-      </div>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+            <p className="text-red-500 font-medium">{error || 'Запись не найдена'}</p>
+            <Button variant="outline" onClick={() => navigate('/')}>
+                <ArrowLeft className="mr-2 h-4 w-4" /> На главную
+            </Button>
+        </div>
     );
   }
 
   return (
-    <div className="container max-w-6xl py-8 px-4 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-6">
-        <Button 
-            variant="ghost" 
-            className="hover:bg-muted/50 transition-colors"
-            onClick={() => navigate(-1)}
-        >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Назад
-        </Button>
-        <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsEditOpen(true)}>
-                <Edit2 className="h-4 w-4 mr-2" /> Редактировать
-            </Button>
-            <Button variant="destructive" size="icon" onClick={handleDeleteRecord}>
-                <Trash2 className="h-4 w-4" />
-            </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background relative selection:bg-primary/20">
+        {/* Ambient Background */}
+        <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-primary/5 via-background/80 to-background -z-10" />
 
-      <Tabs defaultValue="overview" className="w-full">
-         <TabsList className="mb-6">
-            <TabsTrigger value="overview">Обзор</TabsTrigger>
-            <TabsTrigger value="album">Альбом ({media.files?.length || 0})</TabsTrigger>
-         </TabsList>
+        <div className="container max-w-7xl mx-auto px-4 py-8 md:py-12 space-y-8">
+            {/* Back Button */}
+            <Button 
+                variant="ghost" 
+                className="group text-muted-foreground hover:text-primary transition-colors pl-0 hover:bg-transparent"
+                onClick={() => navigate(-1)}
+            >
+                <div className="p-2 rounded-full bg-muted/50 group-hover:bg-primary/10 transition-colors mr-2">
+                    <ArrowLeft className="h-4 w-4" />
+                </div>
+                <span className="font-medium">Назад</span>
+            </Button>
 
-         <TabsContent value="overview" className="mt-0">
-            <div className="grid md:grid-cols-[350px_1fr] gap-8 items-start">
-                {/* Cover Image */}
-                <div className="relative group rounded-xl overflow-hidden shadow-2xl ring-1 ring-border/50 bg-muted">
-                {media.image ? (
-                    <img 
-                    src={media.image} 
-                    alt={media.title} 
-                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                ) : (
-                    <div className="aspect-[2/3] flex items-center justify-center text-muted-foreground bg-secondary/50">
-                    Нет изображения
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
+                {/* Left Column: Poster & Actions */}
+                <div className="space-y-6">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="group relative aspect-[2/3] rounded-2xl overflow-hidden bg-muted shadow-2xl ring-1 ring-border/5"
+                    >
+                        {media.image ? (
+                            <img 
+                                src={media.image} 
+                                alt={media.title} 
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-secondary/30">
+                                <ImageIcon className="h-16 w-16 mb-4 opacity-20" />
+                                <span className="text-sm font-medium opacity-50">Нет обложки</span>
+                            </div>
+                        )}
+                        
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        
+                        {media.rating > 0 && (
+                            <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-sm font-bold border border-white/10 flex items-center gap-1.5 shadow-lg">
+                                <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                                {media.rating}
+                            </div>
+                        )}
+                    </motion.div>
+
+                    {/* Actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                            className="w-full h-12 rounded-xl text-base font-medium shadow-lg hover:shadow-primary/25 transition-all" 
+                            onClick={() => setIsEditOpen(true)}
+                        >
+                            <Edit2 className="mr-2 h-4 w-4" /> Редактировать
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            className="w-full h-12 rounded-xl text-base font-medium shadow-lg hover:shadow-red-500/25 transition-all bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-none"
+                            onClick={handleDeleteRecord}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" /> Удалить
+                        </Button>
                     </div>
-                )}
-                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white font-bold px-3 py-1.5 rounded-lg flex items-center shadow-lg border border-white/10">
-                    <Star className="h-4 w-4 text-yellow-500 mr-1.5 fill-yellow-500" />
-                    {media.rating}/10
-                </div>
                 </div>
 
-                {/* Details */}
-                <div className="space-y-8">
-                <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                    {media.category && (
-                        <Badge variant="secondary" className="px-3 py-1 text-sm bg-primary/10 text-primary hover:bg-primary/20 border-primary/20">
-                        {media.category}
-                        </Badge>
-                    )}
-                    {media.startDate && (
-                        <Badge variant="outline" className="text-muted-foreground">
-                        {new Date(media.startDate).getFullYear()}
-                        </Badge>
-                    )}
+                {/* Right Column: Content */}
+                <div className="lg:col-span-2 space-y-8 md:py-2">
+
+                {/* Header Section */}
+                <div className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        {media.category && (
+                            <Badge variant="secondary" className="px-3 py-1.5 text-sm font-medium rounded-lg gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-primary/10">
+                                {getCategoryIcon(media.category)}
+                                {localizeCategory(media.category)}
+                            </Badge>
+                        )}
+                        {media.startDate && (
+                            <Badge variant="outline" className="px-3 py-1.5 text-sm font-medium rounded-lg border-muted-foreground/20 text-muted-foreground">
+                                {new Date(media.startDate).getFullYear()}
+                            </Badge>
+                        )}
                     </div>
                     
-                    <h1 className="text-4xl font-bold tracking-tight text-foreground mb-4 leading-tight">
-                    {media.title}
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.1]">
+                        {media.title}
                     </h1>
                 </div>
 
-                <div className="grid gap-6">
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground/90">
-                            <FileText className="h-5 w-5 text-primary" />
-                            Описание
+                {/* Genres */}
+                {media.genres && media.genres.length > 0 && (
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <Layers className="h-4 w-4" /> Жанры
                         </h3>
-                        <p className="text-muted-foreground leading-relaxed text-lg whitespace-pre-line">
-                            {media.description || 'Описание отсутствует.'}
+                        <div className="flex flex-wrap gap-2">
+                            {media.genres.map((genre) => (
+                                <Badge 
+                                    key={genre} 
+                                    variant="secondary" 
+                                    className="px-4 py-2 text-sm rounded-xl transition-all hover:scale-105 cursor-default bg-secondary/50 hover:bg-secondary backdrop-blur-sm"
+                                >
+                                    {localizeGenre(genre)}
+                                </Badge>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Description */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        О тайтле
+                    </h3>
+                    <div className="prose prose-lg dark:prose-invert max-w-none">
+                        <p className="text-lg leading-relaxed text-foreground/90 whitespace-pre-line">
+                            {media.description || <span className="text-muted-foreground italic">Описание отсутствует...</span>}
                         </p>
                     </div>
+                </div>
 
-                    <div className="grid sm:grid-cols-2 gap-4 max-w-2xl">
-                        {media.startDate && (
-                        <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 border">
-                            <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                            <p className="text-sm font-medium">Дата начала</p>
-                            <p className="text-sm text-muted-foreground">
-                                {format(new Date(media.startDate), 'd MMMM yyyy', { locale: ru })}
-                            </p>
-                            </div>
-                        </div>
-                        )}
-                        
-                        {media.endDate && (
-                        <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/30 border">
-                            <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <div>
-                            <p className="text-sm font-medium">Дата завершения</p>
-                            <p className="text-sm text-muted-foreground">
-                                {format(new Date(media.endDate), 'd MMMM yyyy', { locale: ru })}
-                            </p>
-                            </div>
-                        </div>
-                        )}
-                    </div>
-
-                    {media.genres && media.genres.length > 0 && (
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <Layers className="h-4 w-4" /> Жанры
+                {/* Tags */}
+                {media.tags && media.tags.length > 0 && (
+                    <div className="space-y-3 pt-4 border-t border-border/50">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                            <Hash className="h-4 w-4" /> Теги
                         </h3>
                         <div className="flex flex-wrap gap-2">
-                        {media.genres.map((genre) => (
-                            <Badge key={genre} variant="secondary">
-                            {genre}
-                            </Badge>
-                        ))}
+                            {media.tags.map((tag) => (
+                                <div key={tag} className="px-3 py-1 rounded-lg border border-border/60 bg-background/50 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors cursor-default">
+                                    #{localizeTag(tag)}
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    )}
+                )}
 
-                    {media.tags && media.tags.length > 0 && (
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <Tag className="h-4 w-4" /> Теги
+
+
+
+
+                {/* Gallery Section - Redesigned */}
+                <div className="space-y-6 pt-6">
+                    <div className="flex items-center justify-between">
+                         <h3 className="text-xl font-bold flex items-center gap-2">
+                            <ImageIcon className="h-5 w-5 text-primary" />
+                            Галерея и Материалы
+                            <span className="text-muted-foreground text-sm font-normal ml-2">
+                                {media.files?.length || 0}
+                            </span>
                         </h3>
-                        <div className="flex flex-wrap gap-2">
-                        {media.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="border-dashed">
-                            #{tag}
-                            </Badge>
-                        ))}
+                        <div className="flex gap-2">
+                            <Input 
+                                type="file" 
+                                accept="image/*,video/*" 
+                                className="hidden" 
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                            />
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="hidden sm:flex"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <Plus className="mr-2 h-4 w-4" /> Добавить
+                            </Button>
+                             <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="sm:hidden"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
+
+                    {(!media.files || media.files.length === 0) ? (
+                        <div className="rounded-3xl border-2 border-dashed border-muted-foreground/10 bg-muted/5 py-12 flex flex-col items-center justify-center text-center transition-colors hover:bg-muted/10">
+                            <div className="p-4 rounded-full bg-muted mb-4">
+                                <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">Нет медиафайлов</p>
+                            <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">Добавьте скриншоты, арты или видеоролики для коллекции</p>
+                            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                Загрузить первое фото
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {media.files.map((file, index) => (
+                                <motion.div 
+                                    key={file.id} 
+                                    layoutId={`media-card-${file.id}`}
+                                    className="group relative aspect-square rounded-2xl overflow-hidden bg-muted shadow-sm hover:shadow-xl transition-all duration-300 ring-1 ring-border/5"
+                                    onClick={() => setLightboxIndex(index)}
+                                >
+                                    {file.type === 'video' ? (
+                                        <div className="relative w-full h-full">
+                                            <video src={file.url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="p-3 rounded-full bg-black/50 text-white backdrop-blur-sm">
+                                                    <Play className="h-6 w-6 fill-current" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <img 
+                                            src={file.url} 
+                                            alt="" 
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                                        />
+                                    )}
+                                    
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                                        <Button size="icon" variant="ghost" className="h-9 w-9 text-white hover:bg-white/20 hover:text-white rounded-full">
+                                            <Maximize2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            className="h-9 w-9 text-white hover:bg-red-500/80 hover:text-white rounded-full"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteFile(file.id);
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     )}
                 </div>
-                </div>
-            </div>
-         </TabsContent>
 
-         <TabsContent value="album" className="mt-0 min-h-[400px]">
-            <div className="flex justify-end mb-6">
-                <Input 
-                    type="file" 
-                    accept="image/*,video/*" 
-                    className="hidden" 
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                />
-                <Button onClick={() => fileInputRef.current?.click()}>
-                    <Plus className="mr-2 h-4 w-4" /> Добавить медиа
-                </Button>
             </div>
-
-            {(!media.files || media.files.length === 0) ? (
-                 <div className="flex flex-col items-center justify-center py-20 bg-muted/20 rounded-xl border border-dashed">
-                    <div className="p-4 bg-background rounded-full mb-4">
-                        <Layers className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="text-lg font-medium">Нет загруженных медиа</h3>
-                    <p className="text-muted-foreground mb-4">Загрузите изображения или видео для этого тайтла</p>
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                         Загрузить файлы
-                    </Button>
-                 </div>
-            ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {media.files.map((file, index) => (
-                        <div key={file.id} className="group relative aspect-square rounded-lg overflow-hidden bg-muted border">
-                            {file.type === 'video' ? (
-                                <video src={file.url} className="w-full h-full object-cover" />
-                            ) : (
-                                <img src={file.url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                            )}
-                            
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <Button size="icon" variant="secondary" className="h-8 w-8" onClick={() => setLightboxIndex(index)}>
-                                    <Maximize2 className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="destructive" className="h-8 w-8" onClick={() => handleDeleteFile(file.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-         </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <AddMediaModal 
         isOpen={isEditOpen} 
@@ -329,27 +401,12 @@ export default function MediaDetailPage() {
         initialData={media}
       />
 
-      <Dialog open={lightboxIndex !== null} onOpenChange={() => setLightboxIndex(null)}>
-         <DialogContent className="max-w-5xl w-full p-0 bg-black/90 border-none h-[90vh] flex items-center justify-center">
-             {lightboxIndex !== null && media.files?.[lightboxIndex] && (
-                 <div className="relative w-full h-full flex items-center justify-center p-4">
-                    {media.files[lightboxIndex].type === 'video' ? (
-                        <video 
-                            src={media.files[lightboxIndex].url} 
-                            controls 
-                            className="max-h-full max-w-full rounded-md"
-                        />
-                    ) : (
-                        <img 
-                            src={media.files[lightboxIndex].url} 
-                            alt="" 
-                            className="max-h-full max-w-full object-contain rounded-md"
-                        />
-                    )}
-                 </div>
-             )}
-         </DialogContent>
-      </Dialog>
+      <PhotoViewer 
+        files={media.files || []} 
+        currentIndex={lightboxIndex} 
+        onClose={() => setLightboxIndex(null)}
+        onIndexChange={setLightboxIndex}
+      />
     </div>
   );
 }

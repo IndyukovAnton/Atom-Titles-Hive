@@ -89,12 +89,16 @@ export const mediaApi = {
     return response.data;
   },
 
-  addFile: async (id: number, data: { url: string; type: 'image' | 'video' }): Promise<any> => {
+  addFile: async (id: number, data: { url: string; type: 'image' | 'video' }): Promise<MediaFile> => {
     const response = await apiClient.post(`/media/${id}/files`, data);
     return response.data;
   },
 
   removeFile: async (fileId: number): Promise<void> => {
     await apiClient.delete(`/media/files/${fileId}`);
+  },
+
+  reset: async (): Promise<void> => {
+    await apiClient.delete('/media/reset');
   },
 };

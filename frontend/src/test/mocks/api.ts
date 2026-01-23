@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:1221';
 
 // Mock data
 export const mockUser = {
@@ -66,12 +66,38 @@ export const handlers = [
     );
   }),
 
-  http.get(`${API_URL}/auth/profile`, () => {
+  http.get(`${API_URL}/auth/profile`, ({ request }) => {
+    const authHeader =
+      request.headers.get('authorization') || request.headers.get('Authorization');
+    if (authHeader && authHeader.includes('invalid-token')) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    return HttpResponse.json(mockUser);
+  }),
+
+  // Current app uses /profile for authenticated user data
+  http.get(`${API_URL}/profile`, ({ request }) => {
+    const authHeader =
+      request.headers.get('authorization') || request.headers.get('Authorization');
+    if (authHeader && authHeader.includes('invalid-token')) {
+      return HttpResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
     return HttpResponse.json(mockUser);
   }),
 
   // Media endpoints
   http.get(`${API_URL}/media`, () => {
+    return HttpResponse.json([mockMediaEntry]);
+  }),
+
+  http.get(`${API_URL}/media/categories`, () => {
+    return HttpResponse.json(['Movie', 'Series', 'Anime']);
+  }),
+
+  http.get(`${API_URL}/media/search`, ({ request }) => {
+    const url = new URL(request.url);
+    const q = url.searchParams.get('q') || '';
+    if (!q.trim()) return HttpResponse.json([]);
     return HttpResponse.json([mockMediaEntry]);
   }),
 
@@ -98,9 +124,21 @@ export const handlers = [
     return HttpResponse.json([mockGroup]);
   }),
 
+  http.get(`${API_URL}/groups/stats`, () => {
+    return HttpResponse.json({
+      groups: [{ id: mockGroup.id, name: mockGroup.name, count: 0 }],
+      ungrouped: 0,
+    });
+  }),
+
   http.post(`${API_URL}/groups`, async ({ request }) => {
     const body = await request.json() as object;
     return HttpResponse.json({ ...mockGroup, ...body, id: 2 });
+  }),
+
+  http.patch(`${API_URL}/groups/:id`, async ({ request, params }) => {
+    const body = await request.json() as object;
+    return HttpResponse.json({ ...mockGroup, ...body, id: Number(params.id) });
   }),
 
   http.put(`${API_URL}/groups/:id`, async ({ request, params }) => {

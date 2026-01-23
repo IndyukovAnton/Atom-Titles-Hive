@@ -3,12 +3,10 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../src/modules/auth/auth.module';
-import { User } from '../src/entities/user.entity';
 import { testDataSourceOptions } from './test-setup';
 
 describe('AuthModule (e2e)', () => {
   let app: INestApplication;
-  let validationPipe: ValidationPipe;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -40,28 +38,32 @@ describe('AuthModule (e2e)', () => {
 
   describe('/auth/register (POST)', () => {
     it('should register a new user', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/auth/register')
         .send(registerDto)
         .expect(201)
-        .expect((res) => {
-          expect(res.body.access_token).toBeDefined();
-          expect(res.body.user).toBeDefined();
-          expect(res.body.user.username).toBe(registerDto.username);
-          expect(res.body.user.email).toBe(registerDto.email);
-          expect(res.body.user.password).toBeUndefined();
+        .expect((res: request.Response) => {
+          const body = res.body as {
+            access_token: string;
+            user: { username: string; email: string; password?: string };
+          };
+          expect(body.access_token).toBeDefined();
+          expect(body.user).toBeDefined();
+          expect(body.user.username).toBe(registerDto.username);
+          expect(body.user.email).toBe(registerDto.email);
+          expect(body.user.password).toBeUndefined();
         });
     });
 
     it('should fail on duplicate username', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/auth/register')
         .send(registerDto)
         .expect(409);
     });
 
     it('should fail with invalid data', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/auth/register')
         .send({ ...registerDto, email: 'invalid-email' })
         .expect(400);
@@ -70,20 +72,21 @@ describe('AuthModule (e2e)', () => {
 
   describe('/auth/login (POST)', () => {
     it('should login successfully', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/auth/login')
         .send({
           username: registerDto.username,
           password: registerDto.password,
         })
         .expect(200) // AuthController.login возвращает 200
-        .expect((res) => {
-          expect(res.body.access_token).toBeDefined();
+        .expect((res: request.Response) => {
+          const body = res.body as { access_token: string };
+          expect(body.access_token).toBeDefined();
         });
     });
 
     it('should fail with wrong credentials', () => {
-      return request(app.getHttpServer())
+      return request(app.getHttpServer() as string)
         .post('/auth/login')
         .send({
           username: registerDto.username,

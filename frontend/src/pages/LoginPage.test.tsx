@@ -26,8 +26,10 @@ describe('LoginPage', () => {
         render(<LoginPage />);
 
         expect(screen.getByLabelText(/имя пользователя/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/пароль/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /войти/i })).toBeInTheDocument();
+        expect(screen.getByLabelText(/^Пароль/i)).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /^войти$/i }),
+        ).toBeInTheDocument();
     });
 
     it('should submit form and redirect on success', async () => {
@@ -36,7 +38,7 @@ describe('LoginPage', () => {
 
         await user.type(screen.getByLabelText(/имя пользователя/i), 'testuser');
         await user.type(screen.getByLabelText(/^Пароль/i), 'password');
-        await user.click(screen.getByRole('button', { name: /войти/i }));
+        await user.click(screen.getByRole('button', { name: /^войти$/i }));
 
         await waitFor(() => {
             expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -47,7 +49,7 @@ describe('LoginPage', () => {
         const user = userEvent.setup();
         
         server.use(
-            http.post(`${config.apiUrl}/auth/login`, () => {
+            http.post(`${config.getApiUrl()}/auth/login`, () => {
                 return HttpResponse.json(
                     { message: 'Invalid credentials' },
                     { status: 401 }
@@ -57,9 +59,10 @@ describe('LoginPage', () => {
 
         render(<LoginPage />);
 
-        await user.type(screen.getByLabelText(/имя пользователя/i), 'wrong');
-        await user.type(screen.getByLabelText(/^Пароль/i), 'wrong');
-        await user.click(screen.getByRole('button', { name: /войти/i }));
+        // Use valid inputs to pass Zod validation, but invalid for API
+        await user.type(screen.getByLabelText(/имя пользователя/i), 'wronguser');
+        await user.type(screen.getByLabelText(/^Пароль/i), 'wrongpassword');
+        await user.click(screen.getByRole('button', { name: /^войти$/i }));
 
         await waitFor(() => {
             expect(screen.getByText('Invalid credentials')).toBeInTheDocument();

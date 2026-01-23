@@ -10,6 +10,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:backend": "cd backend && npm run build",
+    "build:backend:sidecar": "cd backend && npm run pkg:build",
     "build:frontend": "cd frontend && npm run build",
     "build:all": "npm run build:backend && npm run build:frontend"
   },

@@ -28,7 +28,7 @@ describe('HomePage', () => {
         vi.clearAllMocks();
         // Set authenticated user
         useAuthStore.setState({ 
-            user: mockUser, 
+            user: { ...mockUser, hasCompletedOnboarding: true }, 
             isAuthenticated: true,
             token: 'mock-token' 
         });
@@ -38,7 +38,7 @@ describe('HomePage', () => {
         render(<HomePage />);
 
         await waitFor(() => {
-            expect(screen.getByText(/моя медиатека/i)).toBeInTheDocument();
+            expect(screen.getAllByText(/моя медиатека/i).length).toBeGreaterThan(0);
             // Checking for username in header (might need to check HomeHeader implementation if it renders username)
             // Assuming HomeHeader renders username
             // If mockUser.username is 'testuser'
@@ -82,7 +82,7 @@ describe('HomePage', () => {
             
             await waitFor(() => {
                 expect(screen.getByRole('dialog')).toBeInTheDocument();
-                expect(screen.getByText(/добавить запись/i)).toBeInTheDocument();
+                expect(screen.getByText(/добавить.*запись/i)).toBeInTheDocument();
             });
         }
     });

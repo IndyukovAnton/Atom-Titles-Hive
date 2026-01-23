@@ -2,6 +2,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Shield, KeyRound, Cpu } from 'lucide-react';
 import type { UserPreferences } from '@/api/auth';
 
@@ -113,6 +114,50 @@ export function AISettings({ preferences, onChange }: AISettingsProps) {
           />
         </div>
       </div>
+
+       <Separator />
+      
+       <div className="space-y-4">
+        <h4 className="text-sm font-medium">Настройки приватности</h4>
+        <div className="flex items-center justify-between space-x-2">
+          <Label htmlFor="share-history" className="flex flex-col space-y-1">
+            <span>Отправлять историю просмотров</span>
+            <span className="font-normal text-xs text-muted-foreground">Помогает давать более точные рекомендации</span>
+          </Label>
+          <Switch
+            id="share-history"
+            checked={preferences?.privacySettings?.shareWatchHistory ?? false}
+            onCheckedChange={(checked) => 
+               onChange({ 
+                   privacySettings: { 
+                       ...preferences?.privacySettings, 
+                       shareWatchHistory: checked,
+                       shareBirthDate: preferences?.privacySettings?.shareBirthDate ?? false
+                   } 
+               })
+            }
+          />
+        </div>
+        <div className="flex items-center justify-between space-x-2">
+           <Label htmlFor="share-birthdate" className="flex flex-col space-y-1">
+            <span>Учитывать возраст</span>
+            <span className="font-normal text-xs text-muted-foreground">Использовать дату рождения для фильтрации контента</span>
+          </Label>
+          <Switch
+            id="share-birthdate"
+            checked={preferences?.privacySettings?.shareBirthDate ?? false}
+             onCheckedChange={(checked) => 
+               onChange({ 
+                   privacySettings: { 
+                       ...preferences?.privacySettings, 
+                       shareBirthDate: checked,
+                       shareWatchHistory: preferences?.privacySettings?.shareWatchHistory ?? false
+                   } 
+               })
+            }
+          />
+        </div>
+       </div>
     </div>
   );
 }

@@ -84,7 +84,7 @@ describe('CreateGroupModal', () => {
         const user = userEvent.setup();
 
         server.use(
-            http.post(`${config.apiUrl}/groups`, () => {
+            http.post(`${config.getApiUrl()}/groups`, () => {
                 return HttpResponse.json(
                     { message: 'Error creating group' },
                     { status: 400 }

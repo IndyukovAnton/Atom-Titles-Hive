@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useMediaData } from './useMediaData';
 import { mockMediaEntry } from '../test/mocks/api';
 
@@ -17,7 +17,9 @@ describe('useMediaData', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.mediaList).toEqual([mockMediaEntry]);
+    await waitFor(() => {
+      expect(result.current.mediaList).toEqual([mockMediaEntry]);
+    });
     expect(result.current.error).toBeNull();
   });
 
@@ -48,13 +50,19 @@ describe('useMediaData', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
+    await waitFor(() => {
+      expect(result.current.mediaList.length).toBeGreaterThan(0);
+    });
+
     const initialMediaList = result.current.mediaList;
 
-    await waitFor(async () => {
+    await act(async () => {
       await result.current.loadMedia();
     });
 
-    expect(result.current.mediaList).toEqual(initialMediaList);
+    await waitFor(() => {
+      expect(result.current.mediaList).toEqual(initialMediaList);
+    });
   });
 
   it('should update mediaList when setMediaList is called', async () => {
@@ -68,9 +76,13 @@ describe('useMediaData', () => {
       { ...mockMediaEntry, id: 999, title: 'New Media' },
     ];
 
-    result.current.setMediaList(newMediaList);
+    act(() => {
+      result.current.setMediaList(newMediaList);
+    });
 
-    expect(result.current.mediaList).toEqual(newMediaList);
+    await waitFor(() => {
+      expect(result.current.mediaList).toEqual(newMediaList);
+    });
   });
 
   it('should reload when selectedGroupId changes', async () => {

@@ -2,11 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
 import { LoggerService } from '../../utils/logger.service';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { RegisterDto } from '../../dto/register.dto';
 import {
   createMockUser,
   mockRegisterDto,
@@ -16,9 +16,6 @@ import {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let userRepository: Repository<User>;
-  let jwtService: JwtService;
-  let loggerService: LoggerService;
 
   const mockUserRepository = {
     findOne: jest.fn(),
@@ -56,9 +53,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    jwtService = module.get<JwtService>(JwtService);
-    loggerService = module.get<LoggerService>(LoggerService);
   });
 
   afterEach(() => {
@@ -100,7 +94,7 @@ describe('AuthService', () => {
           email: mockUser.email,
         },
       });
-      expect(loggerService.log).toHaveBeenCalled();
+      expect(mockLoggerService.log).toHaveBeenCalled();
     });
 
     it('should hash the password before saving', async () => {
@@ -112,14 +106,15 @@ describe('AuthService', () => {
 
       await service.register(mockRegisterDto);
 
-      const createCall = mockUserRepository.create.mock.calls[0][0];
+      const createCall = (mockUserRepository.create as jest.Mock<User, [User]>)
+        .mock.calls[0][0];
       expect(createCall.password).toBeDefined();
       expect(createCall.password).not.toBe(mockRegisterDto.password);
 
       // Проверка что пароль захеширован
       const isHashed = await bcrypt.compare(
         mockRegisterDto.password,
-        createCall.password,
+        createCall.password!,
       );
       expect(isHashed).toBe(true);
     });
@@ -137,7 +132,7 @@ describe('AuthService', () => {
         'Username or email already exists',
       );
       expect(mockUserRepository.save).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(mockLoggerService.warn).toHaveBeenCalled();
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -161,7 +156,7 @@ describe('AuthService', () => {
 
       // Сервис создаст пользователя даже с пустыми полями
       // Валидация должна происходить на уровне DTO/ValidationPipe
-      await service.register(invalidDto as any);
+      await service.register(invalidDto as unknown as RegisterDto);
 
       expect(mockUserRepository.create).toHaveBeenCalled();
     });
@@ -194,7 +189,7 @@ describe('AuthService', () => {
           email: mockUser.email,
         },
       });
-      expect(loggerService.log).toHaveBeenCalled();
+      expect(mockLoggerService.log).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if user does not exist', async () => {
@@ -207,7 +202,7 @@ describe('AuthService', () => {
         'Invalid credentials',
       );
       expect(mockJwtService.sign).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(mockLoggerService.warn).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if password is incorrect', async () => {
@@ -229,7 +224,7 @@ describe('AuthService', () => {
         'Invalid credentials',
       );
       expect(mockJwtService.sign).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(mockLoggerService.warn).toHaveBeenCalled();
     });
 
     it('should generate JWT token on successful login', async () => {

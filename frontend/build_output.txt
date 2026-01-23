@@ -1,0 +1,17 @@
+﻿
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/components/Form/DatePicker.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/Form/StarRating.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/Form/TagInput.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/HomePage/Sidebar.tsx(168,5): error TS2353: Object literal may only specify known properties, and 'onStateChange' does not exist in type 'TreeConfig<Group>'.
+src/components/HomePage/Sidebar.tsx(168,21): error TS7006: Parameter 'state' implicitly has an 'any' type.
+src/components/PhotoGrid.tsx(9,3): error TS1484: 'DragEndEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/components/PhotoGrid.tsx(17,8): error TS2307: Cannot find module '@dnd-kit/sortable' or its corresponding type declarations.
+src/pages/MediaDetailPage.tsx(31,8): error TS2300: Duplicate identifier 'AddMediaModal'.
+src/pages/MediaDetailPage.tsx(32,8): error TS2300: Duplicate identifier 'AddMediaModal'.
+src/pages/MediaDetailPage.tsx(357,30): error TS2552: Cannot find name 'Input'. Did you mean 'oninput'?
+src/pages/SettingsPage.tsx(26,8): error TS2307: Cannot find module '@/components/ui/alert-dialog' or its corresponding type declarations.
+src/pages/SettingsPage.tsx(255,44): error TS2339: Property 'tmdbApiKey' does not exist on type 'Partial<UserPreferences>'.
+src/pages/SettingsPage.tsx(472,48): error TS2339: Property 'reset' does not exist on type '{ getAll: (filters?: { groupId?: number | null | undefined; category?: string | undefined; search?: string | undefined; limit?: number | undefined; offset?: number | undefined; } | undefined) => Promise<...>; ... 7 more ...; removeFile: (fileId: number) => Promise<...>; }'.

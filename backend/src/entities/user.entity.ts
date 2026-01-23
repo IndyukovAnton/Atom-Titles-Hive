@@ -18,6 +18,7 @@ export interface UserPreferences {
     dailyRequests?: number;
     maxTokens?: number;
   };
+  tmdbApiKey?: string;
 }
 
 @Entity('users')
@@ -31,8 +32,14 @@ export class User {
   @Column({ unique: true, length: 100 })
   email: string;
 
-  @Column({ length: 255 })
-  password: string; // Будет храниться хеш
+  @Column({ length: 255, nullable: true })
+  password?: string; // Будет храниться хеш, может быть пустым для Google-пользователей
+
+  @Column({ unique: true, nullable: true })
+  googleId?: string;
+
+  @Column({ nullable: true })
+  avatar?: string;
 
   @Column({ type: 'date', nullable: true })
   birthDate?: Date | null;

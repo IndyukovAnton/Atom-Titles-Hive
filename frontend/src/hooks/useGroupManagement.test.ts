@@ -7,8 +7,7 @@ describe('useGroupManagement', () => {
   let setSelectedGroupId: Mock<(id: number | null | 'all') => void>;
 
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    setSelectedGroupId = vi.fn((_id: number | null | 'all') => {});
+    setSelectedGroupId = vi.fn();
   });
 
   it('should load group stats on mount', async () => {
@@ -93,8 +92,6 @@ describe('useGroupManagement', () => {
   });
 
   it('should delete group and update selected group if needed', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    
     const { result } = renderHook(() =>
       useGroupManagement(1, setSelectedGroupId)
     );
@@ -108,13 +105,9 @@ describe('useGroupManagement', () => {
     });
 
     expect(setSelectedGroupId).toHaveBeenCalledWith('all');
-    
-    confirmSpy.mockRestore();
   });
 
   it('should not delete group if user cancels confirmation', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    
     const { result } = renderHook(() =>
       useGroupManagement(1, setSelectedGroupId)
     );
@@ -123,13 +116,19 @@ describe('useGroupManagement', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    await act(async () => {
-      await result.current.deleteGroup(1);
+    act(() => {
+      result.current.confirmDelete(1);
+    });
+
+    expect(result.current.isDeleteConfirmOpen).toBe(true);
+    expect(result.current.groupToDelete).toBe(1);
+
+    // Simulate user cancelling the confirmation dialog
+    act(() => {
+      result.current.setIsDeleteConfirmOpen(false);
     });
 
     expect(setSelectedGroupId).not.toHaveBeenCalled();
-    
-    confirmSpy.mockRestore();
   });
 
   it('should reload groups when loadGroups is called', async () => {

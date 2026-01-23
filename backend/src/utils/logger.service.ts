@@ -4,7 +4,7 @@ import { join } from 'path';
 
 @Injectable()
 export class LoggerService {
-  private readonly logsDir = 'logs';
+  private readonly logsDir = process.env.LOG_DIR || 'logs';
 
   /**
    * Форматирует текущее время в формат HH:MM:SS

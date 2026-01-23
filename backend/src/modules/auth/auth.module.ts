@@ -9,23 +9,27 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from '../../strategies/jwt.strategy';
 import { LoggerService } from '../../utils/logger.service';
 
+import { GoogleStrategy } from '../../strategies/google.strategy';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    PassportModule,
+    PassportModule.register({ session: false }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
         secret: configService.get<string>('JWT_SECRET')!,
         signOptions: {
-          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '7d') as any,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') ||
+            '7d') as any,
         },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LoggerService],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, LoggerService],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -8,10 +8,10 @@ import {
   mockProfileStatsDto,
 } from '../../../test/fixtures/profile.fixtures';
 import { NotFoundException } from '@nestjs/common';
+import { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 
 describe('ProfileController', () => {
   let controller: ProfileController;
-  let service: ProfileService;
 
   const mockProfileService = {
     getProfile: jest.fn(),
@@ -20,8 +20,8 @@ describe('ProfileController', () => {
   };
 
   const mockAuthenticatedRequest = {
-    user: { userId: 1 },
-  } as any;
+    user: { userId: 1, username: 'testuser' },
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,7 +38,6 @@ describe('ProfileController', () => {
       .compile();
 
     controller = module.get<ProfileController>(ProfileController);
-    service = module.get<ProfileService>(ProfileService);
   });
 
   afterEach(() => {
@@ -52,7 +51,7 @@ describe('ProfileController', () => {
 
       const result = await controller.getProfile(mockAuthenticatedRequest);
 
-      expect(service.getProfile).toHaveBeenCalledWith(1);
+      expect(mockProfileService.getProfile).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
     });
 
@@ -71,7 +70,7 @@ describe('ProfileController', () => {
 
       const result = await controller.getStats(mockAuthenticatedRequest);
 
-      expect(service.getStats).toHaveBeenCalledWith(1);
+      expect(mockProfileService.getStats).toHaveBeenCalledWith(1);
       expect(result).toEqual(mockProfileStatsDto);
     });
   });
@@ -89,7 +88,7 @@ describe('ProfileController', () => {
         mockUpdateProfileDto,
       );
 
-      expect(service.updateProfile).toHaveBeenCalledWith(
+      expect(mockProfileService.updateProfile).toHaveBeenCalledWith(
         1,
         mockUpdateProfileDto,
       );

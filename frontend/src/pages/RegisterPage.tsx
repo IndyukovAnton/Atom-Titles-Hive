@@ -12,6 +12,8 @@ import { registerSchema, type RegisterFormData } from '@/schemas/authSchema';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import GoogleLoginButton from '@/components/GoogleLoginButton';
+import { Separator } from '@/components/ui/separator';
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -201,6 +203,7 @@ export default function RegisterPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
+            className="space-y-4"
           >
             <Button
               type="submit"
@@ -210,6 +213,17 @@ export default function RegisterPage() {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
             </Button>
+
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Или</span>
+              </div>
+            </div>
+
+            <GoogleLoginButton text="Зарегистрироваться через Google" />
           </motion.div>
         </motion.form>
       </FormProvider>

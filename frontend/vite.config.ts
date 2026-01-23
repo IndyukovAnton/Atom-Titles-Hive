@@ -42,5 +42,35 @@ export default defineConfig(({ mode }) => {
       },
       exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'e2e'],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vendor chunks
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-ui': ['framer-motion', 'lucide-react', 'sonner'],
+            'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities', '@dnd-kit/modifiers'],
+            'vendor-utils': ['axios', 'zustand', 'date-fns', 'clsx', 'tailwind-merge', 'zod'],
+            'vendor-radix': [
+              '@radix-ui/react-alert-dialog',
+              '@radix-ui/react-avatar',
+              '@radix-ui/react-context-menu',
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-label',
+              '@radix-ui/react-popover',
+              '@radix-ui/react-progress',
+              '@radix-ui/react-scroll-area',
+              '@radix-ui/react-select',
+              '@radix-ui/react-separator',
+              '@radix-ui/react-slider',
+              '@radix-ui/react-slot',
+              '@radix-ui/react-switch',
+              '@radix-ui/react-tabs',
+            ],
+          },
+        },
+      },
+    },
   }
 })

@@ -23,3 +23,7 @@ tmp
 .env
 *.env
 backend/.env
+
+# Tauri build artifacts / local data
+src-tauri/binaries/
+src-tauri/data/

@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MediaService } from './media.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
+import { MediaFile } from '../../entities/media-file.entity';
 import { LoggerService } from '../../utils/logger.service';
 import { NotFoundException } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import {
   createMockMediaEntry,
   mockCreateMediaDto,
@@ -13,8 +14,6 @@ import {
 
 describe('MediaService', () => {
   let service: MediaService;
-  let repository: Repository<MediaEntry>;
-  let loggerService: LoggerService;
 
   const mockQueryBuilder = {
     where: jest.fn().mockReturnThis(),
@@ -37,6 +36,16 @@ describe('MediaService', () => {
     find: jest.fn(),
   };
 
+  const mockMediaFileRepository = {
+    save: jest.fn(),
+    findOne: jest.fn(),
+    remove: jest.fn(),
+  };
+
+  const mockDataSource = {
+    createQueryRunner: jest.fn(),
+  };
+
   const mockLoggerService = {
     log: jest.fn(),
     error: jest.fn(),
@@ -52,17 +61,21 @@ describe('MediaService', () => {
           useValue: mockRepository,
         },
         {
+          provide: getRepositoryToken(MediaFile),
+          useValue: mockMediaFileRepository,
+        },
+        {
           provide: LoggerService,
           useValue: mockLoggerService,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
 
     service = module.get<MediaService>(MediaService);
-    repository = module.get<Repository<MediaEntry>>(
-      getRepositoryToken(MediaEntry),
-    );
-    loggerService = module.get<LoggerService>(LoggerService);
 
     // Сброс моков перед каждым тестом
     jest.clearAllMocks();
@@ -77,7 +90,7 @@ describe('MediaService', () => {
 
       expect(mockRepository.save).toHaveBeenCalled();
       expect(result).toEqual(mockMedia);
-      expect(loggerService.log).toHaveBeenCalled();
+      expect(mockLoggerService.log).toHaveBeenCalled();
     });
 
     it('should handle creation error', async () => {
@@ -86,7 +99,7 @@ describe('MediaService', () => {
       await expect(service.create(1, mockCreateMediaDto)).rejects.toThrow(
         'Database error',
       );
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 
@@ -184,7 +197,7 @@ describe('MediaService', () => {
       await service.remove(1, 1);
 
       expect(mockRepository.remove).toHaveBeenCalled();
-      expect(loggerService.log).toHaveBeenCalled();
+      expect(mockLoggerService.log).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if media to remove not found', async () => {

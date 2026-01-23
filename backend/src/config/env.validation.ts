@@ -46,6 +46,22 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsNumber()
   LOG_RETENTION_DAYS: number = 30;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_ID: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CLIENT_SECRET: string;
+
+  @IsOptional()
+  @IsString()
+  GOOGLE_CALLBACK_URL: string;
+
+  @IsOptional()
+  @IsString()
+  FRONTEND_URL: string = 'http://localhost:5173';
 }
 
 export function validate(config: Record<string, unknown>) {

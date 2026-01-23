@@ -11,9 +11,16 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MediaModule } from './modules/media/media.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { LoggerService } from './utils/logger.service';
 import { HttpLoggerMiddleware } from './utils/http-logger.middleware';
 import { validate } from './config/env.validation';
+import { getDatabasePath } from './utils/path.utils';
+import { InitialSchema1736729735000 } from './migrations/1736729735000-InitialSchema';
+import { AddParentIdToGroups1768295470289 } from './migrations/1768295470289-AddParentIdToGroups';
+import { AddMediaFiles1768297695198 } from './migrations/1768297695198-AddMediaFiles';
+import { AddUserPersonalization1768446524526 } from './migrations/1768446524526-AddUserPersonalization';
+import { AddGoogleAuthFields1768473242770 } from './migrations/1768473242770-AddGoogleAuthFields';
 
 @Module({
   imports: [
@@ -24,21 +31,47 @@ import { validate } from './config/env.validation';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'sqlite',
-        database: configService.get<string>('DATABASE_PATH')!,
-        entities: [User, MediaEntry, MediaFile, Group],
-        synchronize:
-          configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true',
-        migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-        migrationsRun: true,
-        logging: configService.get<string>('TYPEORM_LOGGING') === 'true',
-      }),
+      useFactory: (configService: ConfigService) => {
+        const env = configService.get<string>('NODE_ENV') || 'development';
+        const dbPathConfig = configService.get<string>('DATABASE_PATH')!;
+
+        const dbPath = getDatabasePath(env, dbPathConfig);
+        console.log(`[Database] Using database at: ${dbPath}`);
+
+        const isDev = env === 'development';
+        const syncRequested =
+          configService.get<string>('TYPEORM_SYNCHRONIZE') === 'true';
+        const synchronize = isDev && syncRequested;
+        console.log(
+          `[Database] Synchronize: ${synchronize} (env=${env}, raw=${configService.get<string>('TYPEORM_SYNCHRONIZE')})`,
+        );
+
+        const migrations = [
+          InitialSchema1736729735000,
+          AddParentIdToGroups1768295470289,
+          AddMediaFiles1768297695198,
+          AddUserPersonalization1768446524526,
+          AddGoogleAuthFields1768473242770,
+        ];
+
+        return {
+          type: 'sqlite',
+          database: dbPath,
+          entities: [User, MediaEntry, MediaFile, Group],
+          synchronize,
+          migrations,
+          // We run migrations manually at bootstrap to support legacy DB upgrades
+          // (existing schema without migrations table).
+          migrationsRun: false,
+          logging: configService.get<string>('TYPEORM_LOGGING') === 'true',
+        };
+      },
     }),
     AuthModule,
     MediaModule,
     GroupsModule,
     ProfileModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: [

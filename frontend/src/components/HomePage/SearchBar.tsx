@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { MediaEntry } from '@/api/media';
 import { cn } from '@/lib/utils';
+import { localizeCategory } from '@/utils/localization';
 
 interface SearchBarProps {
   value: string;
@@ -39,14 +40,19 @@ export const SearchBar = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (value && suggestions.length > 0) {
-      setShowSuggestions(true);
-      setSelectedIndex(-1);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [value, suggestions]);
+  // Производное состояние вместо useEffect с setState
+  const shouldShowSuggestions = showSuggestions && value && suggestions.length > 0;
+
+  // Сброс selectedIndex когда меняется value или suggestions
+  // Adjust state during render to reset selection when input changes
+  const [prevValue, setPrevValue] = useState(value);
+  const [prevSuggestionsLen, setPrevSuggestionsLen] = useState(suggestions.length);
+
+  if (value !== prevValue || suggestions.length !== prevSuggestionsLen) {
+    setPrevValue(value);
+    setPrevSuggestionsLen(suggestions.length);
+    setSelectedIndex(-1);
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showSuggestions || suggestions.length === 0) return;
@@ -88,7 +94,7 @@ export const SearchBar = ({
   };
 
   return (
-    <div ref={containerRef} className={cn('relative w-full', className)}>
+    <div id="search-bar" ref={containerRef} className={cn('relative w-full', className)}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -119,7 +125,7 @@ export const SearchBar = ({
       </div>
 
       {/* Autocomplete Suggestions */}
-      {showSuggestions && suggestions.length > 0 && (
+      {shouldShowSuggestions && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-popover border rounded-lg shadow-lg overflow-hidden z-50 animate-in fade-in-0 slide-in-from-top-2">
           <div className="py-1">
             {suggestions.map((media, index) => (
@@ -151,7 +157,7 @@ export const SearchBar = ({
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     {media.category && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                        {media.category}
+                        {localizeCategory(media.category)}
                       </span>
                     )}
                     {media.rating > 0 && (
