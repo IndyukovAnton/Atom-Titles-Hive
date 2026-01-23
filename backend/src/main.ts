@@ -50,7 +50,8 @@ async function ensureMigrationsAndUpgradeLegacySqlite(
       }
     }
 
-    const isLegacyDb = hasUsersTable && (!hasMigrationsTable || migrationsCount === 0);
+    const isLegacyDb =
+      hasUsersTable && (!hasMigrationsTable || migrationsCount === 0);
 
     if (isLegacyDb) {
       await logger.warn(
@@ -68,7 +69,9 @@ async function ensureMigrationsAndUpgradeLegacySqlite(
 
       const migrationNames = dataSource.migrations
         .map((m) => m?.name)
-        .filter((name): name is string => typeof name === 'string' && name.length > 0);
+        .filter(
+          (name): name is string => typeof name === 'string' && name.length > 0,
+        );
 
       for (const name of migrationNames) {
         const match = /(\d{10,})$/.exec(name);

@@ -11,6 +11,18 @@ dist
 
 # logs
 logs
+*.log
+
+# Lint / build outputs (do not commit)
+*lint*.txt
+*lint*.json
+lint_output*.txt
+lint_results*.json
+eslint-results.json
+eslint-*.json
+build_output.txt
+run_log.txt
+backend/errors.txt
 
 # Test reports
 backend/test-reports/
@@ -25,5 +37,10 @@ tmp
 backend/.env
 
 # Tauri build artifacts / local data
-src-tauri/binaries/
-src-tauri/data/
+src-tauri/binaries/**
+src-tauri/data/**
+
+# Local databases (do not commit)
+*.sqlite
+*.sqlite3
+*.db

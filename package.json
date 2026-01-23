@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "prepare": "husky",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
@@ -12,10 +13,21 @@
     "build:backend": "cd backend && npm run build",
     "build:backend:sidecar": "cd backend && npm run pkg:build",
     "build:frontend": "cd frontend && npm run build",
-    "build:all": "npm run build:backend && npm run build:frontend"
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "lint:backend": "npm --prefix backend run lint",
+    "test:backend:ci": "npm --prefix backend run test:ci",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "test:frontend:ci": "npm --prefix frontend run test:ci",
+    "check": "npm run lint:frontend && npm run test:frontend:ci && npm run lint:backend && npm run test:backend:ci && npm run build:all"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.5.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,scss,md,yml,yaml}": "prettier --write"
   }
 }
