@@ -68,7 +68,7 @@ export function CoverImagePicker({
 
   // Add timeout for image loading (5 seconds)
   useEffect(() => {
-    const timers: NodeJS.Timeout[] = [];
+    const timers: number[] = [];
 
     results.forEach((img) => {
       if (imageLoadingStates[img.id]) {
