@@ -85,6 +85,16 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     document.body.setAttribute('data-background', background);
   }, [background]);
 
+  // Восстановление кастомного шрифта
+  useEffect(() => {
+      const customFontCss = localStorage.getItem('custom_font_css');
+      if (customFontCss) {
+          const style = document.createElement('style');
+          style.textContent = customFontCss;
+          document.head.appendChild(style);
+      }
+  }, []);
+
   const toggleTheme = () => {
     setThemeState((prev) => (prev === 'light' ? 'dark' : 'light'));
   };

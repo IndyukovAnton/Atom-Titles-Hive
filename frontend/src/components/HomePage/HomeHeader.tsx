@@ -12,9 +12,12 @@ import { useMemo } from 'react';
 import changelogData from '../../data/changelog.json';
 import { Link } from 'react-router-dom';
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 interface HomeHeaderProps {
   title: string;
   username?: string;
+  avatar?: string;
   onAddMedia: () => void;
   onNavigateToProfile: () => void;
   onNavigateToSettings: () => void;
@@ -24,6 +27,7 @@ interface HomeHeaderProps {
 export const HomeHeader = ({ 
   title, 
   username, 
+  avatar,
   onAddMedia, 
   onNavigateToProfile, 
   onNavigateToSettings, 
@@ -71,11 +75,15 @@ export const HomeHeader = ({
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 relative">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{username}</span>
+            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 relative">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={avatar} alt={username} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                   {username?.[0]?.toUpperCase() || <User className="h-4 w-4" />}
+                </AvatarFallback>
+              </Avatar>
               {hasUpdate && (
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-background md:hidden" />
+                <span className="absolute -top-0.5 -right-0.5 h-3 w-3 bg-red-500 rounded-full border-2 border-background md:hidden" />
               )}
             </Button>
           </DropdownMenuTrigger>

@@ -19,6 +19,7 @@ export interface UserPreferences {
     maxTokens?: number;
   };
   tmdbApiKey?: string;
+  avatar?: string;
 }
 
 @Entity('users')

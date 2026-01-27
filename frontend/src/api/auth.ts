@@ -27,6 +27,7 @@ export interface UserPreferences {
     shareBirthDate?: boolean;
   };
   tmdbApiKey?: string;
+  avatar?: string;
 }
 
 export interface UserProfile {

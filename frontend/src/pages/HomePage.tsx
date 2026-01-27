@@ -232,6 +232,7 @@ export default function HomePage() {
             <HomeHeader 
               title={getPageTitle()}
               username={user?.username}
+              avatar={user?.preferences?.avatar}
               onAddMedia={() => setIsAddModalOpen(true)}
               onNavigateToProfile={() => navigate('/profile')}
               onNavigateToSettings={() => navigate('/settings')}
