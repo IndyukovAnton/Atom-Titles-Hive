@@ -36,8 +36,9 @@
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/typeorm": "^10.0.2",
     "@types/passport-google-oauth20": "^2.0.17",
+    "ansis": "^4.2.0",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
     "class-transformer": "^0.5.1",
@@ -48,7 +49,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.7",
-    "typeorm": "^0.3.28"
+    "typeorm": "0.3.17"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -104,7 +105,7 @@
       "node_modules/libphonenumber-js/build/package.json"
     ],
     "targets": [
-      "node18-win-x64"
+      "node20-win-x64"
     ]
   }
 }

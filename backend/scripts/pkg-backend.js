@@ -61,7 +61,7 @@ function main() {
   const pkgCommand = [
     'npx @yao-pkg/pkg',
     '.',
-    '--target', 'node18-win-x64',
+    '--target', 'node20-win-x64',
     '--output', outputPath,
     // '--compress', 'GZip'
   ].join(' ');

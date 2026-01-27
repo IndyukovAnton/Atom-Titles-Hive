@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { mediaApi } from '../api/media';
 import { User, Star, Film, Book, Calendar, ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { getUserDataDir } from './path.utils';
 
 @Injectable()
 export class LoggerService {
-  private readonly logsDir = process.env.LOG_DIR || 'logs';
+  private readonly logsDir = process.env.LOG_DIR || join(getUserDataDir(), 'logs');
 
   /**
    * Форматирует текущее время в формат HH:MM:SS

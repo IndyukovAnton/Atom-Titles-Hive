@@ -2,16 +2,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
-export function getDatabasePath(env: string, configuredPath: string): string {
-  // If in development mode, use the configured path (relative to project root)
-  // Or if the configured path is explicitly absolute, trust the user.
-  if (env === 'development' || path.isAbsolute(configuredPath)) {
-    return configuredPath;
-  }
 
-  // In production (or other envs), we want to store data in the OS standard User Data directory.
-  // This ensures persistence across updates and re-deployments.
-
+export function getUserDataDir(): string {
   const appName = 'AtomTitlesHive';
   let userDataDir = '';
 
@@ -28,7 +20,20 @@ export function getDatabasePath(env: string, configuredPath: string): string {
       process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
   }
 
-  const appDataDir = path.join(userDataDir, appName);
+  return path.join(userDataDir, appName);
+}
+
+export function getDatabasePath(env: string, configuredPath: string): string {
+  // If in development mode, use the configured path (relative to project root)
+  // Or if the configured path is explicitly absolute, trust the user.
+  if (env === 'development' || path.isAbsolute(configuredPath)) {
+    return configuredPath;
+  }
+
+  // In production (or other envs), we want to store data in the OS standard User Data directory.
+  // This ensures persistence across updates and re-deployments.
+
+  const appDataDir = getUserDataDir();
 
   // Ensure directory exists
   if (!fs.existsSync(appDataDir)) {

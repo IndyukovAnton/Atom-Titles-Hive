@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../store/authStore';
 import { usePersonalization } from '../hooks/usePersonalization';
 import { 
-  Moon, Sun, LogOut, ArrowLeft, User, Shield, 
-  Palette, Type, Bot, Calendar, Save, Key, TriangleAlert,
+  Moon, Sun, ArrowLeft, User, Shield, 
+  Palette, Type, Bot, Save, Key, TriangleAlert,
   Fingerprint, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -39,7 +39,7 @@ import { toast } from 'sonner';
 import type { UserPreferences } from '@/api/auth';
 
 export default function SettingsPage() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const {
     theme,
     background,
@@ -103,9 +103,6 @@ export default function SettingsPage() {
     setTempPreferences((prev) => ({ ...prev, ...aiPrefs }));
   };
 
-  const handleSaveBirthDate = async () => {
-    toast.info('Функция сохранения даты рождения скоро будет доступна');
-  };
 
   return (
     <div className="container max-w-5xl py-8 px-4 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
