@@ -11,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { MediaService } from './media.service';
+import { ImageSearchService } from './image-search.service';
 import { CreateMediaDto } from '../../dto/create-media.dto';
 import { UpdateMediaDto } from '../../dto/update-media.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -20,7 +21,10 @@ import { MediaFilters } from '../../types/media-filters.interface';
 @Controller('media')
 @UseGuards(JwtAuthGuard)
 export class MediaController {
-  constructor(private readonly mediaService: MediaService) {}
+  constructor(
+    private readonly mediaService: MediaService,
+    private readonly imageSearchService: ImageSearchService,
+  ) {}
 
   @Post()
   create(
@@ -64,6 +68,39 @@ export class MediaController {
     return this.mediaService.search(req.user.userId, query);
   }
 
+  @Get('search-covers')
+  async searchCovers(
+    @Request() req: AuthenticatedRequest,
+    @Query('query') query: string,
+    @Query('page') page: string = '0',
+  ) {
+    if (!query) return [];
+
+    try {
+      return await this.imageSearchService.searchImages(
+        query,
+        parseInt(page, 10),
+      );
+    } catch (error) {
+      console.error('Error in search-covers endpoint:', error);
+      return [];
+    }
+  }
+
+  @Post('download-cover')
+  async downloadCover(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { url: string },
+  ) {
+    return await this.imageSearchService.downloadImage(body.url);
+  }
+
+  @Post('reset')
+  async factoryReset(@Request() req: AuthenticatedRequest) {
+    await this.mediaService.factoryReset(req.user.userId);
+    return { message: 'Factory reset completed successfully.' };
+  }
+
   @Get(':id')
   findOne(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
     return this.mediaService.findOne(+id, req.user.userId);
@@ -98,11 +135,5 @@ export class MediaController {
     @Param('fileId') fileId: string,
   ) {
     return this.mediaService.removeFile(+fileId, req.user.userId);
-  }
-
-  @Post('reset')
-  async factoryReset(@Request() req: AuthenticatedRequest) {
-    await this.mediaService.factoryReset(req.user.userId);
-    return { message: 'Factory reset completed successfully.' };
   }
 }

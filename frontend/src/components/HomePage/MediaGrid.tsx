@@ -1,7 +1,7 @@
 import type { MediaEntry } from '../../api/media';
 import { MediaCard } from './MediaCard';
 import { Loader2, Plus } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 interface MediaGridProps {
   mediaList: MediaEntry[];
@@ -11,7 +11,13 @@ interface MediaGridProps {
   onAddMedia: () => void;
 }
 
-export const MediaGrid = ({ mediaList, isLoading, error, onRefresh, onAddMedia }: MediaGridProps) => {
+export const MediaGrid = ({
+  mediaList,
+  isLoading,
+  error,
+  onRefresh,
+  onAddMedia,
+}: MediaGridProps) => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
@@ -25,7 +31,9 @@ export const MediaGrid = ({ mediaList, isLoading, error, onRefresh, onAddMedia }
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-destructive">
         <p className="mb-4">{error}</p>
-        <Button onClick={onRefresh} variant="outline">Попробовать снова</Button>
+        <Button onClick={onRefresh} variant="outline">
+          Попробовать снова
+        </Button>
       </div>
     );
   }
@@ -48,8 +56,8 @@ export const MediaGrid = ({ mediaList, isLoading, error, onRefresh, onAddMedia }
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
-      {mediaList.map(media => (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-6 pb-12 items-start">
+      {mediaList.map((media) => (
         <MediaCard key={media.id} media={media} />
       ))}
     </div>

@@ -13,6 +13,7 @@ import { GroupsModule } from './modules/groups/groups.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { LoggerService } from './utils/logger.service';
+import { CleanTypeOrmLogger } from './utils/clean-typeorm.logger';
 import { HttpLoggerMiddleware } from './utils/http-logger.middleware';
 import { validate } from './config/env.validation';
 import { getDatabasePath } from './utils/path.utils';
@@ -63,7 +64,11 @@ import { AddGoogleAuthFields1768473242770 } from './migrations/1768473242770-Add
           // We run migrations manually at bootstrap to support legacy DB upgrades
           // (existing schema without migrations table).
           migrationsRun: false,
-          logging: configService.get<string>('TYPEORM_LOGGING') === 'true',
+          // logging: configService.get<string>('TYPEORM_LOGGING') === 'true',
+          logger:
+            configService.get<string>('TYPEORM_LOGGING') === 'true'
+              ? new CleanTypeOrmLogger(new LoggerService())
+              : undefined,
         };
       },
     }),

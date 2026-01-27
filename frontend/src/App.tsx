@@ -41,7 +41,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 // Checked Authorization Route Component
-function CheckedAuthorizationRoute({ children }: { children: React.ReactNode }) {
+function CheckedAuthorizationRoute({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (isAuthenticated) {
@@ -57,7 +61,9 @@ interface AppRoutesProps {
 
 function AppRoutes({ backendReady = true }: AppRoutesProps) {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
-  const [showLogo, setShowLogo] = useState(() => !sessionStorage.getItem('atom-hive-splash-seen'));
+  const [showLogo, setShowLogo] = useState(
+    () => !sessionStorage.getItem('atom-hive-splash-seen'),
+  );
 
   useEffect(() => {
     // Вызываем initializeAuth только после того как backend URL установлен
@@ -78,74 +84,74 @@ function AppRoutes({ backendReady = true }: AppRoutesProps) {
       <MainLayout>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-          <Route
-            path="/login"
-            element={
-              <CheckedAuthorizationRoute>
-                <LoginPage />
-              </CheckedAuthorizationRoute>
-            }
-          />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/auth/callback" element={<AuthCallbackPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/changelog"
-            element={
-              <ProtectedRoute>
-                <ChangelogPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/privacy"
-            element={
-              <ProtectedRoute>
-                <PrivacyPolicyPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/media/:id"
-            element={
-              <ProtectedRoute>
-                <MediaDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/recommendations"
-            element={
-              <ProtectedRoute>
-                <RecommendationsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="/login"
+              element={
+                <CheckedAuthorizationRoute>
+                  <LoginPage />
+                </CheckedAuthorizationRoute>
+              }
+            />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/changelog"
+              element={
+                <ProtectedRoute>
+                  <ChangelogPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <ProtectedRoute>
+                  <PrivacyPolicyPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/media/:id"
+              element={
+                <ProtectedRoute>
+                  <MediaDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recommendations"
+              element={
+                <ProtectedRoute>
+                  <RecommendationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </MainLayout>
@@ -166,7 +172,17 @@ function App() {
   return (
     <PersonalizationProvider>
       <BackendLoader onReady={handleBackendReady}>
-        <Toaster position="top-right" richColors />
+        <Toaster
+          position="bottom-right"
+          richColors
+          closeButton
+          duration={3000}
+          toastOptions={{
+            style: {
+              padding: '16px',
+            },
+          }}
+        />
         <AppRoutes backendReady={backendReady} />
       </BackendLoader>
     </PersonalizationProvider>

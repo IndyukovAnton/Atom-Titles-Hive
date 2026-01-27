@@ -6,7 +6,11 @@ import { groupsApi, type Group } from '../api/groups';
 import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
-import { mediaSchema, type MediaFormData, type MediaFormInput } from '@/schemas/mediaSchema';
+import {
+  mediaSchema,
+  type MediaFormData,
+  type MediaFormInput,
+} from '@/schemas/mediaSchema';
 
 type Step = 'info' | 'details' | 'media';
 
@@ -25,17 +29,21 @@ const DEFAULT_VALUES: MediaFormInput = {
   image: '',
   startDate: '',
   endDate: '',
-  groupId: undefined,
+  groupId: 'null',
   tags: [],
   genres: [],
 };
 
-export function useMediaForm({ isOpen, initialData, onSuccess, onClose }: UseMediaFormOptions) {
+export function useMediaForm({
+  isOpen,
+  initialData,
+  onSuccess,
+  onClose,
+}: UseMediaFormOptions) {
   const [activeStep, setActiveStep] = useState<Step>('info');
   const [groups, setGroups] = useState<Group[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [coverMode, setCoverMode] = useState<'url' | 'file'>('url');
-
+  const [coverMode, setCoverMode] = useState<'file' | 'search'>('search');
 
   const methods = useForm<MediaFormInput>({
     resolver: zodResolver(mediaSchema),
@@ -56,10 +64,14 @@ export function useMediaForm({ isOpen, initialData, onSuccess, onClose }: UseMed
 
   const stepProgress = useMemo(() => {
     switch (activeStep) {
-      case 'info': return 33;
-      case 'details': return 66;
-      case 'media': return 100;
-      default: return 0;
+      case 'info':
+        return 33;
+      case 'details':
+        return 66;
+      case 'media':
+        return 100;
+      default:
+        return 0;
     }
   }, [activeStep]);
 
@@ -80,7 +92,8 @@ export function useMediaForm({ isOpen, initialData, onSuccess, onClose }: UseMed
         reset({
           title: initialData.title,
           rating: initialData.rating,
-          category: (initialData.category || 'Movie') as MediaFormData['category'],
+          category: (initialData.category ||
+            'Movie') as MediaFormData['category'],
           description: initialData.description || '',
           image: initialData.image || '',
           startDate: initialData.startDate || '',
@@ -96,20 +109,23 @@ export function useMediaForm({ isOpen, initialData, onSuccess, onClose }: UseMed
     }
   }, [isOpen, reset, initialData, loadGroups]);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Размер файла слишком велик (макс 5МБ)");
-        return;
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error('Размер файла слишком велик (макс 5МБ)');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setValue('image', reader.result as string);
+        };
+        reader.readAsDataURL(file);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setValue('image', reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  }, [setValue]);
+    },
+    [setValue],
+  );
 
   const getDateLabels = useCallback((category: string) => {
     switch (category) {
@@ -128,63 +144,80 @@ export function useMediaForm({ isOpen, initialData, onSuccess, onClose }: UseMed
     }
   }, []);
 
-  const dateLabels = useMemo(() => getDateLabels(currentCategory || 'Movie'), [currentCategory, getDateLabels]);
+  const dateLabels = useMemo(
+    () => getDateLabels(currentCategory || 'Movie'),
+    [currentCategory, getDateLabels],
+  );
 
-  const onSubmit = useCallback(async (values: MediaFormInput) => {
-    const data = values as unknown as MediaFormData;
-    setError(null);
+  const onSubmit = useCallback(
+    async (values: MediaFormInput) => {
+      const data = values as unknown as MediaFormData;
+      setError(null);
 
-    try {
-      const dataToSend: Record<string, unknown> = {
-        title: data.title,
-        rating: data.rating,
-        category: data.category,
-      };
+      try {
+        const dataToSend: Record<string, unknown> = {
+          title: data.title,
+          rating: data.rating,
+          category: data.category,
+        };
 
-      if (data.description) dataToSend.description = data.description;
-      if (data.image) dataToSend.image = data.image;
-      if (data.startDate) dataToSend.startDate = data.startDate;
-      if (data.endDate) dataToSend.endDate = data.endDate;
-        if (data.groupId !== null && data.groupId !== undefined) dataToSend.groupId = data.groupId;
-      if (data.tags) dataToSend.tags = data.tags;
-      if (data.genres) dataToSend.genres = data.genres;
+        if (data.description) dataToSend.description = data.description;
+        if (data.image) dataToSend.image = data.image;
+        if (data.startDate) dataToSend.startDate = data.startDate;
+        if (data.endDate) dataToSend.endDate = data.endDate;
+        if (data.groupId !== null && data.groupId !== undefined)
+          dataToSend.groupId = data.groupId;
+        if (data.tags) dataToSend.tags = data.tags;
+        if (data.genres) dataToSend.genres = data.genres;
 
-      if (initialData?.id) {
-        await mediaApi.update(initialData.id, dataToSend as unknown as Partial<CreateMediaData>);
-        toast.success('Запись успешно обновлена');
-      } else {
-        await mediaApi.create(dataToSend as unknown as CreateMediaData);
-        toast.success('Запись успешно создана');
+        if (initialData?.id) {
+          await mediaApi.update(
+            initialData.id,
+            dataToSend as unknown as Partial<CreateMediaData>,
+          );
+          toast.success('Запись успешно обновлена');
+        } else {
+          await mediaApi.create(dataToSend as unknown as CreateMediaData);
+          toast.success('Запись успешно создана');
+        }
+
+        onSuccess();
+        onClose();
+      } catch (err) {
+        const axiosError = err as AxiosError<{ message: string }>;
+        const errorMessage =
+          axiosError.response?.data?.message || 'Не удалось сохранить запись';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
+    },
+    [onSuccess, onClose, initialData],
+  );
+
+  const validateAndNext = useCallback(
+    async (nextStep: Step) => {
+      const fieldsToValidate: (keyof MediaFormInput)[] = [];
+      if (nextStep === 'details') {
+        fieldsToValidate.push('title', 'category', 'rating');
       }
 
-      onSuccess();
-      onClose();
-    } catch (err) {
-      const axiosError = err as AxiosError<{ message: string }>;
-      const errorMessage = axiosError.response?.data?.message || 'Не удалось сохранить запись';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    }
-  }, [onSuccess, onClose, initialData]);
+      if (fieldsToValidate.length > 0) {
+        const isValid = await trigger(fieldsToValidate);
+        if (!isValid) return;
+      }
 
-  const validateAndNext = useCallback(async (nextStep: Step) => {
-    const fieldsToValidate: (keyof MediaFormInput)[] = [];
-    if (nextStep === 'details') {
-      fieldsToValidate.push('title', 'category', 'rating');
-    }
+      setActiveStep(nextStep);
+    },
+    [trigger],
+  );
 
-    if (fieldsToValidate.length > 0) {
-      const isValid = await trigger(fieldsToValidate);
-      if (!isValid) return;
-    }
-
-    setActiveStep(nextStep);
-  }, [trigger]);
-
-  const groupOptions = useMemo(() => [
-    { value: 'null', label: 'Без группы' },
-    ...groups.map((g) => ({ value: g.id.toString(), label: g.name })),
-  ], [groups]);
+  const groupOptions = useMemo(
+    () => [
+      { value: 'null', label: 'Без группы' },
+      ...groups.map((g) => ({ value: g.id.toString(), label: g.name })),
+    ],
+    [groups],
+  );
 
   return {
     // Form methods

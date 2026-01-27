@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -13,7 +13,7 @@
   --card-foreground: oklch(0.15 0.01 270);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.01 270);
-  
+
   /* Brand Colors - более насыщенные */
   --primary: oklch(0.55 0.25 270);
   --primary-foreground: oklch(0.99 0 0);
@@ -23,13 +23,13 @@
   --muted-foreground: oklch(0.5 0.02 270);
   --accent: oklch(0.94 0.02 270);
   --accent-foreground: oklch(0.25 0.02 270);
-  
+
   /* State Colors - расширенная палитра */
   --destructive: oklch(0.6 0.24 25);
   --success: oklch(0.65 0.2 145);
   --warning: oklch(0.75 0.18 85);
   --info: oklch(0.6 0.2 240);
-  
+
   /* Accent Colors для секций */
   --accent-blue: oklch(0.6 0.2 240);
   --accent-purple: oklch(0.55 0.25 300);
@@ -37,7 +37,7 @@
   --accent-green: oklch(0.65 0.2 145);
   --accent-pink: oklch(0.65 0.2 0);
   --accent-cyan: oklch(0.7 0.15 200);
-  
+
   /* Form & Borders */
   --border: oklch(0.9 0.01 270);
   --input: oklch(0.92 0.01 270);
@@ -80,13 +80,13 @@
   /* Base Colors - более глубокие */
   --background: oklch(0.14 0.015 270);
   --foreground: oklch(0.95 0.005 270);
-  
+
   /* Component Colors */
   --card: oklch(0.18 0.015 270);
   --card-foreground: oklch(0.95 0.005 270);
   --popover: oklch(0.18 0.015 270);
   --popover-foreground: oklch(0.95 0.005 270);
-  
+
   /* Brand Colors - яркие в тёмной теме */
   --primary: oklch(0.7 0.2 270);
   --primary-foreground: oklch(0.14 0.015 270);
@@ -96,13 +96,13 @@
   --muted-foreground: oklch(0.65 0.02 270);
   --accent: oklch(0.25 0.025 270);
   --accent-foreground: oklch(0.95 0.005 270);
-  
+
   /* State Colors */
   --destructive: oklch(0.65 0.22 25);
   --success: oklch(0.7 0.18 145);
   --warning: oklch(0.8 0.15 85);
   --info: oklch(0.7 0.18 240);
-  
+
   /* Accent Colors - светящиеся в темноте */
   --accent-blue: oklch(0.7 0.18 240);
   --accent-purple: oklch(0.65 0.22 300);
@@ -110,7 +110,7 @@
   --accent-green: oklch(0.7 0.18 145);
   --accent-pink: oklch(0.7 0.18 0);
   --accent-cyan: oklch(0.75 0.14 200);
-  
+
   /* Form & Borders - subtle glow */
   --border: oklch(0.35 0.02 270);
   --input: oklch(0.25 0.02 270);
@@ -126,97 +126,97 @@
   }
 
   /* Фоновые градиенты с overlay для читаемости */
-  body[data-background="default"],
-  body[data-background="liquid-ether"],
-  body[data-background="light-pillar"],
-  body[data-background="aurora"],
-  body[data-background="sunset"],
-  body[data-background="forest"],
-  body[data-background="midnight"],
-  body[data-background="cosmos"],
-  body[data-background="ocean"],
-  body[data-background="passion"] {
+  body[data-background='default'],
+  body[data-background='liquid-ether'],
+  body[data-background='light-pillar'],
+  body[data-background='aurora'],
+  body[data-background='sunset'],
+  body[data-background='forest'],
+  body[data-background='midnight'],
+  body[data-background='cosmos'],
+  body[data-background='ocean'],
+  body[data-background='passion'] {
     position: relative;
   }
-  
-  body[data-background="default"]::before,
-  body[data-background="liquid-ether"]::before,
-  body[data-background="light-pillar"]::before,
-  body[data-background="aurora"]::before,
-  body[data-background="sunset"]::before,
-  body[data-background="forest"]::before,
-  body[data-background="midnight"]::before,
-  body[data-background="cosmos"]::before,
-  body[data-background="ocean"]::before,
-  body[data-background="passion"]::before {
-    content: "";
+
+  body[data-background='default']::before,
+  body[data-background='liquid-ether']::before,
+  body[data-background='light-pillar']::before,
+  body[data-background='aurora']::before,
+  body[data-background='sunset']::before,
+  body[data-background='forest']::before,
+  body[data-background='midnight']::before,
+  body[data-background='cosmos']::before,
+  body[data-background='ocean']::before,
+  body[data-background='passion']::before {
+    content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
   }
-  
+
   /* Overlay для тёмной темы — затемнение */
   .dark body[data-background]::before {
     background: rgba(0, 0, 0, 0.4);
   }
-  
+
   /* Overlay для светлой темы — осветление */
   body[data-background]:not(.dark *)::before {
     background: rgba(255, 255, 255, 0.15);
   }
 
-  body[data-background="default"] {
+  body[data-background='default'] {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
-  body[data-background="liquid-ether"] {
+  body[data-background='liquid-ether'] {
     background: linear-gradient(135deg, #00d2ff 0%, #3a47d5 100%);
   }
-  body[data-background="light-pillar"] {
+  body[data-background='light-pillar'] {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   }
-  body[data-background="aurora"] {
+  body[data-background='aurora'] {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   }
-  body[data-background="sunset"] {
+  body[data-background='sunset'] {
     background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   }
-  body[data-background="forest"] {
+  body[data-background='forest'] {
     background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
   }
-  body[data-background="midnight"] {
+  body[data-background='midnight'] {
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   }
-  body[data-background="cosmos"] {
+  body[data-background='cosmos'] {
     background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);
   }
-  body[data-background="ocean"] {
+  body[data-background='ocean'] {
     background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
   }
-  body[data-background="passion"] {
+  body[data-background='passion'] {
     background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
   }
-  
+
   /* Карточки на градиентных фонах получают усиленный backdrop-blur */
   body[data-background] .bg-card,
-  body[data-background] [class*="Card"] {
+  body[data-background] [class*='Card'] {
     background: oklch(1 0 0 / 0.85) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
-  
+
   .dark body[data-background] .bg-card,
-  .dark body[data-background] [class*="Card"] {
+  .dark body[data-background] [class*='Card'] {
     background: oklch(0.12 0.02 270 / 0.9) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
-  
+
   /* Текст на градиентах должен быть контрастным */
   body[data-background] .text-foreground {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
-  
+
   .dark body[data-background] .text-foreground {
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
@@ -244,8 +244,12 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .slide-in-from-bottom-4 {
@@ -267,8 +271,12 @@
 
   /* Shimmer Loading */
   @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 
   .shimmer {
@@ -294,8 +302,13 @@
 
   /* Pulse Glow */
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 oklch(0.55 0.25 270 / 0.4); }
-    50% { box-shadow: 0 0 20px 4px oklch(0.55 0.25 270 / 0.2); }
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 oklch(0.55 0.25 270 / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px 4px oklch(0.55 0.25 270 / 0.2);
+    }
   }
 
   .pulse-glow {
@@ -304,7 +317,11 @@
 
   /* Gradient Text */
   .gradient-text {
-    background: linear-gradient(135deg, oklch(0.6 0.2 270) 0%, oklch(0.6 0.2 200) 100%);
+    background: linear-gradient(
+      135deg,
+      oklch(0.6 0.2 270) 0%,
+      oklch(0.6 0.2 200) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -312,7 +329,9 @@
 
   /* Card Hover Lift */
   .hover-lift {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
   }
 
   .hover-lift:hover {
@@ -322,5 +341,61 @@
 
   .dark .hover-lift:hover {
     box-shadow: 0 12px 40px -8px oklch(0 0 0 / 0.4);
+  }
+
+  /* Sonner Toast Progress Bar */
+  [data-sonner-toast] {
+    position: relative;
+    overflow: visible !important;
+  }
+
+  [data-sonner-toast]::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    width: 100%;
+    background: var(--color-primary);
+    transform-origin: left;
+    animation: toast-progress 3s linear forwards;
+    pointer-events: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+
+  /* Прячем прогресс-бар для внутреннего контента */
+  [data-sonner-toast] > div {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Success toast progress bar */
+  [data-sonner-toast][data-type='success']::after {
+    background: var(--color-success);
+  }
+
+  /* Error toast progress bar */
+  [data-sonner-toast][data-type='error']::after {
+    background: var(--color-destructive);
+  }
+
+  /* Warning toast progress bar */
+  [data-sonner-toast][data-type='warning']::after {
+    background: var(--color-warning);
+  }
+
+  /* Info toast progress bar */
+  [data-sonner-toast][data-type='info']::after {
+    background: var(--color-info);
+  }
+
+  @keyframes toast-progress {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
   }
 }

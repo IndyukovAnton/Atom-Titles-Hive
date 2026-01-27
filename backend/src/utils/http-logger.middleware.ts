@@ -14,8 +14,8 @@ export class HttpLoggerMiddleware implements NestMiddleware {
 
     const startTime = Date.now();
 
-    // Логируем входящий запрос
-    void this.logger.log(`${method} ${originalUrl} - User: ${userId}`);
+    // Логирование входящего запроса отключено для уменьшения шума
+    // void this.logger.log(`${method} ${originalUrl} - User: ${userId}`);
 
     // Переопределяем метод end для логирования после завершения запроса
     const originalEnd = res.end.bind(res) as typeof res.end;
