@@ -28,6 +28,7 @@ export interface UserPreferences {
   };
   tmdbApiKey?: string;
   avatar?: string;
+  addEntryPreviewStyle?: 'mirror' | 'poster';
 }
 
 export interface UserProfile {
