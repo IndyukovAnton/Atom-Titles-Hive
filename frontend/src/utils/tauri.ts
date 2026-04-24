@@ -1,9 +1,11 @@
 /**
  * Утилиты для работы с Tauri Desktop.
- * 
+ *
  * Предоставляет функции для определения Tauri окружения
  * и взаимодействия с backend sidecar.
  */
+
+import { logger } from './logger';
 
 /** Проверяет, запущено ли приложение в Tauri */
 export const isTauri = (): boolean => {
@@ -38,7 +40,7 @@ export const waitForBackend = async (timeoutMs: number = 30000): Promise<string>
   // Событие могло прийти до того как мы подписались
   const existingUrl = localStorage.getItem('backend-url');
   if (existingUrl) {
-    console.log(`[Tauri] Using cached backend URL: ${existingUrl}`);
+    logger.debug(`[Tauri] Using cached backend URL: ${existingUrl}`);
     // return existingUrl; // НЕ ВОЗВРАЩАЕМ КЭШ СРАЗУ, лучше проверить порт через команду, 
     // потому что при перезапуске порт может измениться, а кэш останется старым.
   }
@@ -62,14 +64,14 @@ export const waitForBackend = async (timeoutMs: number = 30000): Promise<string>
       .then((port) => {
         if (port && !resolved) {
           const url = `http://localhost:${port}`;
-          console.log('[Tauri] Backend already running on port (from command):', port);
+          logger.info('[Tauri] Backend already running on port (from command):', port);
           resolved = true;
           clearTimeout(timeout);
           localStorage.setItem('backend-url', url);
           resolve(url);
         }
       })
-      .catch((e) => console.warn('[Tauri] Failed to check backend port via command:', e));
+      .catch((e) => logger.warn('[Tauri] Failed to check backend port via command:', e));
 
     // Подписываемся на событие готовности (fallback)
     listen<number>('backend-ready', (event) => {
@@ -78,7 +80,7 @@ export const waitForBackend = async (timeoutMs: number = 30000): Promise<string>
       clearTimeout(timeout);
       const port = event.payload;
       const url = `http://localhost:${port}`;
-      console.log(`[Tauri] Backend ready at ${url} (from event)`);
+      logger.info(`[Tauri] Backend ready at ${url} (from event)`);
       localStorage.setItem('backend-url', url);
       resolve(url);
     });

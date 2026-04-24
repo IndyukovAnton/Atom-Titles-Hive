@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 
 import AddMediaModal from '@/components/AddMediaModal';
+import { logger } from '@/utils/logger';
 import PhotoViewer from '@/components/PhotoViewer';
 import {
   localizeCategory,
@@ -67,7 +68,7 @@ export default function MediaDetailPage() {
       setMedia(data);
     } catch (err) {
       setError('Не удалось загрузить информацию о записи');
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +100,7 @@ export default function MediaDetailPage() {
         });
         fetchMedia();
       } catch (e) {
-        console.error(e);
+        logger.error(e);
         alert('Не удалось загрузить файл');
       }
     };
@@ -112,7 +113,7 @@ export default function MediaDetailPage() {
       await mediaApi.removeFile(fileId);
       fetchMedia();
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       alert('Не удалось удалить файл');
     }
   };
@@ -124,7 +125,7 @@ export default function MediaDetailPage() {
       await mediaApi.delete(media.id);
       navigate('/');
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       alert('Не удалось удалить запись');
     }
   };

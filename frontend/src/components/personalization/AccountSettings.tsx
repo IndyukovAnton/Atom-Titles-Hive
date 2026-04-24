@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Save, User, Mail, Calendar, LogOut, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export function AccountSettings() {
   const { user, updateProfile, logout } = useAuthStore();
@@ -50,7 +51,7 @@ export function AccountSettings() {
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error('Ошибка загрузки аватара');
       setIsUploading(false);
     }
@@ -70,7 +71,7 @@ export function AccountSettings() {
       });
       toast.success('Профиль обновлен');
     } catch (error: any) {
-        console.error(error);
+        logger.error(error);
         if (error.response?.status === 409) {
              toast.error('Имя пользователя или Email уже заняты');
         } else {

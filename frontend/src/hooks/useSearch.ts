@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { mediaApi, type MediaEntry } from '../api/media';
 import { useDebounce } from './useDebounce';
+import { logger } from '../utils/logger';
 
 /**
  * Хук для поиска медиа с автодополнением
@@ -23,7 +24,7 @@ export function useSearch() {
       const results = await mediaApi.search(query);
       setSuggestions(results.slice(0, 5)); // Ограничиваем 5 подсказками
     } catch (error) {
-      console.error('Search failed:', error);
+      logger.error('Search failed:', error);
       setSuggestions([]);
     } finally {
       setIsSearching(false);

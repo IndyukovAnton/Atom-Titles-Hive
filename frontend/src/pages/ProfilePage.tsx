@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { logger } from '@/utils/logger';
 
 interface UserStats {
   totalItems: number;
@@ -47,7 +48,7 @@ export default function ProfilePage() {
         topCategory
       });
     } catch (e) {
-      console.error('Failed to load stats', e);
+      logger.error('Failed to load stats', e);
     } finally {
       setIsLoading(false);
     }

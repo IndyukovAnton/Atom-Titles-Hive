@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { groupsApi } from '../api/groups';
 import type { GroupStats } from '../api/groups';
 import { toast } from 'sonner';
+import { logger } from '../utils/logger';
 
 
 export function useGroupManagement(selectedGroupId: number | null | 'all', setSelectedGroupId: (id: number | null | 'all') => void) {
@@ -21,7 +22,7 @@ export function useGroupManagement(selectedGroupId: number | null | 'all', setSe
       const data = await groupsApi.getStats();
       setGroupStats(data);
     } catch (error) {
-      console.error('Failed to load groups', error);
+      logger.error('Failed to load groups', error);
     } finally {
       setIsLoading(false);
     }

@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DndContext, useSensor, useSensors, PointerSensor, type DragEndEvent } from '@dnd-kit/core';
 import { mediaApi, type MediaEntry } from '../api/media';
 import { FallingText } from '../components/easter-eggs/FallingText';
+import { logger } from '@/utils/logger';
 
 export default function HomePage() {
   const { user, logout } = useAuthStore();
@@ -58,7 +59,7 @@ export default function HomePage() {
      try {
        await updateProfile({ hasCompletedOnboarding: true });
      } catch (e) {
-       console.error('Failed to sync onboarding status', e);
+       logger.error('Failed to sync onboarding status', e);
      }
   };
 
@@ -68,7 +69,7 @@ export default function HomePage() {
      try {
        await updateProfile({ hasCompletedOnboarding: true });
      } catch (e) {
-       console.error('Failed to sync onboarding status', e);
+       logger.error('Failed to sync onboarding status', e);
      }
   };
   
@@ -162,7 +163,7 @@ export default function HomePage() {
             await mediaApi.update(mediaId, { groupId });
             await handleRefresh();
         } catch (e) {
-            console.error('Failed to move media', e);
+            logger.error('Failed to move media', e);
         }
     } else if (activeId.startsWith('group-') && overId.startsWith('group-')) {
         const groupId = Number(activeId.replace('group-', ''));
@@ -207,10 +208,8 @@ export default function HomePage() {
     return groupStats?.groups.find(g => g.id === selectedGroupId)?.name || 'Группа';
   };
 
-  const handleSelectSuggestion = (media: MediaEntry) => {
-    // Можно реализовать навигацию к выбранному медиа или другую логику
-    console.log('Selected media:', media);
-    // Например, можно открыть модальное окно с деталями
+  const handleSelectSuggestion = (_media: MediaEntry) => {
+    // TODO: открыть детали выбранной записи из поиска
   };
 
   return (

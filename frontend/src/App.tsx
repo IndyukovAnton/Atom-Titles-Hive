@@ -8,6 +8,7 @@ import { LoadingSplash } from './components/loading/LoadingSplash';
 import { ConnectionStatusBanner } from './components/ui/ConnectionStatusBanner';
 import { BackendLoader } from './components/ui/BackendLoader';
 import { config } from './config';
+import { logger } from './utils/logger';
 
 // Lazy-loaded pages для code splitting
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -165,7 +166,7 @@ function App() {
   const handleBackendReady = (url: string) => {
     // Устанавливаем URL для API клиента
     config.setApiUrl(url);
-    console.log(`[App] Backend ready at ${url}`);
+    logger.info(`[App] Backend ready at ${url}`);
     setBackendReady(true);
   };
 

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { config } from '../config';
 import { useAuthStore } from '../store/authStore';
+import { logger } from '../utils/logger';
 
 // Создаем экземпляр axios с базовыми настройками
 // НЕ устанавливаем baseURL здесь — он будет установлен динамически в interceptor
@@ -45,7 +46,7 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (e) {
-      console.error('Failed to parse auth storage', e);
+      logger.error('Failed to parse auth storage', e);
     }
     return config;
   },

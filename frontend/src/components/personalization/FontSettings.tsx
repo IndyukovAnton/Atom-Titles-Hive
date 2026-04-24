@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check, CloudDownload, Type, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const PRESET_FONTS = [
   { id: 'Inter', name: 'Inter', url: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' },
@@ -106,7 +107,7 @@ export function FontSettings({
           localStorage.setItem('custom_font_css', style.textContent);
           localStorage.setItem('custom_font_name', fontName);
       } catch (err) {
-          console.warn('Font too large to save to localStorage', err);
+          logger.warn('Font too large to save to localStorage', err);
           toast.warning('Шрифт слишком большой для сохранения. Он сбросится после перезагрузки.');
       }
 

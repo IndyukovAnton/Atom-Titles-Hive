@@ -28,7 +28,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
+import { logger } from '@/utils/logger';
 import { mediaApi } from '@/api/media';
 import { changePasswordSchema, type ChangePasswordFormData } from '@/schemas/profileSchema';
 import { BackgroundSelector } from '@/components/personalization/BackgroundSelector';
@@ -76,12 +77,12 @@ export default function SettingsPage() {
     formState: { isSubmitting },
   } = methods;
 
-  const onPasswordSubmit = async (data: ChangePasswordFormData) => {
+  const onPasswordSubmit = async (_data: ChangePasswordFormData) => {
     setMessage(null);
 
     try {
+      // TODO: Реализовать API смены пароля
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log('Password change data:', data);
       setMessage({ type: 'success', text: 'Пароль успешно обновлен' });
       reset();
     } catch {
@@ -94,7 +95,7 @@ export default function SettingsPage() {
       await savePreferences();
       toast.success('Настройки персонализации сохранены');
     } catch (error) {
-      console.error('Failed to save preferences:', error);
+      logger.error('Failed to save preferences:', error);
       toast.error('Не удалось сохранить настройки');
     }
   };
@@ -284,7 +285,7 @@ export default function SettingsPage() {
                                 toast.success('Настройки AI успешно применены');
                             } catch (e) {
                                 toast.error('Ошибка сохранения настроек');
-                                console.error(e);
+                                logger.error(e);
                             }
                         }}
                         className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition-all"
@@ -458,7 +459,7 @@ export default function SettingsPage() {
                                                 toast.success('Данные успешно сброшены');
                                                 window.location.href = '/';
                                             } catch (e) {
-                                                console.error(e);
+                                                logger.error(e);
                                                 toast.error('Не удалось сбросить данные');
                                             }
                                         }}

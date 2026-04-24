@@ -11,6 +11,7 @@ import {
   type MediaFormData,
   type MediaFormInput,
 } from '@/schemas/mediaSchema';
+import { logger } from '@/utils/logger';
 
 type Step = 'info' | 'details' | 'media';
 
@@ -80,7 +81,7 @@ export function useMediaForm({
       const data = await groupsApi.getAll();
       setGroups(data);
     } catch (e) {
-      console.error('Failed to load groups', e);
+      logger.error('Failed to load groups', e);
     }
   }, []);
 

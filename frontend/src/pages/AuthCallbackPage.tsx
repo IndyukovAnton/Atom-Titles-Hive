@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { toast } from 'sonner';
+import { logger } from '../utils/logger';
 
 const AuthCallbackPage = () => {
   const [searchParams] = useSearchParams();
@@ -18,7 +19,7 @@ const AuthCallbackPage = () => {
           navigate('/');
         })
         .catch((error) => {
-          console.error('Auth callback error:', error);
+          logger.error('Auth callback error:', error);
           toast.error('Ошибка авторизации через Google');
           navigate('/login');
         });

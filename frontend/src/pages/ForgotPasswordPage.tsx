@@ -30,8 +30,8 @@ export default function ForgotPasswordPage() {
 
     try {
       // TODO: Реализовать API для восстановления пароля
+      void data;
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log('Password reset for:', data.email);
       setIsSuccess(true);
 
       setTimeout(() => {

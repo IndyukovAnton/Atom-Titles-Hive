@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi, type UserProfile } from '../api/auth';
 import { AxiosError } from 'axios';
+import { logger } from '../utils/logger';
 
 interface AuthState {
   user: UserProfile | null;
@@ -94,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
             const userData = await authApi.getProfile();
             set({ user: userData, isAuthenticated: true, isServerAvailable: true });
           } catch (e) {
-            console.error('Failed to fetch profile', e);
+            logger.error('Failed to fetch profile', e);
             const err = e as AxiosError;
             if (err.code === 'ERR_NETWORK' || !err.response) {
               set({ isServerAvailable: false });

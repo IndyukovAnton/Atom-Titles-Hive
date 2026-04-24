@@ -22,6 +22,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import type { MediaFilters } from '@/hooks/useFilters';
 import { mediaApi } from '@/api/media';
+import { logger } from '@/utils/logger';
 
 interface FilterPanelProps {
   filters: MediaFilters;
@@ -55,7 +56,7 @@ export const FilterPanel = ({
         const data = await mediaApi.getCategories();
         setCategories(data);
       } catch (error) {
-        console.error('Failed to load categories:', error);
+        logger.error('Failed to load categories:', error);
       } finally {
         setIsLoadingCategories(false);
       }

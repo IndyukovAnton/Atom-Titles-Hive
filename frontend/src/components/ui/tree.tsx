@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 import { type ItemInstance } from '@headless-tree/core';
 import { ChevronDownIcon, SquareMinus, SquarePlus } from 'lucide-react';
 import { Slot as SlotPrimitive } from '@radix-ui/react-slot';
@@ -68,7 +69,7 @@ function TreeItem<T = any>({ item, className, asChild, children, ...props }: Omi
   try {
     itemProps = typeof item.getProps === 'function' ? item.getProps() : {};
   } catch (error) {
-    console.warn('TreeItem: Failed to get item props', error);
+    logger.warn('TreeItem: Failed to get item props', error);
   }
   
   const mergedProps = { ...props, ...itemProps };
@@ -128,7 +129,7 @@ function TreeItemLabel<T = any>({ item: propItem, children, className, ...props 
   const item = propItem || currentItem;
 
   if (!item) {
-    console.warn('TreeItemLabel: No item provided via props or context');
+    logger.warn('TreeItemLabel: No item provided via props or context');
     return null;
   }
 
@@ -165,7 +166,7 @@ function TreeDragLine({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   const { tree } = useTreeContext();
 
   if (!tree || typeof tree.getDragLineStyle !== 'function') {
-    console.warn('TreeDragLine: No tree provided via context or tree does not have getDragLineStyle method');
+    logger.warn('TreeDragLine: No tree provided via context or tree does not have getDragLineStyle method');
     return null;
   }
 

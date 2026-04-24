@@ -5,6 +5,7 @@ import {
   type CoverImage,
 } from '../api/coverSearch';
 import { toast } from 'sonner';
+import { logger } from '../utils/logger';
 
 interface UseCoverSearchProps {
   initialQuery?: string;
@@ -62,7 +63,7 @@ export function useCoverSearch({
 
       setHasMore(images.length > 0);
     } catch (err) {
-      console.error('Failed to search covers:', err);
+      logger.error('Failed to search covers:', err);
       setError('Не удалось найти обложки. Попробуйте другой запрос.');
     } finally {
       setLoading(false);
@@ -120,7 +121,7 @@ export function useCoverSearch({
       const base64 = await downloadCover(image.url);
       onSelect(base64);
     } catch (err) {
-      console.error('Failed to download cover:', err);
+      logger.error('Failed to download cover:', err);
       toast.error('Не удалось загрузить изображение');
     } finally {
       setDownloading(null);

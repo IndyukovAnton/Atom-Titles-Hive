@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Plus, Folder, Search, CheckCircle2, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { logger } from '@/utils/logger';
 
 interface OnboardingStep {
   icon: React.ReactNode;
@@ -80,7 +81,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
       await updateProfile({ hasCompletedOnboarding: true });
       onComplete();
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      logger.error('Failed to complete onboarding:', error);
       onComplete(); // Даже при ошибке закрываем онбординг
     }
   };
@@ -90,7 +91,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
       await updateProfile({ hasCompletedOnboarding: true });
       onSkip();
     } catch (error) {
-      console.error('Failed to skip onboarding:', error);
+      logger.error('Failed to skip onboarding:', error);
       onSkip();
     }
   };
