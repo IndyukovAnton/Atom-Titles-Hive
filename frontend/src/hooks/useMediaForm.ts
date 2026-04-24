@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { mediaApi, type CreateMediaData, type MediaEntry } from '../api/media';
 import { groupsApi, type Group } from '../api/groups';
 import { AxiosError } from 'axios';
@@ -41,6 +42,7 @@ export function useMediaForm({
   onSuccess,
   onClose,
 }: UseMediaFormOptions) {
+  const queryClient = useQueryClient();
   const [activeStep, setActiveStep] = useState<Step>('info');
   const [groups, setGroups] = useState<Group[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -182,6 +184,9 @@ export function useMediaForm({
           toast.success('Запись успешно создана');
         }
 
+        await queryClient.invalidateQueries({ queryKey: ['media'] });
+        await queryClient.invalidateQueries({ queryKey: ['groups'] });
+
         onSuccess();
         onClose();
       } catch (err) {
@@ -192,7 +197,7 @@ export function useMediaForm({
         toast.error(errorMessage);
       }
     },
-    [onSuccess, onClose, initialData],
+    [onSuccess, onClose, initialData, queryClient],
   );
 
   const validateAndNext = useCallback(

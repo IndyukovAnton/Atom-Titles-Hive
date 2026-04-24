@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { mediaApi, type MediaEntry } from '../api/media';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { mediaApi, type MediaEntry } from '../api/media';
 import type { MediaFilters } from './useFilters';
 
 interface UseMediaDataParams {
@@ -9,14 +10,31 @@ interface UseMediaDataParams {
   filters?: MediaFilters;
 }
 
+export const MEDIA_QUERY_KEY = ['media'] as const;
+
+function buildQueryKey(groupId: number | null | 'all', search?: string) {
+  return [
+    ...MEDIA_QUERY_KEY,
+    { groupId, search: search?.trim() || '' },
+  ] as const;
+}
+
+// Backwards-compatible signature: accepts either a params object or the
+// original positional arguments (selectedGroupId, searchQuery, filters).
 export function useMediaData(
-  selectedGroupIdOrParams: number | null | 'all' | UseMediaDataParams,
+  selectedGroupIdOrParams:
+    | number
+    | null
+    | 'all'
+    | UseMediaDataParams,
   searchQueryParam?: string,
-  filtersParam?: MediaFilters
+  filtersParam?: MediaFilters,
 ) {
-  // Поддержка обратной совместимости и нового API
-  const params = useMemo(() => {
-    if (typeof selectedGroupIdOrParams === 'object' && selectedGroupIdOrParams !== null) {
+  const { selectedGroupId, searchQuery, filters } = useMemo(() => {
+    if (
+      typeof selectedGroupIdOrParams === 'object' &&
+      selectedGroupIdOrParams !== null
+    ) {
       return selectedGroupIdOrParams;
     }
     return {
@@ -26,87 +44,88 @@ export function useMediaData(
     };
   }, [selectedGroupIdOrParams, searchQueryParam, filtersParam]);
 
-  const { selectedGroupId, searchQuery, filters } = params;
+  const queryClient = useQueryClient();
+  const queryKey = buildQueryKey(selectedGroupId, searchQuery);
 
-  const [mediaList, setMediaList] = useState<MediaEntry[]>([]);
-  const [filteredList, setFilteredList] = useState<MediaEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadMedia = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await mediaApi.getAll({ 
+  const query = useQuery<MediaEntry[]>({
+    queryKey,
+    queryFn: () =>
+      mediaApi.getAll({
         groupId: selectedGroupId === 'all' ? undefined : selectedGroupId,
         search: searchQuery,
-      });
-      setMediaList(data);
-    } catch (err) {
-      const error = err as AxiosError<{ message: string }>;
-      setError(error.response?.data?.message || 'Не удалось загрузить данные');
-    } finally {
-      setIsLoading(false);
+      }),
+    // Каждая (groupId, search)-пара кэшируется отдельно. 30s staleTime
+    // даёт мгновенный возврат при переключении между уже посещёнными
+    // группами, а CRUD-мутации точечно инвалидируют кэш.
+    staleTime: 30 * 1000,
+    placeholderData: (previousData) => previousData,
+  });
+
+  const mediaList = query.data ?? [];
+
+  // Client-side filters — жанры/теги/категория/рейтинг/даты.
+  // Сервер уже знает про groupId и search; остальное считаем локально,
+  // чтобы не плодить сетевые запросы при смене фильтра.
+  const filteredList = useMemo(() => {
+    if (!filters) return mediaList;
+    let result = mediaList;
+
+    if (filters.category) {
+      result = result.filter((item) => item.category === filters.category);
     }
-  }, [selectedGroupId, searchQuery]);
-
-  // Применение клиентских фильтров
-  useEffect(() => {
-    let result = [...mediaList];
-
-    if (filters) {
-      // Фильтр по категории
-      if (filters.category) {
-        result = result.filter(item => item.category === filters.category);
-      }
-
-      // Фильтр по рейтингу
-      if (filters.minRating !== undefined) {
-        result = result.filter(item => item.rating >= filters.minRating!);
-      }
-      if (filters.maxRating !== undefined) {
-        result = result.filter(item => item.rating <= filters.maxRating!);
-      }
-
-      // Фильтр по датам
-      if (filters.startDate) {
-        result = result.filter(item => 
-          item.startDate && item.startDate >= filters.startDate!
-        );
-      }
-      if (filters.endDate) {
-        result = result.filter(item => 
-          item.endDate && item.endDate <= filters.endDate!
-        );
-      }
-
-      // Фильтр по жанрам
-      if (filters.genres && filters.genres.length > 0) {
-        result = result.filter(item =>
-          item.genres?.some(genre => filters.genres!.includes(genre))
-        );
-      }
-
-      // Фильтр по тегам
-      if (filters.tags && filters.tags.length > 0) {
-        result = result.filter(item =>
-          item.tags?.some(tag => filters.tags!.includes(tag))
-        );
-      }
+    if (filters.minRating !== undefined) {
+      result = result.filter((item) => item.rating >= filters.minRating!);
+    }
+    if (filters.maxRating !== undefined) {
+      result = result.filter((item) => item.rating <= filters.maxRating!);
+    }
+    if (filters.startDate) {
+      result = result.filter(
+        (item) => item.startDate && item.startDate >= filters.startDate!,
+      );
+    }
+    if (filters.endDate) {
+      result = result.filter(
+        (item) => item.endDate && item.endDate <= filters.endDate!,
+      );
+    }
+    if (filters.genres && filters.genres.length > 0) {
+      result = result.filter((item) =>
+        item.genres?.some((genre) => filters.genres!.includes(genre)),
+      );
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      result = result.filter((item) =>
+        item.tags?.some((tag) => filters.tags!.includes(tag)),
+      );
     }
 
-    setFilteredList(result);
+    return result;
   }, [mediaList, filters]);
 
-  useEffect(() => {
-    loadMedia();
-  }, [loadMedia]);
+  const loadMedia = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: MEDIA_QUERY_KEY });
+  }, [queryClient]);
 
-  return { 
-    mediaList: filteredList, 
-    isLoading, 
-    error, 
-    loadMedia, 
-    setMediaList 
+  // Direct cache write for optimistic updates — same semantics as the old
+  // setMediaList setter: subscribers re-render with the new value.
+  const setMediaList = useCallback(
+    (next: MediaEntry[]) => {
+      queryClient.setQueryData(queryKey, next);
+    },
+    [queryClient, queryKey],
+  );
+
+  const axiosError = query.error as AxiosError<{ message: string }> | null;
+  const error =
+    axiosError?.response?.data?.message ??
+    (query.error ? 'Не удалось загрузить данные' : null);
+
+  return {
+    mediaList: filteredList,
+    isLoading: query.isLoading,
+    error,
+    loadMedia,
+    setMediaList,
   };
 }

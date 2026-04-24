@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { waitFor, act } from '@testing-library/react';
+import { renderHookWithProviders as renderHook } from '../test/utils/test-utils';
 import { useGroupManagement } from './useGroupManagement';
 import { mockGroup } from '../test/mocks/api';
 
