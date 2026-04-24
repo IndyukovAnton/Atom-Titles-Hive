@@ -25,6 +25,7 @@ import { useMediaForm } from '@/hooks/useMediaForm';
 import { InfoStep } from './InfoStep';
 import { DetailsStep } from './DetailsStep';
 import { MediaStep } from './MediaStep';
+import { PreviewCard } from './PreviewCard';
 
 interface AddMediaModalProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export default function AddMediaModal({
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent
-          className="sm:max-w-[600px] max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0"
+          className="sm:max-w-[780px] max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0"
           showCloseButton={false}
         >
           <div className="absolute top-0 left-0 w-full h-1 bg-muted overflow-hidden">
@@ -127,41 +128,47 @@ export default function AddMediaModal({
             </div>
           </div>
 
-          <ScrollArea className="flex-1 px-6 py-4">
-            <div className="pb-4">
-              <FormProvider {...methods}>
-                <form
-                  id="add-media-form"
-                  onSubmit={handleSubmit(onSubmit)}
-                  className="space-y-6"
-                >
-                  {activeStep === 'info' && (
-                    <InfoStep
-                      isSubmitting={isSubmitting}
-                      groupOptions={groupOptions}
-                      onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
-                    />
-                  )}
-                  {activeStep === 'details' && (
-                    <DetailsStep
-                      isSubmitting={isSubmitting}
-                      dateLabels={dateLabels}
-                    />
-                  )}
-                  {activeStep === 'media' && (
-                    <MediaStep
-                      isSubmitting={isSubmitting}
-                      coverMode={coverMode}
-                      setCoverMode={setCoverMode}
-                      currentImage={currentImage}
-                      error={error}
-                      handleFileUpload={handleFileUpload}
-                    />
-                  )}
-                </form>
-              </FormProvider>
+          <FormProvider {...methods}>
+            <div className="flex-1 grid md:grid-cols-[1fr_260px] gap-0 min-h-0">
+              <ScrollArea className="px-6 py-4 min-h-0">
+                <div className="pb-4">
+                  <form
+                    id="add-media-form"
+                    onSubmit={handleSubmit(onSubmit)}
+                    className="space-y-6"
+                  >
+                    {activeStep === 'info' && (
+                      <InfoStep
+                        isSubmitting={isSubmitting}
+                        groupOptions={groupOptions}
+                        onOpenCreateGroup={() => setIsCreateGroupOpen(true)}
+                      />
+                    )}
+                    {activeStep === 'details' && (
+                      <DetailsStep
+                        isSubmitting={isSubmitting}
+                        dateLabels={dateLabels}
+                      />
+                    )}
+                    {activeStep === 'media' && (
+                      <MediaStep
+                        isSubmitting={isSubmitting}
+                        coverMode={coverMode}
+                        setCoverMode={setCoverMode}
+                        currentImage={currentImage}
+                        error={error}
+                        handleFileUpload={handleFileUpload}
+                      />
+                    )}
+                  </form>
+                </div>
+              </ScrollArea>
+
+              <aside className="hidden md:block border-l bg-muted/20 px-5 py-4 overflow-y-auto">
+                <PreviewCard />
+              </aside>
             </div>
-          </ScrollArea>
+          </FormProvider>
 
           <footer className="p-4 flex items-center justify-between border-t">
             {activeStep !== 'info' ? (
