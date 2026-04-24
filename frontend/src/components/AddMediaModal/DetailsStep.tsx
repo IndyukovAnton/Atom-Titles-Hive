@@ -3,40 +3,7 @@ import {
   FormTextarea,
   TagInput,
 } from '@/components/Form';
-
-const PREDEFINED_TAGS = [
-  'Избранное',
-  'В планах',
-  'Читаю',
-  'Завершено',
-  'Брошено',
-  'Отложено',
-  'Пересматриваю',
-];
-
-const PREDEFINED_GENRES = [
-  'Экшен',
-  'Приключения',
-  'Комедия',
-  'Драма',
-  'Фэнтези',
-  'Ужасы',
-  'Мистика',
-  'Романтика',
-  'Фантастика',
-  'Повседневность',
-  'Спорт',
-  'Триллер',
-  'Военный',
-  'Вестерн',
-  'Детектив',
-  'Исторический',
-  'Музыка',
-  'Психология',
-  'Семейный',
-  'Биография',
-  'Документальный',
-];
+import { PREDEFINED_GENRES, PREDEFINED_TAGS } from '@/constants/media';
 
 interface DetailsStepProps {
   isSubmitting: boolean;

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Calendar, Filter, Layers, Star, Tag, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Calendar, Filter, Layers, Search, Star, Tag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -22,6 +22,8 @@ import {
 import type { MediaFilters } from '@/hooks/useFilters';
 import { mediaApi } from '@/api/media';
 import { logger } from '@/utils/logger';
+import { PREDEFINED_GENRES, PREDEFINED_TAGS } from '@/constants/media';
+import { cn } from '@/lib/utils';
 
 interface FilterPanelProps {
   filters: MediaFilters;
@@ -107,6 +109,75 @@ function SubLabel({
   );
 }
 
+interface ChipSelectorProps {
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  prefix?: string;
+  showSearch?: boolean;
+  searchPlaceholder?: string;
+  chipSelectedClass: string;
+  chipIdleClass: string;
+}
+
+function ChipSelector({
+  options,
+  selected,
+  onToggle,
+  prefix = '',
+  showSearch = false,
+  searchPlaceholder = 'Поиск...',
+  chipSelectedClass,
+  chipIdleClass,
+}: ChipSelectorProps) {
+  const [query, setQuery] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.toLowerCase().includes(q));
+  }, [options, query]);
+
+  return (
+    <div className="space-y-2.5">
+      {showSearch && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-8 pl-8 text-xs"
+          />
+        </div>
+      )}
+      {filtered.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-1">Ничего не найдено</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {filtered.map((option) => {
+            const isSelected = selected.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onToggle(option)}
+                className={cn(
+                  'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border transition-colors cursor-pointer',
+                  isSelected ? chipSelectedClass : chipIdleClass,
+                )}
+              >
+                {prefix}
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const FilterPanel = ({
   filters,
   onUpdateFilter,
@@ -135,6 +206,35 @@ export const FilterPanel = ({
   }, []);
 
   const activeFiltersCount = Object.keys(filters).length;
+
+  const toggleGenre = (genre: string) => {
+    const current = filters.genres || [];
+    const next = current.includes(genre)
+      ? current.filter((g) => g !== genre)
+      : [...current, genre];
+    onUpdateFilter('genres', next.length ? next : undefined);
+  };
+
+  const toggleTag = (tag: string) => {
+    const current = filters.tags || [];
+    const next = current.includes(tag)
+      ? current.filter((t) => t !== tag)
+      : [...current, tag];
+    onUpdateFilter('tags', next.length ? next : undefined);
+  };
+
+  // Включаем в доступные варианты и предопределённый список, и уже выбранные
+  // (на случай если у пользователя в фильтре остался кастомный тег/жанр,
+  // которого нет в predefined — иначе он "пропадёт" из UI).
+  const genreOptions = useMemo(() => {
+    const all = new Set([...PREDEFINED_GENRES, ...(filters.genres || [])]);
+    return Array.from(all);
+  }, [filters.genres]);
+
+  const tagOptions = useMemo(() => {
+    const all = new Set([...PREDEFINED_TAGS, ...(filters.tags || [])]);
+    return Array.from(all);
+  }, [filters.tags]);
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -308,33 +408,15 @@ export const FilterPanel = ({
                 : undefined
             }
           >
-            <Input
-              placeholder="Введите жанры через запятую"
-              value={filters.genres?.join(', ') ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                const genres = value
-                  ? value
-                      .split(',')
-                      .map((g) => g.trim())
-                      .filter(Boolean)
-                  : undefined;
-                onUpdateFilter('genres', genres);
-              }}
+            <ChipSelector
+              options={genreOptions}
+              selected={filters.genres || []}
+              onToggle={toggleGenre}
+              showSearch
+              searchPlaceholder="Найти жанр..."
+              chipSelectedClass="bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+              chipIdleClass="bg-transparent text-foreground border-border hover:bg-emerald-500/10 hover:border-emerald-500/40"
             />
-            {filters.genres && filters.genres.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {filters.genres.map((genre, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="secondary"
-                    className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
-                  >
-                    {genre}
-                  </Badge>
-                ))}
-              </div>
-            )}
           </FilterSection>
 
           <FilterSection
@@ -347,33 +429,14 @@ export const FilterPanel = ({
                 : undefined
             }
           >
-            <Input
-              placeholder="Введите теги через запятую"
-              value={filters.tags?.join(', ') ?? ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                const tags = value
-                  ? value
-                      .split(',')
-                      .map((t) => t.trim())
-                      .filter(Boolean)
-                  : undefined;
-                onUpdateFilter('tags', tags);
-              }}
+            <ChipSelector
+              options={tagOptions}
+              selected={filters.tags || []}
+              onToggle={toggleTag}
+              prefix="#"
+              chipSelectedClass="bg-rose-500 text-white border-rose-500 hover:bg-rose-600"
+              chipIdleClass="bg-transparent text-foreground border-border hover:bg-rose-500/10 hover:border-rose-500/40"
             />
-            {filters.tags && filters.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {filters.tags.map((tag, idx) => (
-                  <Badge
-                    key={idx}
-                    variant="secondary"
-                    className="text-xs bg-rose-500/10 text-rose-700 dark:text-rose-300 hover:bg-rose-500/20"
-                  >
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
           </FilterSection>
         </div>
 
