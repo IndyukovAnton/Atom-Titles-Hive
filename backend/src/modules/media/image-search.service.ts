@@ -8,6 +8,11 @@ export interface CoverImage {
   source: string;
 }
 
+interface BingImageMetadata {
+  murl?: string;
+  turl?: string;
+}
+
 @Injectable()
 export class ImageSearchService {
   private readonly logger = new Logger(ImageSearchService.name);
@@ -16,25 +21,25 @@ export class ImageSearchService {
   private searchCache = new Map<string, CoverImage[]>();
 
   /**
-   * Поиск изображений через Google Images
-   * @param query Поисковый запрос
-   * @param page Страница (смещение)
-   * @returns Список изображений для текущей страницы
+   * Поиск обложек через Bing Images.
+   *
+   * Почему Bing, а не Google: с 2024 года Google Images (udm=2) возвращает
+   * noscript-оболочку для любых non-JS клиентов — данные приходят только через
+   * последующие XHR, которые невозможно повторить без headless-браузера.
+   * Bing отдаёт готовые результаты прямо в HTML: `<a class="iusc" m="{...json...}">`,
+   * где JSON содержит `murl` (оригинал) и `turl` (Bing-CDN thumbnail).
    */
   async searchImages(query: string, page: number): Promise<CoverImage[]> {
-    // 1. Проверяем наличие в кеше
     if (this.searchCache.has(query)) {
       const cachedImages = this.searchCache.get(query)!;
       return this.paginateResults(cachedImages, page);
     }
 
-    // 2. Если нет в кеше, делаем запрос к Google Images
     try {
       this.logger.log(`Fetching images for query: "${query}"`);
 
-      // Используем современный параметр udm=2 для Google Images
       const encodedQuery = encodeURIComponent(query);
-      const searchUrl = `https://www.google.com/search?udm=2&q=${encodedQuery}`;
+      const searchUrl = `https://www.bing.com/images/search?q=${encodedQuery}&first=1&count=35&form=HDRSC2`;
 
       this.logger.debug(`Request URL: ${searchUrl}`);
 
@@ -45,26 +50,23 @@ export class ImageSearchService {
           Accept:
             'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Accept-Encoding': 'gzip, deflate, br',
-          Referer: 'https://www.google.com/',
         },
       });
 
       if (!response.ok) {
-        this.logger.warn(`Google returned ${response.status} for "${query}".`);
+        this.logger.warn(`Bing returned ${response.status} for "${query}".`);
         return [];
       }
 
       const html = await response.text();
 
-      // Сохраним небольшой фрагмент HTML для отладки
       if (html.length < 500) {
         this.logger.warn(
           `Received suspiciously short response (${html.length} bytes). Possible block/captcha.`,
         );
       }
 
-      const allImages = this.parseImageUrls(html);
+      const allImages = this.parseBingImages(html);
 
       this.logger.log(`Found ${allImages.length} images for query: "${query}"`);
 
@@ -88,125 +90,57 @@ export class ImageSearchService {
     }
   }
 
-  /**
-   * Пагинация результатов из кеша
-   */
   private paginateResults(images: CoverImage[], page: number): CoverImage[] {
-    const pageSize = 8; // Показываем по 8 изображений за раз (2 ряда по 4)
+    const pageSize = 8;
     const start = page * pageSize;
     return images.slice(start, start + pageSize);
   }
 
   /**
-   * Парсинг HTML для извлечения ссылок на изображения
-   * Google Images отдает разный HTML для разных User-Agent.
-   * Для десктопного Chrome (gbv=1) обычно используются паттерны с JSON внутри скриптов или атрибуты данных.
+   * Парсинг Bing Images. Каждая карточка — `<a class="iusc" m='{"murl":..., "turl":...}'>`.
+   * Cheerio декодирует HTML-entities в значении атрибута, так что в `m` уже чистый JSON.
    */
-  private parseImageUrls(html: string): CoverImage[] {
+  private parseBingImages(html: string): CoverImage[] {
     const $ = cheerio.load(html);
     const images: CoverImage[] = [];
+    const seen = new Set<string>();
 
-    // Стратегия 1: Извлечение из JSON в script тегах
-    // Google Images часто встраивает данные в AF_initDataCallback или подобные функции
-    try {
-      const scripts = $('script').toArray();
+    $('a.iusc').each((i, el) => {
+      if (images.length >= 100) return false;
 
-      for (const script of scripts) {
-        const scriptContent = $(script).html() || '';
+      const rawMeta = $(el).attr('m');
+      if (!rawMeta) return;
 
-        // Ищем паттерны с URL изображений
-        // Google использует различные форматы, попробуем найти массивы с URL
-        const urlMatches = scriptContent.match(
-          /https?:\/\/[^"'\s)]+\.(?:jpg|jpeg|png|webp|gif)/gi,
-        );
-
-        if (urlMatches && urlMatches.length > 0) {
-          // Фильтруем только уникальные и релевантные URL
-          const uniqueUrls = [...new Set(urlMatches)].filter((url) => {
-            // Исключаем служебные изображения Google
-            return (
-              !url.includes('gstatic.com') &&
-              !url.includes('google.com/images/') &&
-              !url.includes('googleusercontent.com/gadgets') &&
-              url.length < 2000
-            ); // Слишком длинные URL скорее всего data:image
-          });
-
-          uniqueUrls.forEach((url, index) => {
-            if (images.length < 100) {
-              // Ограничиваем до 100 изображений
-              images.push({
-                id: `img-json-${Date.now()}-${index}`,
-                url: url,
-                thumbnail: url, // Используем тот же URL для миниатюры
-                source: 'Google Images',
-              });
-            }
-          });
-        }
+      let meta: BingImageMetadata;
+      try {
+        meta = JSON.parse(rawMeta) as BingImageMetadata;
+      } catch {
+        return;
       }
-    } catch (e) {
-      this.logger.debug('Failed to extract from scripts: ' + e);
-    }
 
-    // Стратегия 2: Парсинг img тегов (для старой версии)
-    if (images.length === 0) {
-      $('img').each((i, el) => {
-        const img = $(el);
-        const src = img.attr('src') || img.attr('data-src');
+      const full = meta.murl;
+      const thumb = meta.turl || meta.murl;
 
-        if (src && (src.startsWith('http://') || src.startsWith('https://'))) {
-          // Пропускаем служебные изображения
-          if (
-            !src.includes('gstatic.com') &&
-            !src.includes('google.com/images/branding')
-          ) {
-            images.push({
-              id: `img-tag-${Date.now()}-${i}`,
-              url: src,
-              thumbnail: src,
-              source: 'Google Images',
-            });
-          }
-        }
+      if (!full || !thumb) return;
+      if (!/^https?:\/\//i.test(full)) return;
+      if (seen.has(full)) return;
+
+      seen.add(full);
+      images.push({
+        id: `bing-${Date.now()}-${i}`,
+        url: full,
+        thumbnail: thumb,
+        source: 'Bing Images',
       });
-    }
+    });
 
-    // Стратегия 3: Поиск ссылок на изображения в href
-    if (images.length === 0) {
-      $('a[href*="imgurl="]').each((i, el) => {
-        try {
-          const href = $(el).attr('href');
-          if (href) {
-            const urlObj = new URL(href, 'https://www.google.com');
-            const imgUrl = urlObj.searchParams.get('imgurl');
-
-            if (
-              imgUrl &&
-              (imgUrl.startsWith('http://') || imgUrl.startsWith('https://'))
-            ) {
-              images.push({
-                id: `img-href-${Date.now()}-${i}`,
-                url: imgUrl,
-                thumbnail: imgUrl,
-                source: 'Google Images',
-              });
-            }
-          }
-        } catch (e) {
-          // Ignore parse errors
-        }
-      });
-    }
-
-    // Debug: если ничего не нашли
     if (images.length === 0) {
       this.logger.warn(
-        'Failed all parsing strategies. Checking for captcha/block indicators...',
+        'No a.iusc entries matched. Checking for captcha/block indicators...',
       );
       if (html.includes('captcha') || html.includes('unusual traffic')) {
         this.logger.error(
-          'Google CAPTCHA detected! Consider using proxy or different approach.',
+          'Bing block detected! Consider using proxy or different approach.',
         );
       }
     }
@@ -216,7 +150,6 @@ export class ImageSearchService {
 
   /**
    * Загрузка изображения и конвертация в base64
-   * @param url URL изображения
    */
   async downloadImage(url: string): Promise<{ base64: string }> {
     try {
@@ -238,10 +171,7 @@ export class ImageSearchService {
       const buffer = await response.arrayBuffer();
       const base64 = Buffer.from(buffer).toString('base64');
 
-      // Определяем mime type (попробуем из заголовков или дефолтный)
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-      return { base64: base64 };
+      return { base64 };
     } catch (error) {
       this.logger.error(`Failed to download image: ${url}`, error);
       throw error;
