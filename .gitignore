@@ -32,9 +32,14 @@ tmp
 
 # editor backup files
 *~
+
+# Secret env files — NEVER commit real secrets. Example templates are allowed.
 .env
 *.env
 backend/.env
+!.env.example
+!backend/.env.example
+!frontend/.env.production
 
 # Tauri build artifacts / local data
 src-tauri/binaries/**
@@ -44,3 +49,5 @@ src-tauri/data/**
 *.sqlite
 *.sqlite3
 *.db
+
+.claude
