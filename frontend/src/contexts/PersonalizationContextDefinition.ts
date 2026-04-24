@@ -1,6 +1,7 @@
 import { createContext } from 'react';
 
 export type Theme = 'light' | 'dark';
+export type AddEntryPreviewStyle = 'mirror' | 'poster';
 
 export interface PersonalizationContextType {
   theme: Theme;
@@ -8,6 +9,7 @@ export interface PersonalizationContextType {
   fontSize: number;
   fontFamily: string;
   aiKey: string;
+  addEntryPreviewStyle: AddEntryPreviewStyle;
   privacySettings: {
     shareWatchHistory: boolean;
     shareBirthDate: boolean;
@@ -18,6 +20,7 @@ export interface PersonalizationContextType {
   setFontSize: (fontSize: number) => void;
   setFontFamily: (fontFamily: string) => void;
   setAiKey: (key: string) => void;
+  setAddEntryPreviewStyle: (style: AddEntryPreviewStyle) => void;
   setPrivacySettings: (settings: { shareWatchHistory: boolean; shareBirthDate: boolean }) => void;
   savePreferences: () => Promise<void>;
 }

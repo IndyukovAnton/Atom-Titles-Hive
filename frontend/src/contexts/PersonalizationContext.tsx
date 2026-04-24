@@ -1,11 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../store/authStore';
 import type { UserPreferences } from '../api/auth';
-import { PersonalizationContext, type Theme } from './PersonalizationContextDefinition';
+import { PersonalizationContext, type Theme, type AddEntryPreviewStyle } from './PersonalizationContextDefinition';
 
 const DEFAULT_BACKGROUND = 'default';
 const DEFAULT_FONT_SIZE = 16;
 const DEFAULT_FONT_FAMILY = 'Inter';
+const DEFAULT_ADD_ENTRY_PREVIEW_STYLE: AddEntryPreviewStyle = 'mirror';
 
 export function PersonalizationProvider({ children }: { children: ReactNode }) {
   const { user, updateProfile } = useAuthStore();
@@ -24,7 +25,11 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
   const [fontFamily, setFontFamilyState] = useState<string>(
     () => user?.preferences?.fontFamily || DEFAULT_FONT_FAMILY
   );
-  
+
+  const [addEntryPreviewStyle, setAddEntryPreviewStyleState] = useState<AddEntryPreviewStyle>(
+    () => (user?.preferences?.addEntryPreviewStyle as AddEntryPreviewStyle | undefined) || DEFAULT_ADD_ENTRY_PREVIEW_STYLE
+  );
+
   const [aiKey, setAiKeyState] = useState<string>('');
   
   const [privacySettings, setPrivacySettingsState] = useState({
@@ -41,7 +46,11 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
       if (prefs.background) setBackgroundState(prefs.background);
       if (prefs.fontSize) setFontSizeState(prefs.fontSize);
       if (prefs.fontFamily) setFontFamilyState(prefs.fontFamily);
-      
+
+      if (prefs.addEntryPreviewStyle === 'mirror' || prefs.addEntryPreviewStyle === 'poster') {
+        setAddEntryPreviewStyleState(prefs.addEntryPreviewStyle);
+      }
+
       if (prefs.privacySettings) {
         setPrivacySettingsState({
           shareWatchHistory: prefs.privacySettings.shareWatchHistory ?? false,
@@ -119,6 +128,10 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
       setAiKeyState(key);
   };
 
+  const setAddEntryPreviewStyle = (style: AddEntryPreviewStyle) => {
+      setAddEntryPreviewStyleState(style);
+  };
+
   const setPrivacySettings = (settings: { shareWatchHistory: boolean; shareBirthDate: boolean }) => {
       setPrivacySettingsState(settings);
   };
@@ -138,6 +151,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
       fontSize,
       fontFamily,
       privacySettings,
+      addEntryPreviewStyle,
       // Не отправляем ключ на сервер в открытом виде, если он там не нужен для прокси
       // В данном случае мы реализуем "Client-side storage" вариант безопасности
     };
@@ -153,6 +167,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
         fontSize,
         fontFamily,
         aiKey,
+        addEntryPreviewStyle,
         privacySettings,
         toggleTheme,
         setTheme,
@@ -160,6 +175,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
         setFontSize,
         setFontFamily,
         setAiKey,
+        setAddEntryPreviewStyle,
         setPrivacySettings,
         savePreferences,
       }}
