@@ -22,6 +22,7 @@ export interface UserPreferences {
   };
   tmdbApiKey?: string;
   avatar?: string;
+  addEntryPreviewStyle?: 'mirror' | 'poster';
 }
 
 @Entity('users')
