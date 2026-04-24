@@ -1,11 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../store/authStore';
 import type { UserPreferences } from '../api/auth';
+import { getPresetFontUrl } from '../constants/fonts';
 import { PersonalizationContext, type Theme, type AddEntryPreviewStyle } from './PersonalizationContextDefinition';
 
 const DEFAULT_BACKGROUND = 'default';
 const DEFAULT_FONT_SIZE = 16;
-const DEFAULT_FONT_FAMILY = 'Inter';
+const DEFAULT_FONT_FAMILY = 'Nunito';
 const DEFAULT_ADD_ENTRY_PREVIEW_STYLE: AddEntryPreviewStyle = 'mirror';
 
 export function PersonalizationProvider({ children }: { children: ReactNode }) {
@@ -84,9 +85,16 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.fontSize = `${fontSize}px`;
   }, [fontSize]);
 
-  // Применение семейства шрифта
+  // Применение семейства шрифта + ленивая подгрузка CSS для preset-шрифтов
   useEffect(() => {
     document.documentElement.style.fontFamily = fontFamily;
+    const url = getPresetFontUrl(fontFamily);
+    if (url && !document.querySelector(`link[href="${url}"]`)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      document.head.appendChild(link);
+    }
   }, [fontFamily]);
 
   // Применение фона
