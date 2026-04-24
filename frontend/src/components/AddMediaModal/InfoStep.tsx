@@ -32,28 +32,31 @@ export function InfoStep({
       />
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold text-foreground">Группа</Label>
+        <Label className="text-sm font-semibold text-foreground">Группа</Label>
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0">
+            <FormSelect
+              name="groupId"
+              options={groupOptions}
+              placeholder="Без группы"
+              disabled={isSubmitting}
+              className="w-full"
+            />
+          </div>
           <Button
             type="button"
-            variant="link"
-            size="sm"
-            className="h-auto p-0 text-xs"
+            variant="outline"
             onClick={onOpenCreateGroup}
+            disabled={isSubmitting}
+            className="shrink-0 cursor-pointer border-dashed hover:border-primary hover:bg-primary/5 hover:text-primary"
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="h-4 w-4 mr-1.5" />
             Новая
           </Button>
         </div>
-        <FormSelect
-          name="groupId"
-          options={groupOptions}
-          placeholder="Без группы"
-          disabled={isSubmitting}
-        />
       </div>
 
-      <StarRating name="rating" label="Ваша оценка" />
+      <StarRating name="rating" label="Ваша оценка" className="w-full" />
     </div>
   );
 }
