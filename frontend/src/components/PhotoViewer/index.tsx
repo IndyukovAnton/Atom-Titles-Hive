@@ -55,7 +55,6 @@ export default function PhotoViewer({
     handleZoomIn,
     handleZoomOut,
     handleResetZoom,
-    handleWheel,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
@@ -140,7 +139,6 @@ export default function PhotoViewer({
           <div
             ref={containerRef}
             className="relative z-10 flex items-center justify-center w-full h-full p-16"
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

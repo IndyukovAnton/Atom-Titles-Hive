@@ -50,17 +50,25 @@ export function usePhotoViewerControls({
     setPosition({ x: 0, y: 0 });
   }, []);
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Wheel must use a native non-passive listener: React attaches onWheel as
+  // passive, which makes e.preventDefault() a no-op and spams a browser warning.
+  useEffect(() => {
+    if (!isOpen) return;
+    const node = containerRef.current;
+    if (!node) return;
+
+    const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (e.deltaY < 0) {
         handleZoomIn();
       } else {
         handleZoomOut();
       }
-    },
-    [handleZoomIn, handleZoomOut],
-  );
+    };
+
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return () => node.removeEventListener('wheel', onWheel);
+  }, [isOpen, handleZoomIn, handleZoomOut]);
 
   const goToPrev = useCallback(() => {
     if (currentIndex === null || currentIndex <= 0) return;
@@ -189,7 +197,6 @@ export function usePhotoViewerControls({
     handleZoomIn,
     handleZoomOut,
     handleResetZoom,
-    handleWheel,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
