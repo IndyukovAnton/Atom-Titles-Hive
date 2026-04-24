@@ -90,9 +90,12 @@ export class MediaController {
   @Post('download-cover')
   async downloadCover(
     @Request() req: AuthenticatedRequest,
-    @Body() body: { url: string },
+    @Body() body: { url: string; thumbnail?: string },
   ) {
-    return await this.imageSearchService.downloadImage(body.url);
+    return await this.imageSearchService.downloadImage(
+      body.url,
+      body.thumbnail,
+    );
   }
 
   @Post('reset')

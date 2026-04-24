@@ -118,7 +118,7 @@ export function useCoverSearch({
   const handleSelect = async (image: CoverImage) => {
     try {
       setDownloading(image.id);
-      const base64 = await downloadCover(image.url);
+      const base64 = await downloadCover(image.url, image.thumbnail);
       onSelect(base64);
     } catch (err) {
       logger.error('Failed to download cover:', err);

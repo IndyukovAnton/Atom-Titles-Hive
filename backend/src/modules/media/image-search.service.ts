@@ -149,33 +149,65 @@ export class ImageSearchService {
   }
 
   /**
-   * Загрузка изображения и конвертация в base64
+   * Загрузка изображения и конвертация в base64.
+   * Если основной URL (обычно `murl` — оригинал со стороннего хоста) не качается
+   * (hotlink-защита, 403 от kinopoisk/yandex-mds и т.п.), падаем на fallback —
+   * Bing-CDN thumbnail, у которого нет Referer-политики.
    */
-  async downloadImage(url: string): Promise<{ base64: string }> {
+  async downloadImage(
+    url: string,
+    fallbackUrl?: string,
+  ): Promise<{ base64: string }> {
     try {
-      this.logger.log(`Downloading image: ${url}`);
+      return { base64: await this.fetchAsBase64(url) };
+    } catch (primaryError) {
+      const primaryMessage =
+        primaryError instanceof Error
+          ? primaryError.message
+          : String(primaryError);
 
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Failed to download image: ${response.status} ${response.statusText}`,
-        );
+      if (!fallbackUrl || fallbackUrl === url) {
+        this.logger.error(`Failed to download image: ${url} — ${primaryMessage}`);
+        throw primaryError;
       }
 
-      const buffer = await response.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString('base64');
+      this.logger.warn(
+        `Primary image URL failed (${primaryMessage}). Retrying via fallback: ${fallbackUrl}`,
+      );
 
-      return { base64 };
-    } catch (error) {
-      this.logger.error(`Failed to download image: ${url}`, error);
-      throw error;
+      try {
+        return { base64: await this.fetchAsBase64(fallbackUrl) };
+      } catch (fallbackError) {
+        const fallbackMessage =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : String(fallbackError);
+        this.logger.error(
+          `Both primary and fallback image URLs failed. primary=${url} (${primaryMessage}); fallback=${fallbackUrl} (${fallbackMessage})`,
+        );
+        throw fallbackError;
+      }
     }
+  }
+
+  private async fetchAsBase64(url: string): Promise<string> {
+    this.logger.log(`Downloading image: ${url}`);
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download image: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const buffer = await response.arrayBuffer();
+    return Buffer.from(buffer).toString('base64');
   }
 
   /**

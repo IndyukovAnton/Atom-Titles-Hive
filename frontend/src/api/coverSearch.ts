@@ -17,8 +17,11 @@ export const searchCovers = async (
   return response.data;
 };
 
-export const downloadCover = async (url: string): Promise<string> => {
-  const response = await api.post('/media/download-cover', { url });
+export const downloadCover = async (
+  url: string,
+  thumbnail?: string,
+): Promise<string> => {
+  const response = await api.post('/media/download-cover', { url, thumbnail });
   // Backend returns { base64: "..." }
   return `data:image/jpeg;base64,${response.data.base64}`;
 };
