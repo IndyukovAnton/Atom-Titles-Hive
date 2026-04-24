@@ -158,27 +158,33 @@ export default function PhotoViewer({
                   animate="center"
                   exit="exit"
                   className="relative"
-                  style={{
-                    transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-                    transformOrigin: 'center center',
-                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {currentFile.type === 'video' ? (
-                    <video
-                      src={currentFile.url}
-                      controls
-                      autoPlay
-                      className="max-h-[80vh] max-w-[90vw] rounded-2xl shadow-2xl ring-1 ring-white/10"
-                    />
-                  ) : (
-                    <img
-                      src={currentFile.url}
-                      alt=""
-                      draggable={false}
-                      className="max-h-[80vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 select-none"
-                    />
-                  )}
+                  <div
+                    style={{
+                      transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                      transformOrigin: 'center center',
+                      transition: isDragging
+                        ? 'none'
+                        : 'transform 150ms ease-out',
+                    }}
+                  >
+                    {currentFile.type === 'video' ? (
+                      <video
+                        src={currentFile.url}
+                        controls
+                        autoPlay
+                        className="max-h-[80vh] max-w-[90vw] rounded-2xl shadow-2xl ring-1 ring-white/10"
+                      />
+                    ) : (
+                      <img
+                        src={currentFile.url}
+                        alt=""
+                        draggable={false}
+                        className="max-h-[80vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 select-none"
+                      />
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
