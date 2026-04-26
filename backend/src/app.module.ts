@@ -22,6 +22,7 @@ import { AddParentIdToGroups1768295470289 } from './migrations/1768295470289-Add
 import { AddMediaFiles1768297695198 } from './migrations/1768297695198-AddMediaFiles';
 import { AddUserPersonalization1768446524526 } from './migrations/1768446524526-AddUserPersonalization';
 import { AddGoogleAuthFields1768473242770 } from './migrations/1768473242770-AddGoogleAuthFields';
+import { AddCreatedAtIndexes1777708800000 } from './migrations/1777708800000-AddCreatedAtIndexes';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AddGoogleAuthFields1768473242770 } from './migrations/1768473242770-Add
           AddMediaFiles1768297695198,
           AddUserPersonalization1768446524526,
           AddGoogleAuthFields1768473242770,
+          AddCreatedAtIndexes1777708800000,
         ];
 
         return {

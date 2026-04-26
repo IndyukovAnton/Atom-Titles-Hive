@@ -9,9 +9,12 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+import type { User } from './user.entity';
+import type { MediaEntry } from './media-entry.entity';
 
 @Entity('groups')
 @Index(['userId'])
+@Index(['userId', 'createdAt'])
 export class Group {
   @PrimaryGeneratedColumn()
   id: number;
@@ -21,7 +24,7 @@ export class Group {
 
   @ManyToOne('User', 'groups', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
-  user: any;
+  user: User;
 
   @Column()
   userId: number;
@@ -37,7 +40,7 @@ export class Group {
   children: Group[];
 
   @OneToMany('MediaEntry', 'group')
-  mediaEntries: any[];
+  mediaEntries: MediaEntry[];
 
   @CreateDateColumn()
   createdAt: Date;

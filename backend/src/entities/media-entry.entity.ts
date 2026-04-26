@@ -10,11 +10,14 @@ import {
   OneToMany,
 } from 'typeorm';
 import { MediaFile } from './media-file.entity';
+import type { User } from './user.entity';
+import type { Group } from './group.entity';
 
 @Entity('media_entries')
 @Index(['userId'])
 @Index(['groupId'])
 @Index(['userId', 'category'])
+@Index(['userId', 'createdAt'])
 export class MediaEntry {
   @PrimaryGeneratedColumn()
   id: number;
@@ -48,14 +51,14 @@ export class MediaEntry {
 
   @ManyToOne('User', 'mediaEntries', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
-  user: any;
+  user: User;
 
   @Column()
   userId: number;
 
   @ManyToOne('Group', 'mediaEntries', { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'groupId' })
-  group: any;
+  group: Group | null;
 
   @Column({ nullable: true })
   groupId: number | null;

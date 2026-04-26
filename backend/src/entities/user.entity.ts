@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import type { MediaEntry } from './media-entry.entity';
+import type { Group } from './group.entity';
 
 export interface UserPreferences {
   background?: string;
@@ -52,10 +54,10 @@ export class User {
   hasCompletedOnboarding: boolean;
 
   @OneToMany('MediaEntry', 'user')
-  mediaEntries: any[];
+  mediaEntries: MediaEntry[];
 
   @OneToMany('Group', 'user')
-  groups: any[];
+  groups: Group[];
 
   @CreateDateColumn()
   createdAt: Date;
