@@ -32,6 +32,7 @@ export interface SavePreferencesOverrides {
   fontFamily?: string;
   privacySettings?: { shareWatchHistory: boolean; shareBirthDate: boolean };
   addEntryPreviewStyle?: AddEntryPreviewStyle;
+  selectedTitle?: string | null;
 }
 
 export const PersonalizationContext = createContext<PersonalizationContextType | undefined>(undefined);

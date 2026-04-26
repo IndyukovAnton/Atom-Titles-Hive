@@ -19,6 +19,7 @@ export interface AchievementProgressItem {
 }
 
 export interface ResolvedTitleDto {
+  code: string;
   label: string;
   source: 'category' | 'genre';
   basis: string;
@@ -82,10 +83,14 @@ export class ProfileStatsDto {
   @IsNumber()
   levelTarget: number;
 
-  /** Звание (выведенное звание из топ-категории/жанра), либо null. */
+  /** Активное звание (закреплённое или авто-расчётное), либо null. */
   @IsOptional()
   @IsObject()
   title: ResolvedTitleDto | null;
+
+  /** Все звания, которые пользователь уже заработал (можно выбрать одно для закрепления). */
+  @IsArray()
+  earnedTitles: ResolvedTitleDto[];
 
   /** Прогресс по каждому достижению из каталога. */
   @IsArray()

@@ -1,15 +1,19 @@
-import { Plus, User, Settings, LogOut, Sparkles } from 'lucide-react';
+import { Crown, LogOut, Plus, Settings, Sparkles, User } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { latestVersion } from '@/utils/changelog';
+import { profileApi } from '@/api/profile';
+import { logger } from '@/utils/logger';
 import { Link } from 'react-router-dom';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,19 +28,38 @@ interface HomeHeaderProps {
   onLogout: () => void;
 }
 
-export const HomeHeader = ({ 
-  title, 
-  username, 
+export const HomeHeader = ({
+  title,
+  username,
   avatar,
-  onAddMedia, 
-  onNavigateToProfile, 
-  onNavigateToSettings, 
-  onLogout 
+  onAddMedia,
+  onNavigateToProfile,
+  onNavigateToSettings,
+  onLogout
 }: HomeHeaderProps) => {
   // Вычисляем hasUpdate без useEffect
   const hasUpdate = useMemo(() => {
     const lastSeenVersion = localStorage.getItem('lastSeenVersion');
     return latestVersion && lastSeenVersion !== latestVersion;
+  }, []);
+
+  // Активное звание подтягиваем для отображения в дропдауне профиля.
+  // Тихо игнорим ошибку сети — это украшение, не критичный путь.
+  const [titleLabel, setTitleLabel] = useState<string | null>(null);
+  const [level, setLevel] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    profileApi
+      .getStats()
+      .then((s) => {
+        if (cancelled) return;
+        setTitleLabel(s.title?.label ?? null);
+        setLevel(s.level);
+      })
+      .catch((e) => logger.warn('HomeHeader: failed to fetch profile stats', e));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -86,7 +109,32 @@ export const HomeHeader = ({
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col gap-1.5">
+                <span className="font-semibold text-sm">
+                  {username || 'Профиль'}
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {level !== null && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      <Sparkles className="h-2.5 w-2.5 mr-1" />
+                      Уровень {level}
+                    </Badge>
+                  )}
+                  {titleLabel && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                    >
+                      <Crown className="h-2.5 w-2.5 mr-1" />
+                      {titleLabel}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
              {hasUpdate && (
                 <>
                   <DropdownMenuItem asChild className="md:hidden">

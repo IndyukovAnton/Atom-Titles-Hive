@@ -6,7 +6,9 @@ import {
   Loader2,
   Palette,
   Shield,
+  ShieldCheck,
   Sparkles,
+  Sparkle,
   User,
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -180,10 +182,16 @@ export default function SettingsPage() {
             Обучение
           </Button>
           <Button variant="outline" size="sm" asChild className="rounded-full">
-            <Link to="/changelog">Что нового?</Link>
+            <Link to="/changelog">
+              <Sparkle className="mr-2 h-4 w-4" />
+              Что нового?
+            </Link>
           </Button>
           <Button variant="outline" size="sm" asChild className="rounded-full">
-            <Link to="/privacy">Приватность</Link>
+            <Link to="/privacy">
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Приватность
+            </Link>
           </Button>
         </div>
       </div>

@@ -30,6 +30,8 @@ export interface UserPreferences {
   tmdbApiKey?: string;
   avatar?: string;
   addEntryPreviewStyle?: 'mirror' | 'poster';
+  /** Закреплённое звание (code из ProfileStats.earnedTitles), null = авто. */
+  selectedTitle?: string | null;
 }
 
 export interface UserProfile {

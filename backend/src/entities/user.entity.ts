@@ -28,6 +28,9 @@ export interface UserPreferences {
   tmdbApiKey?: string;
   avatar?: string;
   addEntryPreviewStyle?: 'mirror' | 'poster';
+  /** Закреплённое пользователем звание (code из ProfileStats.earnedTitles).
+      Если null/undefined — используется авто-расчёт по топ-категории/жанру. */
+  selectedTitle?: string | null;
 }
 
 @Entity('users')

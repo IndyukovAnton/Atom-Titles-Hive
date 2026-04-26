@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -6,6 +6,7 @@ import {
   BookMarked,
   BookOpen,
   Calendar,
+  Check,
   Crown,
   Film,
   Gamepad2,
@@ -29,8 +30,14 @@ import {
   Wand2,
   type LucideIcon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import { profileApi, type ProfileStats } from '../api/profile';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Card,
   CardContent,
@@ -86,18 +93,102 @@ const GROUP_LABEL: Record<string, string> = {
   genre: 'Жанры',
 };
 
+interface StatsSnapshot {
+  level: number;
+  unlockedCodes: string[];
+  earnedTitleCodes: string[];
+}
+
+const SNAPSHOT_KEY = 'seen-stats-snapshot';
+
+function loadSnapshot(): StatsSnapshot | null {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    return raw ? (JSON.parse(raw) as StatsSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSnapshot(stats: ProfileStats) {
+  const snap: StatsSnapshot = {
+    level: stats.level,
+    unlockedCodes: stats.achievements.filter((a) => a.unlocked).map((a) => a.code),
+    earnedTitleCodes: stats.earnedTitles.map((t) => t.code),
+  };
+  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap));
+}
+
+/** Сравнивает текущие stats с предыдущим снэпшотом и стреляет тостами
+ *  на каждое реально новое событие. */
+function notifyDiff(stats: ProfileStats, prev: StatsSnapshot | null) {
+  if (!prev) return; // первый запуск — снэпшот нулевой, ничего не показываем
+  if (stats.level > prev.level) {
+    toast.success(`Новый уровень: ${stats.level}`, {
+      description: 'Так держать! Продолжайте пополнять медиатеку.',
+      icon: '⭐',
+    });
+  }
+  const prevUnlocked = new Set(prev.unlockedCodes);
+  for (const a of stats.achievements) {
+    if (a.unlocked && !prevUnlocked.has(a.code)) {
+      toast.success(`Достижение: ${a.title}`, {
+        description: `${a.description} +${a.xp} XP`,
+        icon: '🏆',
+      });
+    }
+  }
+  const prevTitles = new Set(prev.earnedTitleCodes);
+  for (const t of stats.earnedTitles) {
+    if (!prevTitles.has(t.code)) {
+      toast.success(`Новое звание: ${t.label}`, {
+        description: 'Закрепите его в профиле, если хотите.',
+        icon: '👑',
+      });
+    }
+  }
+}
+
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const { user, updateProfile } = useAuthStore();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [titlePopoverOpen, setTitlePopoverOpen] = useState(false);
+  // Чтобы тосты не дублировались между ремаунтами одной сессии.
+  const notifiedOnce = useRef(false);
 
   useEffect(() => {
     profileApi
       .getStats()
-      .then(setStats)
+      .then((s) => {
+        setStats(s);
+        if (!notifiedOnce.current) {
+          notifyDiff(s, loadSnapshot());
+          saveSnapshot(s);
+          notifiedOnce.current = true;
+        }
+      })
       .catch((e) => logger.error('Failed to load profile stats', e))
       .finally(() => setIsLoading(false));
   }, []);
+
+  const pinTitle = async (code: string | null) => {
+    setTitlePopoverOpen(false);
+    try {
+      await updateProfile({
+        preferences: { ...user?.preferences, selectedTitle: code },
+      });
+      // Перечитываем статистику, чтобы applied title в шапке обновился.
+      const fresh = await profileApi.getStats();
+      setStats(fresh);
+      toast.success(
+        code === null ? 'Звание сброшено на авто' : 'Звание закреплено',
+      );
+    } catch (e) {
+      logger.error('Failed to pin title', e);
+      toast.error('Не удалось сохранить звание');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -162,15 +253,95 @@ export default function ProfilePage() {
               {user?.username}
             </h1>
             <p className="text-muted-foreground text-sm">{user?.email}</p>
-            {stats.title && (
-              <Badge
-                variant="secondary"
-                className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 mt-1"
-              >
-                <Crown className="mr-1.5 h-3 w-3" />
-                {stats.title.label}
-              </Badge>
-            )}
+
+            <Popover
+              open={titlePopoverOpen}
+              onOpenChange={setTitlePopoverOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 mt-1 hover:bg-transparent"
+                >
+                  {stats.title ? (
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 cursor-pointer hover:bg-amber-500/25 transition-colors"
+                    >
+                      <Crown className="mr-1.5 h-3 w-3" />
+                      {stats.title.label}
+                      <span className="ml-1.5 text-[10px] opacity-70">
+                        изменить
+                      </span>
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-dashed text-muted-foreground cursor-pointer hover:bg-muted/30"
+                    >
+                      <Crown className="mr-1.5 h-3 w-3" />
+                      {stats.earnedTitles.length > 0
+                        ? 'Выбрать звание'
+                        : 'Звание ещё не получено'}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-2" align="start">
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Полученные звания
+                </div>
+                {stats.earnedTitles.length === 0 ? (
+                  <p className="px-2 pb-2 pt-1 text-xs text-muted-foreground">
+                    Ещё ни одного звания. Добавьте записи в нужной категории
+                    (10+) или жанре (15+) — звание разблокируется
+                    автоматически.{' '}
+                    <Link
+                      to="/levels-info"
+                      className="text-primary hover:underline"
+                    >
+                      Подробнее
+                    </Link>
+                  </p>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => pinTitle(null)}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted/50 text-left"
+                    >
+                      <span className="flex-1">Авто (по топу)</span>
+                      {!user?.preferences?.selectedTitle && (
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </button>
+                    <div className="my-1 h-px bg-border" />
+                    {stats.earnedTitles.map((t) => (
+                      <button
+                        key={t.code}
+                        type="button"
+                        onClick={() => pinTitle(t.code)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-muted/50 text-left"
+                      >
+                        <Crown className="h-3.5 w-3.5 text-amber-500" />
+                        <span className="flex-1">
+                          <span className="font-medium">{t.label}</span>
+                          <span className="ml-1.5 text-[10px] text-muted-foreground">
+                            {t.source === 'category'
+                              ? CATEGORY_LABEL[t.basis] ?? t.basis
+                              : t.basis}
+                          </span>
+                        </span>
+                        {user?.preferences?.selectedTitle === t.code && (
+                          <Check className="h-3.5 w-3.5 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="text-right space-y-1 min-w-[120px]">

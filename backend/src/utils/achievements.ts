@@ -287,19 +287,63 @@ const GENRE_TITLES: Record<string, string> = {
 };
 
 export interface ResolvedTitle {
+  code: string; // уникальный id звания (используется в preferences.selectedTitle)
   label: string;
   source: 'category' | 'genre';
   basis: string; // что именно привело к званию
 }
 
-export function resolveTitle(
+const TITLE_CATEGORY_THRESHOLD = 10;
+const TITLE_GENRE_THRESHOLD = 15;
+const TITLE_MIN_ENTRIES = 5;
+
+const titleCode = (source: 'category' | 'genre', basis: string) =>
+  `${source}_${basis.toLowerCase()}`;
+
+/** Список званий, которые пользователь уже «заработал» — может выбрать любое. */
+export function listEarnedTitles(
+  byCategory: Record<string, number>,
+  byGenre: Record<string, number>,
+): ResolvedTitle[] {
+  const earned: ResolvedTitle[] = [];
+  for (const [cat, count] of Object.entries(byCategory)) {
+    if (count >= TITLE_CATEGORY_THRESHOLD && CATEGORY_TITLES[cat]) {
+      earned.push({
+        code: titleCode('category', cat),
+        label: CATEGORY_TITLES[cat],
+        source: 'category',
+        basis: cat,
+      });
+    }
+  }
+  for (const [genre, count] of Object.entries(byGenre)) {
+    if (count >= TITLE_GENRE_THRESHOLD && GENRE_TITLES[genre]) {
+      earned.push({
+        code: titleCode('genre', genre),
+        label: GENRE_TITLES[genre],
+        source: 'genre',
+        basis: genre,
+      });
+    }
+  }
+  // Сортируем по базе: категории сначала, потом жанры; внутри — по алфавиту basis.
+  earned.sort((a, b) => {
+    if (a.source !== b.source) return a.source === 'category' ? -1 : 1;
+    return a.basis.localeCompare(b.basis);
+  });
+  return earned;
+}
+
+/** Авто-звание: топ-категория, иначе топ-жанр, иначе null. */
+export function autoTitle(
   topCategory: string | null,
   topGenre: string | null,
   totalEntries: number,
 ): ResolvedTitle | null {
-  if (totalEntries < 5) return null; // нужен минимум, чтобы звание стало значащим
+  if (totalEntries < TITLE_MIN_ENTRIES) return null;
   if (topCategory && CATEGORY_TITLES[topCategory]) {
     return {
+      code: titleCode('category', topCategory),
       label: CATEGORY_TITLES[topCategory],
       source: 'category',
       basis: topCategory,
@@ -307,12 +351,28 @@ export function resolveTitle(
   }
   if (topGenre && GENRE_TITLES[topGenre]) {
     return {
+      code: titleCode('genre', topGenre),
       label: GENRE_TITLES[topGenre],
       source: 'genre',
       basis: topGenre,
     };
   }
   return null;
+}
+
+/** Применяемое звание: пин из preferences, если он ещё в earned; иначе auto. */
+export function resolveTitle(
+  earned: ResolvedTitle[],
+  topCategory: string | null,
+  topGenre: string | null,
+  totalEntries: number,
+  selectedCode?: string | null,
+): ResolvedTitle | null {
+  if (selectedCode) {
+    const pinned = earned.find((t) => t.code === selectedCode);
+    if (pinned) return pinned;
+  }
+  return autoTitle(topCategory, topGenre, totalEntries);
 }
 
 export const XP_PER_ENTRY = 10;

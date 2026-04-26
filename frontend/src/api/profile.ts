@@ -20,6 +20,7 @@ export interface AchievementProgress {
 }
 
 export interface ResolvedTitle {
+  code: string;
   label: string;
   source: 'category' | 'genre';
   basis: string;
@@ -40,6 +41,7 @@ export interface ProfileStats {
   levelProgress: number;
   levelTarget: number;
   title: ResolvedTitle | null;
+  earnedTitles: ResolvedTitle[];
   achievements: AchievementProgress[];
 }
 

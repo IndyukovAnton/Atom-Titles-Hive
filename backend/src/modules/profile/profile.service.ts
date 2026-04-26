@@ -18,6 +18,7 @@ import {
   ACHIEVEMENT_CATALOG,
   XP_PER_ENTRY,
   levelFromXp,
+  listEarnedTitles,
   resolveTitle,
   xpForLevel,
   type AchievementInput,
@@ -213,7 +214,15 @@ export class ProfileService {
     const levelProgress = Math.max(0, totalXp - xpAtThisLevel);
     const levelTarget = Math.max(1, xpForNextLevel - xpAtThisLevel);
 
-    const title = resolveTitle(favoriteCategory, favoriteGenre, totalEntries);
+    const earnedTitles = listEarnedTitles(byCategory, byGenre);
+    const selectedCode = user.preferences?.selectedTitle ?? null;
+    const title = resolveTitle(
+      earnedTitles,
+      favoriteCategory,
+      favoriteGenre,
+      totalEntries,
+      selectedCode,
+    );
 
     await this.logger.log(
       `Statistics accessed by user ${userId} (${user.username})`,
@@ -234,6 +243,7 @@ export class ProfileService {
       levelProgress,
       levelTarget,
       title,
+      earnedTitles,
       achievements,
     };
   }
