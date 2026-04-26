@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useCoverSearch } from '@/hooks/useCoverSearch';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorDetailsDialog } from '@/components/ErrorDetailsDialog';
 import {
+  AlertTriangle,
+  ChevronRight,
+  Image as ImageIcon,
+  Info,
   Loader2,
-  Search,
   Pin,
   PinOff,
-  Image as ImageIcon,
-  ChevronRight,
   RefreshCw,
+  Search,
+  WifiOff,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,7 +43,12 @@ export function CoverImagePicker({
     handleSelect,
     pinnedImages,
     togglePin,
+    errorLog,
+    clearErrors,
   } = useCoverSearch({ initialQuery, onSelect });
+
+  const isOnline = useNetworkStatus();
+  const [errorsOpen, setErrorsOpen] = useState(false);
 
   // Track loading state of each image
   const [imageLoadingStates, setImageLoadingStates] = useState<
@@ -123,9 +133,40 @@ export function CoverImagePicker({
 
       <ScrollArea className="flex-1 min-h-[300px] max-h-[500px]">
         <div className="pr-4">
-          {error ? (
-            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-              <p>{error}</p>
+          {!isOnline ? (
+            <div className="flex flex-col items-center justify-center h-60 text-center gap-3 px-6 rounded-lg border border-dashed bg-muted/30">
+              <div className="p-3 rounded-full bg-muted">
+                <WifiOff className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium">Нет соединения</p>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Поиск обложек недоступен в офлайн-режиме. Подключитесь к интернету или загрузите файл вручную.
+                </p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-60 text-center gap-3 px-6 rounded-lg border border-destructive/30 bg-destructive/5">
+              <div className="p-3 rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-destructive">{error}</p>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  Можно попробовать другой запрос или загрузить обложку файлом.
+                </p>
+              </div>
+              {errorLog.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setErrorsOpen(true)}
+                >
+                  <Info className="mr-2 h-4 w-4" />
+                  Подробнее ({errorLog.length})
+                </Button>
+              )}
             </div>
           ) : displayedImages.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
@@ -234,6 +275,26 @@ export function CoverImagePicker({
             </div>
           )}
 
+          {/* Лента ошибок: компактная плашка под результатами, если они вообще загрузились,
+              но в процессе случались сбои (например, какие-то картинки не открылись). */}
+          {isOnline && !error && errorLog.length > 0 && (
+            <div className="mt-2 mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">
+                Были замечены ошибки при загрузке: {errorLog.length}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                onClick={() => setErrorsOpen(true)}
+              >
+                <Info className="mr-1 h-3.5 w-3.5" />
+                Подробнее
+              </Button>
+            </div>
+          )}
+
           {/* Load More / Loading State */}
           {results.length > 0 && (
             <div className="pb-4 flex justify-center w-full">
@@ -257,6 +318,15 @@ export function CoverImagePicker({
           )}
         </div>
       </ScrollArea>
+
+      <ErrorDetailsDialog
+        open={errorsOpen}
+        onOpenChange={setErrorsOpen}
+        errors={errorLog}
+        onClear={clearErrors}
+        title="Стек ошибок поиска обложек"
+        description="Все ошибки, которые случились при поиске и загрузке обложек в этой сессии."
+      />
     </div>
   );
 }

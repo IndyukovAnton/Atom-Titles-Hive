@@ -6,11 +6,28 @@ import {
 } from '../api/coverSearch';
 import { toast } from 'sonner';
 import { logger } from '../utils/logger';
+import type { LoggedError } from '@/components/ErrorDetailsDialog';
 
 interface UseCoverSearchProps {
   initialQuery?: string;
   onSelect: (base64: string) => void;
 }
+
+const toLoggedError = (
+  err: unknown,
+  context: string,
+  fallback: string,
+): LoggedError => {
+  const e = err as Error & { code?: string; response?: { status?: number } };
+  const status = e?.response?.status;
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    message: e?.message || fallback,
+    context: status ? `${context} (HTTP ${status})` : context,
+    stack: e?.stack,
+    at: new Date(),
+  };
+};
 
 export function useCoverSearch({
   initialQuery,
@@ -26,6 +43,13 @@ export function useCoverSearch({
   const [pinnedImages, setPinnedImages] = useState<CoverImage[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0); // Смещение для показа следующих результатов
+  const [errorLog, setErrorLog] = useState<LoggedError[]>([]);
+
+  const appendError = useCallback((err: LoggedError) => {
+    setErrorLog((prev) => [err, ...prev].slice(0, 50));
+  }, []);
+
+  const clearErrors = useCallback(() => setErrorLog([]), []);
 
   // Debounced search effect
   useEffect(() => {
@@ -64,7 +88,17 @@ export function useCoverSearch({
       setHasMore(images.length > 0);
     } catch (err) {
       logger.error('Failed to search covers:', err);
-      setError('Не удалось найти обложки. Попробуйте другой запрос.');
+      const e = err as Error & { code?: string };
+      const isNetwork =
+        e?.code === 'ERR_NETWORK' || !navigator.onLine || /network/i.test(e?.message ?? '');
+      setError(
+        isNetwork
+          ? 'Нет соединения с сервером. Проверьте интернет и попробуйте ещё раз.'
+          : 'Не удалось найти обложки. Попробуйте другой запрос.',
+      );
+      appendError(
+        toLoggedError(err, `searchCovers("${searchQuery}", page=${pageNum})`, 'Search failed'),
+      );
     } finally {
       setLoading(false);
     }
@@ -123,6 +157,7 @@ export function useCoverSearch({
     } catch (err) {
       logger.error('Failed to download cover:', err);
       toast.error('Не удалось загрузить изображение');
+      appendError(toLoggedError(err, `downloadCover(${image.id})`, 'Download failed'));
     } finally {
       setDownloading(null);
     }
@@ -165,5 +200,7 @@ export function useCoverSearch({
     handleSelect,
     pinnedImages,
     togglePin,
+    errorLog,
+    clearErrors,
   };
 }
