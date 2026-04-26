@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +8,6 @@ import AuthLayout from '../layouts/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { FormInput } from '@/components/Form';
 import { loginSchema, type LoginFormData } from '@/schemas/authSchema';
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -65,19 +64,10 @@ export default function LoginPage() {
           />
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">
-                Пароль
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <Link
-                to="/forgot-password"
-                className="text-sm font-medium text-primary hover:underline"
-                tabIndex={-1}
-              >
-                Забыли пароль?
-              </Link>
-            </div>
+            <Label htmlFor="password">
+              Пароль
+              <span className="text-destructive ml-1">*</span>
+            </Label>
             <div className="relative">
               <Input
                 type={showPassword ? 'text' : 'password'}

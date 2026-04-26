@@ -13,7 +13,6 @@ import { logger } from './utils/logger';
 // Lazy-loaded pages для code splitting
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -94,7 +93,6 @@ function AppRoutes({ backendReady = true }: AppRoutesProps) {
               }
             />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route
               path="/"
