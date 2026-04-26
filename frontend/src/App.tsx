@@ -78,7 +78,7 @@ interface AppRoutesProps {
 function AppRoutes({ backendReady = true }: AppRoutesProps) {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const [showLogo, setShowLogo] = useState(
-    () => !sessionStorage.getItem('atom-hive-splash-seen'),
+    () => !sessionStorage.getItem('seen-splash-seen'),
   );
 
   useEffect(() => {
@@ -90,7 +90,7 @@ function AppRoutes({ backendReady = true }: AppRoutesProps) {
 
   const handleLogoComplete = () => {
     setShowLogo(false);
-    sessionStorage.setItem('atom-hive-splash-seen', 'true');
+    sessionStorage.setItem('seen-splash-seen', 'true');
   };
 
   return (

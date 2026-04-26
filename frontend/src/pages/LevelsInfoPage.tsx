@@ -37,7 +37,7 @@ export default function LevelsInfoPage() {
           Как работают уровни и звания
         </h1>
         <p className="text-muted-foreground mt-2">
-          Краткий путеводитель по локальной геймификации в Atom Titles-Hive.
+          Краткий путеводитель по локальной геймификации в Seen.
         </p>
       </div>
 

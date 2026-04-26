@@ -4,7 +4,7 @@ import * as os from 'os';
 
 
 export function getUserDataDir(): string {
-  const appName = 'AtomTitlesHive';
+  const appName = 'Seen';
   let userDataDir = '';
 
   const platform = os.platform();

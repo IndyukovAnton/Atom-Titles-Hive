@@ -49,7 +49,7 @@ export default function LoginPage() {
   }, [clearError, login, navigate]);
 
   return (
-    <AuthLayout title="Atom Titles-Hive" subtitle="Добро пожаловать" error={error}>
+    <AuthLayout title="Seen" subtitle="Добро пожаловать" error={error}>
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <FormInput

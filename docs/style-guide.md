@@ -2,7 +2,7 @@
 
 ## Overview
 
-Atom Titles-Hive uses a modern, unified styling system based on **Tailwind CSS v4** and **shadcn/ui**. This ensures consistency, accessibility, and ease of maintenance across the entire frontend application.
+Seen uses a modern, unified styling system based on **Tailwind CSS v4** and **shadcn/ui**. This ensures consistency, accessibility, and ease of maintenance across the entire frontend application.
 
 ## Core Technologies
 

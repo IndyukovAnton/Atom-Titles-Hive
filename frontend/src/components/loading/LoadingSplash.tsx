@@ -152,7 +152,7 @@ export function LoadingSplash({ onComplete, minDuration = 3500 }: LoadingSplashP
               transition={{ duration: 0.8, delay: 1 }}
             >
               <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 via-blue-500 to-cyan-400 bg-clip-text text-transparent">
-                Atom Titles-Hive
+                Seen
               </h1>
               <p className="text-muted-foreground text-sm md:text-base">
                 Ваша персональная медиатека

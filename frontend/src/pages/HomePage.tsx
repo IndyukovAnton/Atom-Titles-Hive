@@ -71,7 +71,7 @@ export default function HomePage() {
   const TOUR_STEPS = [
       {
           title: "Добро пожаловать!",
-          description: "Atom Titles-Hive — это ваше пространство для организации фильмов, книг, игр и аниме. Давайте быстро пробежимся по функционалу.",
+          description: "Seen — это ваше пространство для организации фильмов, книг, игр и аниме. Давайте быстро пробежимся по функционалу.",
           position: "center" as const
       },
       {
@@ -91,7 +91,7 @@ export default function HomePage() {
       },
       {
           title: "Готово!",
-          description: "Вы готовы к работе. Наслаждайтесь использованием Atom Titles-Hive!",
+          description: "Вы готовы к работе. Наслаждайтесь использованием Seen!",
           position: "center" as const
       }
   ];

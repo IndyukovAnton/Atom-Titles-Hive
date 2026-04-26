@@ -42,7 +42,7 @@ export const HomeHeader = ({
   return (
     <header className="h-14 border-b flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10 transition-colors duration-300">
       <h1 className="font-bold text-lg tracking-tight hidden md:block bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-        Atom Titles-Hive
+        Seen
       </h1>
       <h2 className="text-base font-medium md:hidden">{title}</h2>
       

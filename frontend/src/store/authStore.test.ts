@@ -230,7 +230,7 @@ describe('authStore', () => {
         await login('testuser', 'password');
       });
 
-      const storedData = localStorage.getItem('atom-titles-hive-auth-storage');
+      const storedData = localStorage.getItem('seen-auth-storage');
       expect(storedData).toBeTruthy();
       
       if (storedData) {
@@ -246,7 +246,7 @@ describe('authStore', () => {
         await login('testuser', 'password');
       });
 
-      const storedData = localStorage.getItem('atom-titles-hive-auth-storage');
+      const storedData = localStorage.getItem('seen-auth-storage');
       
       if (storedData) {
         const parsed = JSON.parse(storedData);

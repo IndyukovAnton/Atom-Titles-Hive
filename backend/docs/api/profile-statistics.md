@@ -1,7 +1,7 @@
 # Profile Statistics API Documentation
 
 ## Overview
-This document describes the Profile Statistics API endpoints that provide comprehensive user statistics for the Atom Titles-Hive application.
+This document describes the Profile Statistics API endpoints that provide comprehensive user statistics for the Seen application.
 
 ## Endpoints
 

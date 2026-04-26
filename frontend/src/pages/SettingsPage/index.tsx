@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import {
   ArrowLeft,
   Download,
   GraduationCap,
+  Loader2,
   Palette,
   Shield,
   Sparkles,
   User,
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,9 +19,15 @@ import { AppearanceTab } from './AppearanceTab';
 import { IntegrationsTab } from './IntegrationsTab';
 import { SecurityTab } from './SecurityTab';
 import { useAuthStore } from '@/store/authStore';
+import { logger } from '@/utils/logger';
 
 const RELEASES_URL =
   'https://github.com/IndyukovAnton/web-titles-tracker/releases/latest';
+
+const isTauri = (): boolean =>
+  typeof window !== 'undefined' &&
+  '__TAURI_INTERNALS__' in window &&
+  Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 
 const SETTINGS_TABS = ['appearance', 'account', 'integrations', 'security'] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -44,23 +53,75 @@ export default function SettingsPage() {
     navigate('/');
   };
 
-  // Tauri-aware open: внутри desktop-сборки Tauri уважает app.security.csp и
-  // блокирует window.open на http(s); используем shell-плагин если он есть,
-  // иначе — обычный window.open (работает в браузерной dev-сборке).
+  const [isChecking, setIsChecking] = useState(false);
+
+  // Tauri auto-update flow:
+  //  1. `check()` стучится на updater.endpoints (см. tauri.conf.json), сравнивает
+  //     версию манифеста с текущей по semver.
+  //  2. Если новее — скачиваем и ставим, потом релоним приложение.
+  //  3. Если plugin не установлен (браузерная dev-сборка) или сеть упала —
+  //     открываем GitHub Releases во внешнем браузере как fallback.
   const handleCheckUpdates = async () => {
+    if (!isTauri()) {
+      window.open(RELEASES_URL, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    setIsChecking(true);
+    const checkingToast = toast.loading('Проверяем наличие обновлений…');
     try {
-      type TauriCore = { invoke: (cmd: string, args: object) => Promise<void> };
-      const tauri = (
-        window as unknown as { __TAURI__?: { core?: TauriCore } }
-      ).__TAURI__;
-      if (tauri?.core?.invoke) {
-        await tauri.core.invoke('plugin:shell|open', { path: RELEASES_URL });
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const update = await check();
+
+      if (!update) {
+        toast.success('Установлена последняя версия', { id: checkingToast });
         return;
       }
-    } catch {
-      // fallthrough на window.open
+
+      toast.dismiss(checkingToast);
+      toast.info(`Доступна версия ${update.version} — скачиваю…`);
+      let total = 0;
+      let downloaded = 0;
+      const progressToast = toast.loading('Загрузка обновления…');
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case 'Started':
+            total = event.data.contentLength ?? 0;
+            break;
+          case 'Progress':
+            downloaded += event.data.chunkLength;
+            if (total > 0) {
+              const pct = Math.round((downloaded / total) * 100);
+              toast.loading(`Загрузка обновления… ${pct}%`, {
+                id: progressToast,
+              });
+            }
+            break;
+          case 'Finished':
+            toast.success('Обновление загружено, перезапускаю…', {
+              id: progressToast,
+            });
+            break;
+        }
+      });
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      await relaunch();
+    } catch (e) {
+      logger.error('Update check failed', e);
+      toast.error(
+        'Не удалось проверить обновления. Откройте страницу релизов вручную.',
+        {
+          id: checkingToast,
+          action: {
+            label: 'Открыть',
+            onClick: () =>
+              window.open(RELEASES_URL, '_blank', 'noopener,noreferrer'),
+          },
+        },
+      );
+    } finally {
+      setIsChecking(false);
     }
-    window.open(RELEASES_URL, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -99,9 +160,14 @@ export default function SettingsPage() {
             variant="outline"
             size="sm"
             onClick={handleCheckUpdates}
+            disabled={isChecking}
             className="rounded-full"
           >
-            <Download className="mr-2 h-4 w-4" />
+            {isChecking ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
             Проверить обновления
           </Button>
           <Button

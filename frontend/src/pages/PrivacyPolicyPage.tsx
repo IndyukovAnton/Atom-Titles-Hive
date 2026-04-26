@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
       </div>
 
       <p className="text-muted-foreground text-sm">
-        Atom Titles-Hive — это desktop-приложение для личной медиатеки. Этот
+        Seen — это desktop-приложение для личной медиатеки. Этот
         документ кратко описывает, какие данные приложение хранит, где именно
         и почему они никуда не уходят с вашего устройства.
       </p>

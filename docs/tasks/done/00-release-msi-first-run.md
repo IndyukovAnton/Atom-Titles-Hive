@@ -55,8 +55,8 @@
 - [x] Upgrade install (установка новой версии поверх)
 
 ## Артефакты сборки (последняя проверенная)
-- MSI: `src-tauri/target/release/bundle/msi/Atom Titles-Hive_0.1.0_x64_en-US.msi`
-- NSIS: `src-tauri/target/release/bundle/nsis/Atom Titles-Hive_0.1.0_x64-setup.exe`
+- MSI: `src-tauri/target/release/bundle/msi/Seen_0.1.0_x64_en-US.msi`
+- NSIS: `src-tauri/target/release/bundle/nsis/Seen_0.1.0_x64-setup.exe`
 
 ### Примечания по warnings
 - `pkg` может выводить warnings вида “Failed to make bytecode …” — сборка sidecar при этом успешна и работоспособна (используется JS fallback вместо байткода).

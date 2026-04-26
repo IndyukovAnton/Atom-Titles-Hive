@@ -54,7 +54,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthLayout title="Atom Titles-Hive" subtitle="Создать аккаунт" error={error}>
+    <AuthLayout title="Seen" subtitle="Создать аккаунт" error={error}>
       {/* Hero section */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

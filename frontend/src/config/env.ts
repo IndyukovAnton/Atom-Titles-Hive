@@ -72,7 +72,7 @@ const setApiUrl = (url: string): void => {
 
 export const config: EnvConfig = {
   apiTimeout: Number(getEnvVar('VITE_API_TIMEOUT', false)) || 30000,
-  appName: getEnvVar('VITE_APP_NAME', false) || 'Atom Titles-Hive',
+  appName: getEnvVar('VITE_APP_NAME', false) || 'Seen',
   getApiUrl,
   setApiUrl,
 };

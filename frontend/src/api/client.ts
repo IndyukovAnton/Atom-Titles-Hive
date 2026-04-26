@@ -36,7 +36,7 @@ apiClient.interceptors.request.use(
       return config;
     }
 
-    const storage = localStorage.getItem('atom-titles-hive-auth-storage');
+    const storage = localStorage.getItem('seen-auth-storage');
     if (!storage) return config;
 
     try {
@@ -68,7 +68,7 @@ apiClient.interceptors.response.use(
     if (isNetworkError) {
       useAuthStore.getState().setServerAvailable(false);
     } else if (error.response?.status === 401) {
-      localStorage.removeItem('atom-titles-hive-auth-storage');
+      localStorage.removeItem('seen-auth-storage');
       window.location.href = '/login';
     }
     return Promise.reject(error);

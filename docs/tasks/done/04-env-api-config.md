@@ -21,7 +21,7 @@ const API_URL = 'http://localhost:1221';
 - [x] Создать `.env.local` для локальной разработки
   - `VITE_API_URL=http://localhost:1221`
   - `VITE_API_TIMEOUT=30000`
-  - `VITE_APP_NAME=Atom Titles-Hive`
+  - `VITE_APP_NAME=Seen`
 - [x] Создать `.env.development` для dev окружения
 - [x] Создать `.env.production` для production окружения
 - [x] Создать `.env.example` с примерами всех переменных

@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Atom Titles-Hive",
+  "productName": "Seen",
   "version": "0.1.0",
-  "identifier": "com.indyukov.atom-titles-hive",
+  "identifier": "com.indyukov.seen",
   "build": {
     "frontendDist": "../frontend/dist",
     "devUrl": "http://localhost:5005",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Atom Titles-Hive",
+        "title": "Seen",
         "width": 1280,
         "height": 800,
         "minWidth": 400,
@@ -38,9 +38,23 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "createUpdaterArtifacts": true,
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/IndyukovAnton/web-titles-tracker/releases/latest/download/latest.json"
+      ],
+      "pubkey": "REPLACE_WITH_OUTPUT_OF_npx_tauri_signer_generate",
+      "dialog": false,
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

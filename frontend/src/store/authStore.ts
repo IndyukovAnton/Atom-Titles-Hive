@@ -132,7 +132,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'atom-titles-hive-auth-storage',
+      name: 'seen-auth-storage',
       storage: createJSONStorage(() => localStorage),
       // Persist ONLY the token. User data is fetched on init.
       partialize: (state) => ({ 

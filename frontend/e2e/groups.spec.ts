@@ -32,7 +32,7 @@ test.describe('Group Management', () => {
 
          // Set token
         await page.addInitScript(() => {
-            window.localStorage.setItem('atom-titles-hive-auth-storage', JSON.stringify({
+            window.localStorage.setItem('seen-auth-storage', JSON.stringify({
                 state: { token: 'fake-jwt', isAuthenticated: true, user: { id: 1 } },
                 version: 0
             }));
