@@ -1,5 +1,5 @@
 import { ArrowLeft, GraduationCap, Palette, Shield, Sparkles, User } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/personalization/AccountSettings';
@@ -8,9 +8,24 @@ import { IntegrationsTab } from './IntegrationsTab';
 import { SecurityTab } from './SecurityTab';
 import { useAuthStore } from '@/store/authStore';
 
+const SETTINGS_TABS = ['appearance', 'account', 'integrations', 'security'] as const;
+type SettingsTab = (typeof SETTINGS_TABS)[number];
+
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestTourReplay = useAuthStore((s) => s.requestTourReplay);
+
+  const tabParam = searchParams.get('tab');
+  const activeTab: SettingsTab = (SETTINGS_TABS as readonly string[]).includes(tabParam ?? '')
+    ? (tabParam as SettingsTab)
+    : 'appearance';
+
+  const handleTabChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', value);
+    setSearchParams(next, { replace: true });
+  };
 
   const handleReplayTour = () => {
     requestTourReplay();
@@ -60,7 +75,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="appearance" className="space-y-8">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
         <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1.5 bg-muted/40 backdrop-blur-sm rounded-xl border">
           <TabsTrigger
             value="appearance"
