@@ -19,7 +19,9 @@
     "test:frontend:ci": "npm --prefix frontend run test:ci",
     "check": "npm run lint:frontend && npm run test:frontend:ci && npm run lint:backend && npm run test:backend:ci && npm run build:all",
     "sync:version": "node scripts/sync-version.mjs",
-    "version": "node scripts/sync-version.mjs && git add frontend/package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml"
+    "version": "node scripts/sync-version.mjs && git add frontend/package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml",
+    "setup:updater": "node scripts/setup-updater.mjs",
+    "release:build": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",

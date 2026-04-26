@@ -47,6 +47,13 @@ backend/.env
 src-tauri/binaries/**
 src-tauri/data/**
 
+# Tauri updater signing keys — NEVER commit. Public key is fine
+# (lives in tauri.conf.json), private key MUST stay outside the repo.
+*.tauri.key
+*.tauri.key.pub
+seen.key
+seen.key.pub
+
 # Local databases (do not commit)
 *.sqlite
 *.sqlite3
