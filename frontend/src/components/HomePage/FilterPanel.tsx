@@ -109,6 +109,59 @@ function SubLabel({
   );
 }
 
+interface RatingStarRowProps {
+  label: string;
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+  onClear: () => void;
+}
+
+// 10 кликабельных звёзд + текущее значение/«—». Повторный клик на ту же звезду
+// очищает фильтр, чтобы пользователь мог быстро сбросить порог без выхода из панели.
+function RatingStarRow({ label, value, onChange, onClear }: RatingStarRowProps) {
+  const stars = Array.from({ length: 10 }, (_, i) => i + 1);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <SubLabel>{label}</SubLabel>
+        <span className="text-[11px] font-mono text-muted-foreground">
+          {value !== undefined ? `${value}/10` : '—'}
+        </span>
+      </div>
+      <div className="flex items-center gap-0.5">
+        {stars.map((rating) => {
+          const isActive = value !== undefined && rating <= value;
+          return (
+            <button
+              key={rating}
+              type="button"
+              onClick={() => {
+                if (value === rating) onClear();
+                else onChange(rating);
+              }}
+              className={cn(
+                'p-1 -m-0.5 rounded transition-all hover:scale-110 cursor-pointer',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50',
+              )}
+              aria-label={`${label} ${rating} из 10`}
+              aria-pressed={isActive}
+            >
+              <Star
+                className={cn(
+                  'h-4 w-4 transition-colors',
+                  isActive
+                    ? 'fill-amber-400 text-amber-400'
+                    : 'text-muted-foreground/40 hover:text-amber-400/60',
+                )}
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface ChipSelectorProps {
   options: string[];
   selected: string[];
@@ -307,55 +360,19 @@ export const FilterPanel = ({
                 : undefined
             }
           >
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <SubLabel htmlFor="minRating">От</SubLabel>
-                <div className="relative">
-                  <Input
-                    id="minRating"
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    value={filters.minRating ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value
-                        ? Number(e.target.value)
-                        : undefined;
-                      onUpdateFilter('minRating', value);
-                    }}
-                    placeholder="0"
-                    className="pr-10"
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    /10
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <SubLabel htmlFor="maxRating">До</SubLabel>
-                <div className="relative">
-                  <Input
-                    id="maxRating"
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    value={filters.maxRating ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value
-                        ? Number(e.target.value)
-                        : undefined;
-                      onUpdateFilter('maxRating', value);
-                    }}
-                    placeholder="10"
-                    className="pr-10"
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    /10
-                  </span>
-                </div>
-              </div>
+            <div className="space-y-3">
+              <RatingStarRow
+                label="От"
+                value={filters.minRating}
+                onChange={(value) => onUpdateFilter('minRating', value)}
+                onClear={() => onRemoveFilter('minRating')}
+              />
+              <RatingStarRow
+                label="До"
+                value={filters.maxRating}
+                onChange={(value) => onUpdateFilter('maxRating', value)}
+                onClear={() => onRemoveFilter('maxRating')}
+              />
             </div>
           </FilterSection>
 

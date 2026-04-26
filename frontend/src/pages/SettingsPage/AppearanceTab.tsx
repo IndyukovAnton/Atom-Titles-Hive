@@ -165,7 +165,7 @@ export function AppearanceTab() {
               disabled={!typographyDirty}
               className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="mr-2 h-4 w-4" /> Применить ко всему сайту
+              <Save className="mr-2 h-4 w-4" /> Сохранить
             </Button>
             <Button
               onClick={handleResetTypography}

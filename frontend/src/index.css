@@ -118,6 +118,14 @@
   --ring: oklch(0.7 0.2 270);
 }
 
+/* Прячем встроенный «глаз»/«крестик» браузера в полях типа password.
+   Edge показывает свою кнопку reveal через ::-ms-reveal/::-ms-clear, а у нас
+   есть свой toggle на FormInput — иначе видны два «глаза» одновременно. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -399,12 +407,18 @@
     animation-play-state: paused;
   }
 
-  /* Прячем bar при exit/swipe, чтобы не висел поверх анимации удаления и не конфликтовал
-     с sonner-овским ::before, который активируется во время свайпа. */
+  /* Прячем bar при exit/swipe. Используем !important, потому что у sonner есть
+     более специфичные правила:
+       [data-sonner-toast][data-swiping='false'][data-removed='true']::before { content: ''; inset: 0; transform: scaleY(2) }
+       [data-sonner-toast][data-removed='true'][data-front='false']::before { height: calc(var(--initial-height) + 20%) }
+     Без !important они выигрывают по специфичности и наш ::before остаётся
+     цветным на полную ширину/высоту тоста во время exit-анимации, что выглядит
+     как «полоса/буквы» вылетающие из закрытого тоста. */
   [data-sonner-toast][data-removed='true']::before,
   [data-sonner-toast][data-swiped='true']::before,
-  [data-sonner-toast][data-swiping='true']::before {
-    display: none;
+  [data-sonner-toast][data-swiping='true']::before,
+  [data-sonner-toast][data-swipe-out='true']::before {
+    display: none !important;
   }
 
   /* Цвет bar по типу тоста */
