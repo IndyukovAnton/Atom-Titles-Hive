@@ -1,40 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
 
 /**
- * Google OAuth Strategy - Optional
- * Only initializes if GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL are configured.
- * For desktop apps without Google OAuth, this strategy is skipped.
+ * Google OAuth Strategy — optional.
+ * Enabled only when GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_CALLBACK_URL are all set.
+ * Partial configuration (e.g. id without secret) throws at bootstrap to surface misconfiguration.
  */
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  private static readonly logger = new Logger(GoogleStrategy.name);
   private readonly isConfigured: boolean;
 
   constructor(private configService: ConfigService) {
     const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const callbackURL =
-      configService.get<string>('GOOGLE_CALLBACK_URL') ||
-      'http://localhost:3000/auth/google/callback';
+    const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL');
 
-    // Only initialize if Google OAuth is configured
-    const isConfigured = !!(clientID && clientSecret);
+    const provided = [clientID, clientSecret, callbackURL].filter(Boolean).length;
+    const isConfigured = provided === 3;
+    const isPartial = provided > 0 && provided < 3;
+
+    if (isPartial) {
+      throw new Error(
+        'Google OAuth is partially configured. Set all of GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL — or none of them.',
+      );
+    }
 
     super(
       isConfigured
         ? {
-            clientID,
-            clientSecret,
-            callbackURL,
+            clientID: clientID!,
+            clientSecret: clientSecret!,
+            callbackURL: callbackURL!,
             scope: ['email', 'profile'],
           }
         : {
-            // Dummy config - strategy won't be used
-            clientID: 'not-configured',
-            clientSecret: 'not-configured',
-            callbackURL: 'http://localhost/not-configured',
+            clientID: 'disabled',
+            clientSecret: 'disabled',
+            callbackURL: 'disabled',
             scope: ['email', 'profile'],
           },
     );
@@ -42,9 +47,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     this.isConfigured = isConfigured;
 
     if (!isConfigured) {
-      console.log(
-        '[GoogleStrategy] Google OAuth not configured - strategy disabled',
-      );
+      GoogleStrategy.logger.log('Google OAuth not configured — strategy disabled');
     }
   }
 
