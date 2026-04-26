@@ -1,60 +1,58 @@
 import { useEffect } from 'react';
-import { Timeline } from '@/components/ui/timeline';
-import changelogData from '../data/changelog.json';
-import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { Timeline } from '@/components/ui/timeline';
+import { Button } from '@/components/ui/button';
+import { MarkdownLite } from '@/components/MarkdownLite';
+import { changelog, latestVersion } from '@/utils/changelog';
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('ru-RU', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
 export default function ChangelogPage() {
-  const data = changelogData.map((entry) => ({
-    title: entry.version,
+  // Помечаем последнюю версию как «увиденную» — индикатор «Новое» в шапке гаснет.
+  useEffect(() => {
+    if (latestVersion) {
+      localStorage.setItem('lastSeenVersion', latestVersion);
+    }
+  }, []);
+
+  const data = changelog.map((entry) => ({
+    title: `v${entry.version}`,
     content: (
-      <div>
-        <p className="text-muted-foreground text-sm mb-4">
-          {new Date(entry.date).toLocaleDateString('ru-RU', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
+      <div className="space-y-2">
+        <p className="text-muted-foreground text-xs uppercase tracking-wider">
+          {formatDate(entry.date)}
         </p>
-        <p className="text-foreground text-lg font-medium mb-4">
-            {entry.title}
-        </p>
-        <div className="grid gap-4">
-            {entry.changes.map((change, idx) => (
-                <div key={idx} className="flex gap-2 items-start text-sm text-neutral-600 dark:text-neutral-400">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
-                    <span>{change}</span>
-                </div>
-            ))}
-        </div>
-        <p className="text-neutral-500 text-xs mt-6">
-           {entry.description} 
-        </p>
+        <p className="text-foreground text-lg font-semibold">{entry.title}</p>
+        <MarkdownLite source={entry.body} />
       </div>
     ),
   }));
-
-  // Mark as seen on mount
-  useEffect(() => {
-    if (changelogData.length > 0) {
-        localStorage.setItem('lastSeenVersion', changelogData[0].version);
-    }
-  }, []);
 
   return (
     <div className="w-full bg-background min-h-screen">
       <div className="container max-w-4xl py-6 px-4 mx-auto">
         <div className="flex items-center space-x-4 mb-4">
-            <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild>
             <Link to="/">
-                <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
             </Link>
-            </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Назад</h1>
+          </Button>
+          <h1 className="text-2xl font-bold tracking-tight">История версий</h1>
         </div>
       </div>
-      <Timeline data={data} />
+      {data.length === 0 ? (
+        <div className="container max-w-4xl mx-auto px-4 py-12 text-center text-muted-foreground">
+          Записи об изменениях пока не добавлены.
+        </div>
+      ) : (
+        <Timeline data={data} />
+      )}
     </div>
   );
 }

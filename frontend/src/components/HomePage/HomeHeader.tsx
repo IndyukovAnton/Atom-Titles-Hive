@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { useMemo } from 'react';
-import changelogData from '../../data/changelog.json';
+import { latestVersion } from '@/utils/changelog';
 import { Link } from 'react-router-dom';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,8 +36,7 @@ export const HomeHeader = ({
   // Вычисляем hasUpdate без useEffect
   const hasUpdate = useMemo(() => {
     const lastSeenVersion = localStorage.getItem('lastSeenVersion');
-    const currentVersion = changelogData[0]?.version;
-    return currentVersion && lastSeenVersion !== currentVersion;
+    return latestVersion && lastSeenVersion !== latestVersion;
   }, []);
 
   return (
