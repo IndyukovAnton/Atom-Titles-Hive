@@ -126,8 +126,9 @@
     @apply bg-background text-foreground transition-colors duration-300;
   }
 
-  /* Фоновые градиенты с overlay для читаемости */
-  body[data-background='default'],
+  /* Фоновые градиенты — overlay и transparent-shells применяются ТОЛЬКО к ним.
+     'default' идёт через bg-background и не нуждается в этих хаках. */
+  body[data-background='lavender'],
   body[data-background='liquid-ether'],
   body[data-background='light-pillar'],
   body[data-background='aurora'],
@@ -140,7 +141,7 @@
     position: relative;
   }
 
-  body[data-background='default']::before,
+  body[data-background='lavender']::before,
   body[data-background='liquid-ether']::before,
   body[data-background='light-pillar']::before,
   body[data-background='aurora']::before,
@@ -155,19 +156,24 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
+    background: rgba(0, 0, 0, 0.35);
   }
 
-  /* Overlay для тёмной темы — затемнение */
-  .dark body[data-background]::before {
-    background: rgba(0, 0, 0, 0.4);
+  /* В светлой теме overlay делаем светлее, чтобы не съедать контраст */
+  body[data-background='lavender']:not(.dark)::before,
+  body[data-background='liquid-ether']:not(.dark)::before,
+  body[data-background='light-pillar']:not(.dark)::before,
+  body[data-background='aurora']:not(.dark)::before,
+  body[data-background='sunset']:not(.dark)::before,
+  body[data-background='forest']:not(.dark)::before,
+  body[data-background='midnight']:not(.dark)::before,
+  body[data-background='cosmos']:not(.dark)::before,
+  body[data-background='ocean']:not(.dark)::before,
+  body[data-background='passion']:not(.dark)::before {
+    background: rgba(255, 255, 255, 0.2);
   }
 
-  /* Overlay для светлой темы — осветление */
-  body[data-background]:not(.dark *)::before {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  body[data-background='default'] {
+  body[data-background='lavender'] {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   }
   body[data-background='liquid-ether'] {
@@ -198,30 +204,28 @@
     background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
   }
 
-  /* Полноэкранные оболочки страниц должны пропускать body-градиент */
-  body[data-background] .min-h-screen.bg-background,
-  body[data-background] .h-screen.bg-background {
+  /* На градиенте — оболочки страниц прозрачные, чтобы фон проступал */
+  body[data-background='lavender'] .min-h-screen.bg-background,
+  body[data-background='lavender'] .h-screen.bg-background,
+  body[data-background='liquid-ether'] .min-h-screen.bg-background,
+  body[data-background='liquid-ether'] .h-screen.bg-background,
+  body[data-background='light-pillar'] .min-h-screen.bg-background,
+  body[data-background='light-pillar'] .h-screen.bg-background,
+  body[data-background='aurora'] .min-h-screen.bg-background,
+  body[data-background='aurora'] .h-screen.bg-background,
+  body[data-background='sunset'] .min-h-screen.bg-background,
+  body[data-background='sunset'] .h-screen.bg-background,
+  body[data-background='forest'] .min-h-screen.bg-background,
+  body[data-background='forest'] .h-screen.bg-background,
+  body[data-background='midnight'] .min-h-screen.bg-background,
+  body[data-background='midnight'] .h-screen.bg-background,
+  body[data-background='cosmos'] .min-h-screen.bg-background,
+  body[data-background='cosmos'] .h-screen.bg-background,
+  body[data-background='ocean'] .min-h-screen.bg-background,
+  body[data-background='ocean'] .h-screen.bg-background,
+  body[data-background='passion'] .min-h-screen.bg-background,
+  body[data-background='passion'] .h-screen.bg-background {
     background: transparent !important;
-  }
-
-  /* Карточки на градиентных фонах получают усиленный backdrop-blur */
-  body[data-background] .bg-card,
-  body[data-background] [class*='Card'] {
-    background: oklch(1 0 0 / 0.85) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  .dark body[data-background] .bg-card,
-  .dark body[data-background] [class*='Card'] {
-    background: oklch(0.12 0.02 270 / 0.9) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  /* Текст на градиентах должен быть контрастным */
-  body[data-background] .text-foreground {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   .dark body[data-background] .text-foreground {

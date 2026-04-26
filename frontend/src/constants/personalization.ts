@@ -10,6 +10,13 @@ export const BACKGROUND_OPTIONS: BackgroundOption[] = [
   {
     id: 'default',
     name: 'По умолчанию',
+    // Solid theme color (var(--background)) — без градиента и без overlay.
+    preview: 'var(--background)',
+    className: 'bg-background',
+  },
+  {
+    id: 'lavender',
+    name: 'Лавандовый',
     preview: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     className: 'bg-gradient-to-br from-purple-600 to-purple-900',
   },
