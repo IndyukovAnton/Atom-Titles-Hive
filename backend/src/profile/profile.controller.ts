@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ProfileService } from './profile.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -17,7 +17,7 @@ export class ProfileController {
     return userWithoutPassword;
   }
 
-  @Put()
+  @Patch()
   async updateProfile(
     @Req() req: AuthenticatedRequest,
     @Body() updateProfileDto: UpdateProfileDto,
