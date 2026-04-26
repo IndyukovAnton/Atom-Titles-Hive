@@ -26,6 +26,8 @@ backend/errors.txt
 
 # Test reports
 backend/test-reports/
+frontend/test-results/
+frontend/e2e/.pw-scratch/
 
 # temporary files
 tmp
@@ -51,3 +53,4 @@ src-tauri/data/**
 *.db
 
 .claude
+.superpowers

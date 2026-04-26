@@ -445,7 +445,7 @@ export const FilterPanel = ({
             <Button
               variant="outline"
               onClick={onClearFilters}
-              className="w-full"
+              className="w-full cursor-pointer"
             >
               <X className="mr-2 h-4 w-4" />
               Очистить все фильтры
