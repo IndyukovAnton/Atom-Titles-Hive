@@ -32,6 +32,14 @@ const PageLoader = () => (
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const token = useAuthStore((state) => state.token);
+
+  // На refresh zustand persist восстанавливает token, но isAuthenticated пока false —
+  // он станет true после initializeAuth(). Не редиректим на /login,
+  // пока есть токен и идёт инициализация — иначе теряем deep-link на refresh.
+  if (!isAuthenticated && token) {
+    return <PageLoader />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -47,6 +55,13 @@ function CheckedAuthorizationRoute({
   children: React.ReactNode;
 }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const token = useAuthStore((state) => state.token);
+
+  // Симметрично: если есть token и идёт init — ждём, не показывая login-форму,
+  // чтобы избежать мерцания «login → home».
+  if (!isAuthenticated && token) {
+    return <PageLoader />;
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
