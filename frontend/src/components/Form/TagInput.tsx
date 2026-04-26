@@ -71,16 +71,20 @@ export function TagInput({
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="flex items-center gap-1 animate-in fade-in zoom-in duration-200"
+                  className="flex items-center gap-1 pr-1 animate-in fade-in zoom-in duration-200"
                 >
                   {tag}
-                  <X
-                    className="w-3 h-3 cursor-pointer hover:text-destructive transition-colors"
+                  <button
+                    type="button"
+                    aria-label={`Удалить ${tag}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeTag(tag);
                     }}
-                  />
+                    className="ml-0.5 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus:outline-none focus-visible:ring-1 focus-visible:ring-destructive cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </Badge>
               ))}
 

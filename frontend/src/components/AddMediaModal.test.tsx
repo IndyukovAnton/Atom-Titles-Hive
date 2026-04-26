@@ -16,6 +16,10 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+vi.mock('@/hooks/usePersonalization', () => ({
+  usePersonalization: () => ({ addEntryPreviewStyle: 'mirror' }),
+}));
+
 describe('AddMediaModal', () => {
     const onSuccess = vi.fn();
     const onClose = vi.fn();
@@ -39,8 +43,21 @@ describe('AddMediaModal', () => {
 
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
         expect(await screen.findByLabelText(/что добавим/i)).toBeInTheDocument();
-        expect(await screen.findByLabelText(/категория/i)).toBeInTheDocument();
+        expect(await screen.findByText('Категория', { selector: 'label' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: /фильм/i })).toBeInTheDocument();
         expect(await screen.findByText('Ваша оценка', { selector: 'label' })).toBeInTheDocument();
+    });
+
+    it('renders the live preview updated by the title field', async () => {
+        const user = userEvent.setup();
+        render(
+            <AddMediaModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
+        );
+
+        expect(await screen.findByText(/так будет выглядеть/i)).toBeInTheDocument();
+
+        await user.type(screen.getByLabelText(/что добавим/i), 'Inception');
+        expect(await screen.findByText('Inception')).toBeInTheDocument();
     });
 
     it('should navigate through steps and submit form with valid data', async () => {

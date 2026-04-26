@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../store/authStore';
 import type { UserPreferences } from '../api/auth';
+import { getPresetFontUrl } from '../constants/fonts';
 import {
   PersonalizationContext,
   type Theme,
@@ -10,7 +11,7 @@ import {
 
 const DEFAULT_BACKGROUND = 'default';
 const DEFAULT_FONT_SIZE = 16;
-const DEFAULT_FONT_FAMILY = 'Inter';
+const DEFAULT_FONT_FAMILY = 'Nunito';
 const DEFAULT_ADD_ENTRY_PREVIEW_STYLE: AddEntryPreviewStyle = 'mirror';
 
 export function PersonalizationProvider({ children }: { children: ReactNode }) {
@@ -92,12 +93,21 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.fontSize = `${fontSize}px`;
   }, [fontSize]);
 
-  // Применение семейства шрифта — через CSS-переменную, чтобы Tailwind font-sans
-  // тоже подхватывал выбранный шрифт (см. --font-sans в @theme inline в index.css).
+  // Применение семейства шрифта: CSS-переменная для Tailwind font-sans
+  // (см. --font-sans в @theme inline в index.css) + ленивая подгрузка
+  // CSS preset-шрифтов из constants/fonts.
   useEffect(() => {
     const stack = `'${fontFamily}', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
     document.documentElement.style.setProperty('--font-app', stack);
     document.documentElement.style.fontFamily = stack;
+
+    const url = getPresetFontUrl(fontFamily);
+    if (url && !document.querySelector(`link[href="${url}"]`)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      document.head.appendChild(link);
+    }
   }, [fontFamily]);
 
   // Применение фона
@@ -166,6 +176,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
       addEntryPreviewStyle,
       // Overrides позволяют слою выше сохранить значения, которые ещё не успели
       // прокатиться в context state (например draft в AppearanceTab).
+      // aiKey намеренно не отправляется — он живёт только в localStorage.
       ...overrides,
     };
 
