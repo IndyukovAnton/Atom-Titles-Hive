@@ -1,10 +1,11 @@
 import {
-  IsOptional,
-  IsDateString,
   IsBoolean,
-  IsObject,
-  IsString,
+  IsDateString,
+  IsIn,
   IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -19,7 +20,21 @@ class AiLimitsDto {
   maxTokens?: number;
 }
 
+class PrivacySettingsDto {
+  @IsOptional()
+  @IsBoolean()
+  shareWatchHistory?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  shareBirthDate?: boolean;
+}
+
 class PreferencesDto {
+  @IsOptional()
+  @IsIn(['light', 'dark'])
+  theme?: 'light' | 'dark';
+
   @IsOptional()
   @IsString()
   background?: string;
@@ -48,6 +63,23 @@ class PreferencesDto {
   @ValidateNested()
   @Type(() => AiLimitsDto)
   aiLimits?: AiLimitsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PrivacySettingsDto)
+  privacySettings?: PrivacySettingsDto;
+
+  @IsOptional()
+  @IsString()
+  tmdbApiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @IsOptional()
+  @IsIn(['mirror', 'poster'])
+  addEntryPreviewStyle?: 'mirror' | 'poster';
 }
 
 export class UpdateProfileDto {

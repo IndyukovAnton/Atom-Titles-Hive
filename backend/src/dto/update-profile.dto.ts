@@ -7,6 +7,7 @@ import {
   IsObject,
   IsBoolean,
 } from 'class-validator';
+import type { UserPreferences } from '../entities/user.entity';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -32,13 +33,11 @@ export class UpdateProfileDto {
   @IsDateString()
   birthDate?: string;
 
+  // Принимаем preferences как opaque-объект и сохраняем в JSON-колонке.
+  // Тип берём из entity, чтобы schema фронта и БД оставались синхронны.
   @IsOptional()
   @IsObject()
-  preferences?: {
-    theme?: string;
-    background?: string;
-    fontSize?: number;
-  };
+  preferences?: UserPreferences;
 
   @IsOptional()
   @IsBoolean()

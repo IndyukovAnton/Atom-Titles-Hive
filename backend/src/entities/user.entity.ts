@@ -10,6 +10,7 @@ import type { MediaEntry } from './media-entry.entity';
 import type { Group } from './group.entity';
 
 export interface UserPreferences {
+  theme?: 'light' | 'dark';
   background?: string;
   fontSize?: number;
   fontFamily?: string;
@@ -19,6 +20,10 @@ export interface UserPreferences {
   aiLimits?: {
     dailyRequests?: number;
     maxTokens?: number;
+  };
+  privacySettings?: {
+    shareWatchHistory?: boolean;
+    shareBirthDate?: boolean;
   };
   tmdbApiKey?: string;
   avatar?: string;
