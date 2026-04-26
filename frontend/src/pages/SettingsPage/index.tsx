@@ -1,13 +1,22 @@
-import { ArrowLeft, Palette, Shield, Sparkles, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, GraduationCap, Palette, Shield, Sparkles, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/personalization/AccountSettings';
 import { AppearanceTab } from './AppearanceTab';
 import { IntegrationsTab } from './IntegrationsTab';
 import { SecurityTab } from './SecurityTab';
+import { useAuthStore } from '@/store/authStore';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
+  const requestTourReplay = useAuthStore((s) => s.requestTourReplay);
+
+  const handleReplayTour = () => {
+    requestTourReplay();
+    navigate('/');
+  };
+
   return (
     <div className="container max-w-5xl py-8 px-4 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -32,7 +41,16 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReplayTour}
+            className="rounded-full"
+          >
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Обучение
+          </Button>
           <Button variant="outline" size="sm" asChild className="rounded-full">
             <Link to="/changelog">Что нового?</Link>
           </Button>

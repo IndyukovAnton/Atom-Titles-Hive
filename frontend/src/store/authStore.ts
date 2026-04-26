@@ -10,9 +10,14 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   isServerAvailable: boolean;
   setServerAvailable: (available: boolean) => void;
+
+  replayTourRequested: boolean;
+  requestTourReplay: () => void;
+  clearTourReplayRequest: () => void;
+
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -37,6 +42,10 @@ export const useAuthStore = create<AuthState>()(
       isServerAvailable: true,
 
       setServerAvailable: (available) => set({ isServerAvailable: available }),
+
+      replayTourRequested: false,
+      requestTourReplay: () => set({ replayTourRequested: true }),
+      clearTourReplayRequest: () => set({ replayTourRequested: false }),
 
       login: async (username, password) => {
         set({ isLoading: true, error: null });

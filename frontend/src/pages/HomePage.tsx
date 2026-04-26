@@ -40,37 +40,32 @@ export default function HomePage() {
 
   // Onboarding Tour Logic
   const [showTour, setShowTour] = useState(false);
-  
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const replayTourRequested = useAuthStore((s) => s.replayTourRequested);
+  const clearTourReplayRequest = useAuthStore((s) => s.clearTourReplayRequest);
+
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem('atom-titles-hive-tour-completed');
-    // Trigger if either local flag is missing OR backend profile says onboarding is not complete
-    if (!hasSeenTour || (user && !user.hasCompletedOnboarding)) {
-       // Wait longer to avoid splash overlap (4.1s splash + 0.9s margin)
-       const timer = setTimeout(() => setShowTour(true), 5000);
-       return () => clearTimeout(timer);
+    if (user?.hasCompletedOnboarding) return;
+    // Wait longer to avoid splash overlap (4.1s splash + 0.9s margin)
+    const timer = setTimeout(() => setShowTour(true), 5000);
+    return () => clearTimeout(timer);
+  }, [user?.hasCompletedOnboarding]);
+
+  useEffect(() => {
+    if (replayTourRequested) {
+      setShowTour(true);
+      clearTourReplayRequest();
     }
-  }, [user?.hasCompletedOnboarding, user]);
+  }, [replayTourRequested, clearTourReplayRequest]);
 
-  const { updateProfile } = useAuthStore();
-
-  const handleSkipTour = async () => {
-     setShowTour(false);
-     localStorage.setItem('atom-titles-hive-tour-completed', 'true');
-     try {
-       await updateProfile({ hasCompletedOnboarding: true });
-     } catch (e) {
-       logger.error('Failed to sync onboarding status', e);
-     }
-  };
-
-  const handleCompleteTour = async () => {
-     setShowTour(false);
-     localStorage.setItem('atom-titles-hive-tour-completed', 'true');
-     try {
-       await updateProfile({ hasCompletedOnboarding: true });
-     } catch (e) {
-       logger.error('Failed to sync onboarding status', e);
-     }
+  const handleCloseTour = async () => {
+    setShowTour(false);
+    if (user?.hasCompletedOnboarding) return;
+    try {
+      await updateProfile({ hasCompletedOnboarding: true });
+    } catch (e) {
+      logger.error('Failed to sync onboarding status', e);
+    }
   };
   
   const TOUR_STEPS = [
@@ -332,10 +327,10 @@ export default function HomePage() {
           variant="destructive"
         />
       </div>
-        <GuidedTour 
+        <GuidedTour
           isOpen={showTour}
-          onSkip={handleSkipTour}
-          onComplete={handleCompleteTour}
+          onSkip={handleCloseTour}
+          onComplete={handleCloseTour}
           steps={TOUR_STEPS}
         />
     </DndContext>
