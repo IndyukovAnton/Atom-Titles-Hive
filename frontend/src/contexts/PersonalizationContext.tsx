@@ -1,7 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../store/authStore';
 import type { UserPreferences } from '../api/auth';
-import { PersonalizationContext, type Theme, type AddEntryPreviewStyle } from './PersonalizationContextDefinition';
+import {
+  PersonalizationContext,
+  type Theme,
+  type AddEntryPreviewStyle,
+  type SavePreferencesOverrides,
+} from './PersonalizationContextDefinition';
 
 const DEFAULT_BACKGROUND = 'default';
 const DEFAULT_FONT_SIZE = 16;
@@ -142,7 +147,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
       setPrivacySettingsState(settings);
   };
 
-  const savePreferences = async () => {
+  const savePreferences = async (overrides?: SavePreferencesOverrides) => {
     // Безопасно сохраняем ключ локально
     if (user?.id) {
         if (aiKey) {
@@ -159,8 +164,9 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
       fontFamily,
       privacySettings,
       addEntryPreviewStyle,
-      // Не отправляем ключ на сервер в открытом виде, если он там не нужен для прокси
-      // В данном случае мы реализуем "Client-side storage" вариант безопасности
+      // Overrides позволяют слою выше сохранить значения, которые ещё не успели
+      // прокатиться в context state (например draft в AppearanceTab).
+      ...overrides,
     };
 
     await updateProfile({ preferences });

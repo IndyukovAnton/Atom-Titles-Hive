@@ -1,4 +1,5 @@
-import { Eye, Moon, Palette, Save, Sun, Type } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Eye, Moon, Palette, RotateCcw, Save, Sun, Type } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +32,22 @@ export function AppearanceTab() {
     savePreferences,
   } = usePersonalization();
 
+  // Draft-state для шрифта и размера: пикеры обновляют ТОЛЬКО предпросмотр,
+  // глобальное применение и запись в БД — по кнопке «Сохранить».
+  const [draftFontFamily, setDraftFontFamily] = useState(fontFamily);
+  const [draftFontSize, setDraftFontSize] = useState(fontSize);
+
+  // Если applied-значение пришло извне (логин, refetch профиля) — синкаем draft.
+  useEffect(() => {
+    setDraftFontFamily(fontFamily);
+  }, [fontFamily]);
+  useEffect(() => {
+    setDraftFontSize(fontSize);
+  }, [fontSize]);
+
+  const typographyDirty =
+    draftFontFamily !== fontFamily || draftFontSize !== fontSize;
+
   const handleSave = async () => {
     try {
       await savePreferences();
@@ -39,6 +56,28 @@ export function AppearanceTab() {
       logger.error('Failed to save preferences:', error);
       toast.error('Не удалось сохранить настройки');
     }
+  };
+
+  const handleSaveTypography = async () => {
+    try {
+      // Применяем draft в context, чтобы DOM обновился сразу.
+      setFontFamily(draftFontFamily);
+      setFontSize(draftFontSize);
+      // savePreferences читает старый context; передаём overrides явно.
+      await savePreferences({
+        fontFamily: draftFontFamily,
+        fontSize: draftFontSize,
+      });
+      toast.success('Шрифт применён ко всему сайту');
+    } catch (error) {
+      logger.error('Failed to save typography:', error);
+      toast.error('Не удалось сохранить шрифт');
+    }
+  };
+
+  const handleResetTypography = () => {
+    setDraftFontFamily(fontFamily);
+    setDraftFontSize(fontSize);
   };
 
   return (
@@ -115,17 +154,34 @@ export function AppearanceTab() {
         </CardHeader>
         <CardContent className="space-y-6">
           <FontSettings
-            fontFamily={fontFamily}
-            fontSize={fontSize}
-            onFontFamilyChange={setFontFamily}
-            onFontSizeChange={setFontSize}
+            fontFamily={draftFontFamily}
+            fontSize={draftFontSize}
+            onFontFamilyChange={setDraftFontFamily}
+            onFontSizeChange={setDraftFontSize}
           />
-          <Button
-            onClick={handleSave}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-md hover:shadow-lg transition-all"
-          >
-            <Save className="mr-2 h-4 w-4" /> Сохранить настройки
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              onClick={handleSaveTypography}
+              disabled={!typographyDirty}
+              className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="mr-2 h-4 w-4" /> Применить ко всему сайту
+            </Button>
+            <Button
+              onClick={handleResetTypography}
+              variant="outline"
+              disabled={!typographyDirty}
+              className="sm:w-auto"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" /> Сбросить
+            </Button>
+          </div>
+          {typographyDirty && (
+            <p className="text-xs text-muted-foreground -mt-3">
+              Изменения видны только в предпросмотре. Нажмите «Применить», чтобы
+              использовать их во всём приложении.
+            </p>
+          )}
         </CardContent>
       </Card>
 

@@ -22,7 +22,16 @@ export interface PersonalizationContextType {
   setAiKey: (key: string) => void;
   setAddEntryPreviewStyle: (style: AddEntryPreviewStyle) => void;
   setPrivacySettings: (settings: { shareWatchHistory: boolean; shareBirthDate: boolean }) => void;
-  savePreferences: () => Promise<void>;
+  savePreferences: (overrides?: SavePreferencesOverrides) => Promise<void>;
+}
+
+export interface SavePreferencesOverrides {
+  theme?: Theme;
+  background?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  privacySettings?: { shareWatchHistory: boolean; shareBirthDate: boolean };
+  addEntryPreviewStyle?: AddEntryPreviewStyle;
 }
 
 export const PersonalizationContext = createContext<PersonalizationContextType | undefined>(undefined);

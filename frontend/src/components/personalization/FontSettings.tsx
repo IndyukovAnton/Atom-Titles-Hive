@@ -232,14 +232,33 @@ export function FontSettings({
         </TabsContent>
       </Tabs>
       
-      <div className="mt-6 p-4 rounded-lg border bg-card text-card-foreground">
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
+      <div className="mt-6 p-4 rounded-lg border bg-card text-card-foreground space-y-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
             Предпросмотр
-        </label>
-        <p style={{ fontFamily, fontSize }} className="leading-relaxed">
-           Это пример текста, чтобы вы могли оценить выбранный шрифт. 
-           Он будет использоваться для заголовков и основного контента приложения.
-        </p>
+          </label>
+          <span className="text-[10px] text-muted-foreground">
+            {fontFamily} · {fontSize}px
+          </span>
+        </div>
+        <div className="space-y-2">
+          <p
+            style={{ fontFamily, fontSize }}
+            lang="ru"
+            className="leading-relaxed"
+          >
+            Съешь ещё этих мягких французских булок, да выпей чаю. Заголовки,
+            тексты и подписи будут использовать выбранный шрифт.
+          </p>
+          <p
+            style={{ fontFamily, fontSize }}
+            lang="en"
+            className="leading-relaxed"
+          >
+            The quick brown fox jumps over the lazy dog. Headings, body copy
+            and captions will use this font. 0123456789
+          </p>
+        </div>
       </div>
     </div>
   );
