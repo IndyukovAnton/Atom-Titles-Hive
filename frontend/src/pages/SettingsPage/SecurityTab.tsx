@@ -26,11 +26,13 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { FormInput } from '@/components/Form';
 import { mediaApi } from '@/api/media';
+import { authApi } from '@/api/auth';
 import {
   changePasswordSchema,
   type ChangePasswordFormData,
 } from '@/schemas/profileSchema';
 import { logger } from '@/utils/logger';
+import { AxiosError } from 'axios';
 
 export function SecurityTab() {
   const [message, setMessage] = useState<
@@ -52,15 +54,22 @@ export function SecurityTab() {
     formState: { isSubmitting },
   } = methods;
 
-  const onPasswordSubmit = async (_data: ChangePasswordFormData) => {
+  const onPasswordSubmit = async (data: ChangePasswordFormData) => {
     setMessage(null);
     try {
-      // TODO: Реализовать API смены пароля
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await authApi.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
       setMessage({ type: 'success', text: 'Пароль успешно обновлен' });
       reset();
-    } catch {
-      setMessage({ type: 'error', text: 'Не удалось обновить пароль' });
+    } catch (e) {
+      const err = e as AxiosError<{ message?: string }>;
+      const text =
+        err.response?.status === 401
+          ? 'Неверный текущий пароль'
+          : err.response?.data?.message || 'Не удалось обновить пароль';
+      setMessage({ type: 'error', text });
     }
   };
 

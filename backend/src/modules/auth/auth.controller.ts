@@ -14,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { RegisterDto } from '../../dto/register.dto';
 import { LoginDto } from '../../dto/login.dto';
+import { ChangePasswordDto } from '../../dto/change-password.dto';
 import type { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -42,6 +43,16 @@ export class AuthController {
     return this.authService.getUserProfile(req.user.userId);
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(req.user.userId, dto);
+  }
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
@@ -50,10 +61,10 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+  async googleAuthRedirect(@Req() req: unknown, @Res() res: Response) {
     const result = await this.authService.googleLogin(req);
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5005';
 
     // Передаем токен через query parameter
     res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}`);

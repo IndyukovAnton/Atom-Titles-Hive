@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
 import { RegisterDto } from '../../dto/register.dto';
 import { LoginDto } from '../../dto/login.dto';
+import { ChangePasswordDto } from '../../dto/change-password.dto';
 import { LoggerService } from '../../utils/logger.service';
 
 @Injectable()
@@ -187,6 +188,36 @@ export class AuthService {
         avatar: user.avatar,
       },
     };
+  }
+
+  async changePassword(userId: number, dto: ChangePasswordDto) {
+    const user = await this.validateUser(userId);
+
+    if (!user.password) {
+      await this.logger.warn(
+        `Change password failed: account has no password (OAuth-only) — user ${user.id}`,
+      );
+      throw new UnauthorizedException(
+        'Account has no password set. Use OAuth provider.',
+      );
+    }
+
+    const isValid = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isValid) {
+      await this.logger.warn(
+        `Change password failed: invalid current password — user ${user.id}`,
+      );
+      throw new UnauthorizedException('Invalid current password');
+    }
+
+    user.password = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.save(user);
+
+    await this.logger.log(
+      `Password changed: ${user.username} (ID: ${user.id})`,
+    );
+
+    return { success: true };
   }
 
   async getUserProfile(userId: number) {
