@@ -354,10 +354,22 @@
     box-shadow: 0 12px 40px -8px oklch(0 0 0 / 0.4);
   }
 
-  /* Sonner Toast Progress Bar */
+  /* Sonner Toast Progress Bar
+     Длительность анимации синхронизирована с App.tsx <Toaster duration>
+     через CSS-переменную --toast-duration, и ставится на паузу,
+     когда таймер sonner стоит на паузе (на hover тоста или на expand-стека).
+  */
   [data-sonner-toast] {
     position: relative;
+    /* visible — иначе срежет close-button, который sonner ставит за пределами карточки */
     overflow: visible !important;
+    --toast-duration: 3s;
+  }
+
+  /* Внутренний контент (иконка + текст) обрезаем по радиусу — чтобы bar не выезжал из закруглений */
+  [data-sonner-toast] > div {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
   }
 
   [data-sonner-toast]::after {
@@ -370,33 +382,36 @@
     width: 100%;
     background: var(--color-primary);
     transform-origin: left;
-    animation: toast-progress 3s linear forwards;
+    animation: toast-progress var(--toast-duration) linear forwards;
     pointer-events: none;
+    z-index: 1;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
 
-  /* Прячем прогресс-бар для внутреннего контента */
-  [data-sonner-toast] > div {
-    overflow: hidden;
-    border-radius: var(--radius-lg);
+  /* Пауза синхронно с sonner: hover на самом тосте ИЛИ expand-стека ИЛИ hidden-страница */
+  [data-sonner-toast]:hover::after,
+  [data-sonner-toast]:has(:hover)::after,
+  [data-sonner-toaster][data-expanded='true'] [data-sonner-toast]::after,
+  [data-sonner-toast][data-paused='true']::after {
+    animation-play-state: paused;
   }
 
-  /* Success toast progress bar */
+  /* Когда sonner начал убирать тост — скрываем bar, чтобы он не «довоспроизводился» вместе с exit-анимацией */
+  [data-sonner-toast][data-removed='true']::after,
+  [data-sonner-toast][data-swiped='true']::after {
+    display: none;
+  }
+
+  /* Цвет bar по типу тоста */
   [data-sonner-toast][data-type='success']::after {
     background: var(--color-success);
   }
-
-  /* Error toast progress bar */
   [data-sonner-toast][data-type='error']::after {
     background: var(--color-destructive);
   }
-
-  /* Warning toast progress bar */
   [data-sonner-toast][data-type='warning']::after {
     background: var(--color-warning);
   }
-
-  /* Info toast progress bar */
   [data-sonner-toast][data-type='info']::after {
     background: var(--color-info);
   }
