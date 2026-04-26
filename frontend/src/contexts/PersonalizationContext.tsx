@@ -11,8 +11,10 @@ const DEFAULT_ADD_ENTRY_PREVIEW_STYLE: AddEntryPreviewStyle = 'mirror';
 export function PersonalizationProvider({ children }: { children: ReactNode }) {
   const { user, updateProfile } = useAuthStore();
   const [theme, setThemeState] = useState<Theme>(() => {
+    const fromUser = user?.preferences?.theme;
+    if (fromUser === 'light' || fromUser === 'dark') return fromUser;
     const saved = localStorage.getItem('theme') as Theme | null;
-    if (saved) return saved;
+    if (saved === 'light' || saved === 'dark') return saved;
     return 'dark';
   });
 
@@ -43,6 +45,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     setLastUserPref(user?.preferences);
     if (user?.preferences) {
       const prefs = user.preferences;
+      if (prefs.theme === 'light' || prefs.theme === 'dark') setThemeState(prefs.theme);
       if (prefs.background) setBackgroundState(prefs.background);
       if (prefs.fontSize) setFontSizeState(prefs.fontSize);
       if (prefs.fontFamily) setFontFamilyState(prefs.fontFamily);
@@ -84,9 +87,12 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     document.documentElement.style.fontSize = `${fontSize}px`;
   }, [fontSize]);
 
-  // Применение семейства шрифта
+  // Применение семейства шрифта — через CSS-переменную, чтобы Tailwind font-sans
+  // тоже подхватывал выбранный шрифт (см. --font-sans в @theme inline в index.css).
   useEffect(() => {
-    document.documentElement.style.fontFamily = fontFamily;
+    const stack = `'${fontFamily}', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+    document.documentElement.style.setProperty('--font-app', stack);
+    document.documentElement.style.fontFamily = stack;
   }, [fontFamily]);
 
   // Применение фона
@@ -147,6 +153,7 @@ export function PersonalizationProvider({ children }: { children: ReactNode }) {
     }
 
     const preferences: UserPreferences = {
+      theme,
       background,
       fontSize,
       fontFamily,

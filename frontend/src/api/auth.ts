@@ -12,6 +12,7 @@ export interface RegisterData {
 }
 
 export interface UserPreferences {
+  theme?: 'light' | 'dark';
   background?: string;
   fontSize?: number;
   fontFamily?: string;
