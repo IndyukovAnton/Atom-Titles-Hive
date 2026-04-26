@@ -80,7 +80,7 @@ export default defineConfig([
 Примеры конфигурации находятся в `.env.example`.
 
 Основные переменные:
-- `VITE_API_URL`: URL бэкенд API (например, `http://localhost:1221`)
+- `VITE_API_URL`: URL бэкенд API (например, `http://localhost:3553`)
 - `VITE_API_TIMEOUT`: Таймаут запросов в мс (например, `30000`)
 - `VITE_APP_NAME`: Название приложения
 

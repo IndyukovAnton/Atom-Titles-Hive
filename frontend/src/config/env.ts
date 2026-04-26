@@ -57,8 +57,8 @@ const getApiUrl = (): string => {
   }
   
   // 4. Fallback (не должен использоваться в production)
-  logger.warn('[Config] No API URL configured, using fallback http://localhost:1221');
-  return 'http://localhost:1221';
+  logger.warn('[Config] No API URL configured, using fallback http://localhost:3553');
+  return 'http://localhost:3553';
 };
 
 /**

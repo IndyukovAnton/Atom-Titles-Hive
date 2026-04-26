@@ -16,7 +16,7 @@ This document describes the environment variables required to run the backend ap
 
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
-| `PORT` | The port on which the server listens | No | `1221` |
+| `PORT` | The port on which the server listens | No | `3553` |
 | `NODE_ENV` | Application environment (`development`, `production`, `test`) | No | `development` |
 
 ### Security

@@ -5,7 +5,7 @@
   "identifier": "com.indyukov.atom-titles-hive",
   "build": {
     "frontendDist": "../frontend/dist",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:5005",
     "beforeDevCommand": "cd frontend && npm run dev",
     "beforeBuildCommand": "npm run build:frontend && npm run build:backend:sidecar"
   },

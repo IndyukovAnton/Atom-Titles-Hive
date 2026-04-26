@@ -21,7 +21,7 @@ export class EnvironmentVariables {
 
   @IsNumber()
   @IsOptional() // Handled by default value in class or external default
-  PORT: number = 1221;
+  PORT: number = 3553;
 
   @IsString()
   @MinLength(32, {
@@ -61,7 +61,7 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
-  FRONTEND_URL: string = 'http://localhost:5173';
+  FRONTEND_URL: string = 'http://localhost:5005';
 }
 
 export function validate(config: Record<string, unknown>) {

@@ -114,7 +114,7 @@ async function bootstrap() {
   // CORS для frontend
   app.enableCors({
     origin: [
-      'http://localhost:5173',
+      'http://localhost:5005',
       'http://localhost:4173',
       'tauri://localhost',
       'http://tauri.localhost',
@@ -127,7 +127,7 @@ async function bootstrap() {
   await ensureMigrationsAndUpgradeLegacySqlite(dataSource, logger);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') || 1221;
+  const port = configService.get<number>('PORT') || 3553;
   await app.listen(port);
 
   const message = `Backend running on http://localhost:${port}`;

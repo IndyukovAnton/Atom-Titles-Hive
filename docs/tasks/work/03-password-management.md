@@ -396,7 +396,7 @@
   EMAIL_FROM=noreply@atom-titles-hive.com
 
   # Frontend URL (for reset password links)
-  FRONTEND_URL=http://localhost:5173
+  FRONTEND_URL=http://localhost:5005
   ```
 
 ### Этап 12: Создание миграции для PasswordResetToken

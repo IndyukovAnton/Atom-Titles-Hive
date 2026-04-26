@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
-const API_URL = 'http://localhost:1221';
+const API_URL = 'http://localhost:3553';
 
 // Mock data
 export const mockUser = {
