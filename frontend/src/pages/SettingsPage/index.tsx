@@ -1,12 +1,24 @@
-import { ArrowLeft, GraduationCap, Palette, Shield, Sparkles, User } from 'lucide-react';
+import {
+  ArrowLeft,
+  Download,
+  GraduationCap,
+  Palette,
+  Shield,
+  Sparkles,
+  User,
+} from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/personalization/AccountSettings';
 import { AppearanceTab } from './AppearanceTab';
 import { IntegrationsTab } from './IntegrationsTab';
 import { SecurityTab } from './SecurityTab';
 import { useAuthStore } from '@/store/authStore';
+
+const RELEASES_URL =
+  'https://github.com/IndyukovAnton/web-titles-tracker/releases/latest';
 
 const SETTINGS_TABS = ['appearance', 'account', 'integrations', 'security'] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -32,6 +44,25 @@ export default function SettingsPage() {
     navigate('/');
   };
 
+  // Tauri-aware open: внутри desktop-сборки Tauri уважает app.security.csp и
+  // блокирует window.open на http(s); используем shell-плагин если он есть,
+  // иначе — обычный window.open (работает в браузерной dev-сборке).
+  const handleCheckUpdates = async () => {
+    try {
+      type TauriCore = { invoke: (cmd: string, args: object) => Promise<void> };
+      const tauri = (
+        window as unknown as { __TAURI__?: { core?: TauriCore } }
+      ).__TAURI__;
+      if (tauri?.core?.invoke) {
+        await tauri.core.invoke('plugin:shell|open', { path: RELEASES_URL });
+        return;
+      }
+    } catch {
+      // fallthrough на window.open
+    }
+    window.open(RELEASES_URL, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="container max-w-5xl py-8 px-4 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -50,13 +81,29 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
               Настройки
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm flex items-center gap-2">
               Управление внешним видом, безопасностью и интеграциями
+              <Badge
+                variant="secondary"
+                className="font-mono text-[10px] px-1.5 py-0"
+                title="Текущая версия приложения"
+              >
+                v{__APP_VERSION__}
+              </Badge>
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCheckUpdates}
+            className="rounded-full"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Проверить обновления
+          </Button>
           <Button
             variant="outline"
             size="sm"

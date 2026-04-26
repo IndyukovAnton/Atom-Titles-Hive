@@ -9,8 +9,19 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { UpdateProfileDto } from '../../dto/update-profile.dto';
-import { ProfileStatsDto } from '../../dto/profile-stats.dto';
+import {
+  ProfileStatsDto,
+  type AchievementProgressItem,
+} from '../../dto/profile-stats.dto';
 import { LoggerService } from '../../utils/logger.service';
+import {
+  ACHIEVEMENT_CATALOG,
+  XP_PER_ENTRY,
+  levelFromXp,
+  resolveTitle,
+  xpForLevel,
+  type AchievementInput,
+} from '../../utils/achievements';
 
 @Injectable()
 export class ProfileService {
@@ -144,15 +155,65 @@ export class ProfileService {
       throw new NotFoundException('User not found');
     }
 
-    // Получаем все записи пользователя одним запросом
     const entries = await this.mediaRepository.find({ where: { userId } });
 
-    // Вычисляем все метрики
-    const totalEntries = await this.getTotalEntries(userId);
-    const favoriteCategory = this.getFavoriteCategory(entries);
-    const favoriteGenre = this.getFavoriteGenre(entries);
+    // Базовые агрегаты
+    const totalEntries = entries.length;
+    const byCategory = this.aggregateByCategory(entries);
+    const byGenre = this.aggregateByGenre(entries);
+    const favoriteCategory = pickTop(byCategory);
+    const favoriteGenre = pickTop(byGenre);
     const totalWatchTime = this.getTotalWatchTime(entries);
     const currentMonthWatchTime = this.getCurrentMonthWatchTime(entries);
+
+    // Рейтинги
+    const ratedEntries = entries.filter((e) => e.rating > 0);
+    const averageRating =
+      ratedEntries.length === 0
+        ? 0
+        : ratedEntries.reduce((sum, e) => sum + e.rating, 0) /
+          ratedEntries.length;
+
+    // Прогресс по достижениям
+    const achievementInput: AchievementInput = {
+      totalEntries,
+      ratedEntries: ratedEntries.length,
+      averageRating,
+      byCategory,
+      byGenre,
+      uniqueCategories: Object.keys(byCategory).length,
+    };
+    const achievements: AchievementProgressItem[] = ACHIEVEMENT_CATALOG.map(
+      (a) => {
+        const { value, target } = a.evaluate(achievementInput);
+        return {
+          code: a.code,
+          title: a.title,
+          description: a.description,
+          icon: a.icon,
+          group: a.group,
+          xp: a.xp,
+          value: Math.min(value, target),
+          target,
+          unlocked: value >= target,
+        };
+      },
+    );
+
+    // XP — за каждую запись + за каждое разблокированное достижение
+    const xpFromEntries = totalEntries * XP_PER_ENTRY;
+    const xpFromAchievements = achievements
+      .filter((a) => a.unlocked)
+      .reduce((sum, a) => sum + a.xp, 0);
+    const totalXp = xpFromEntries + xpFromAchievements;
+
+    const level = levelFromXp(totalXp);
+    const xpAtThisLevel = xpForLevel(level);
+    const xpForNextLevel = xpForLevel(level + 1);
+    const levelProgress = Math.max(0, totalXp - xpAtThisLevel);
+    const levelTarget = Math.max(1, xpForNextLevel - xpAtThisLevel);
+
+    const title = resolveTitle(favoriteCategory, favoriteGenre, totalEntries);
 
     await this.logger.log(
       `Statistics accessed by user ${userId} (${user.username})`,
@@ -160,101 +221,50 @@ export class ProfileService {
 
     return {
       totalEntries,
+      ratedEntries: ratedEntries.length,
+      averageRating: Math.round(averageRating * 10) / 10,
       favoriteCategory,
       favoriteGenre,
+      byCategory,
+      byGenre,
       totalWatchTime,
       currentMonthWatchTime,
+      totalXp,
+      level,
+      levelProgress,
+      levelTarget,
+      title,
+      achievements,
     };
   }
 
-  /**
-   * Получить общее количество медиа-записей пользователя
-   * @param userId - ID пользователя
-   * @returns Количество записей
-   */
-  private async getTotalEntries(userId: number): Promise<number> {
-    return await this.mediaRepository.count({ where: { userId } });
+  private aggregateByCategory(entries: MediaEntry[]): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const e of entries) {
+      if (e.category) out[e.category] = (out[e.category] ?? 0) + 1;
+    }
+    return out;
   }
 
-  /**
-   * Определить наиболее частую категорию из записей
-   * @param entries - Массив медиа-записей
-   * @returns Название наиболее частой категории или null
-   */
-  private getFavoriteCategory(entries: MediaEntry[]): string | null {
-    if (entries.length === 0) {
-      return null;
-    }
-
-    const categoryCount: Record<string, number> = {};
-
-    entries.forEach((entry) => {
-      if (entry.category) {
-        categoryCount[entry.category] =
-          (categoryCount[entry.category] || 0) + 1;
-      }
-    });
-
-    if (Object.keys(categoryCount).length === 0) {
-      return null;
-    }
-
-    // Находим категорию с максимальным количеством
-    const [favoriteCategory] = Object.entries(categoryCount).sort(
-      (a, b) => b[1] - a[1],
-    )[0];
-
-    return favoriteCategory;
-  }
-
-  /**
-   * Определить наиболее частый жанр из всех записей
-   * @param entries - Массив медиа-записей
-   * @returns Название наиболее частого жанра или null
-   */
-  private getFavoriteGenre(entries: MediaEntry[]): string | null {
-    if (entries.length === 0) {
-      return null;
-    }
-
-    const genreCount: Record<string, number> = {};
-
-    entries.forEach((entry) => {
-      if (entry.genres) {
-        try {
-          // Обработка JSON строки или уже распарсенного массива
-          const genres: unknown =
-            typeof entry.genres === 'string'
-              ? JSON.parse(entry.genres)
-              : entry.genres;
-
-          if (Array.isArray(genres)) {
-            genres.forEach((genre: string) => {
-              if (genre && typeof genre === 'string') {
-                genreCount[genre] = (genreCount[genre] || 0) + 1;
-              }
-            });
-          }
-        } catch (e) {
-          // Игнорируем некорректные JSON данные
-          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-          void this.logger.warn(
-            `Failed to parse genres for entry ${entry.id}: ${errorMessage}`,
-          );
+  private aggregateByGenre(entries: MediaEntry[]): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const e of entries) {
+      if (!e.genres) continue;
+      try {
+        const parsed: unknown =
+          typeof e.genres === 'string' ? JSON.parse(e.genres) : e.genres;
+        if (!Array.isArray(parsed)) continue;
+        for (const g of parsed) {
+          if (typeof g === 'string' && g) out[g] = (out[g] ?? 0) + 1;
         }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        void this.logger.warn(
+          `Failed to parse genres for entry ${e.id}: ${message}`,
+        );
       }
-    });
-
-    if (Object.keys(genreCount).length === 0) {
-      return null;
     }
-
-    // Находим жанр с максимальным количеством
-    const [favoriteGenre] = Object.entries(genreCount).sort(
-      (a, b) => b[1] - a[1],
-    )[0];
-
-    return favoriteGenre;
+    return out;
   }
 
   /**
@@ -325,4 +335,11 @@ export class ProfileService {
     // Округляем до 1 десятичного знака
     return Math.round(monthHours * 10) / 10;
   }
+}
+
+function pickTop(counts: Record<string, number>): string | null {
+  const entries = Object.entries(counts);
+  if (entries.length === 0) return null;
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
 }

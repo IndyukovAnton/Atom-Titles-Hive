@@ -21,6 +21,7 @@ const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
+const LevelsInfoPage = lazy(() => import('./pages/LevelsInfoPage'));
 
 // Page loading fallback
 const PageLoader = () => (
@@ -146,6 +147,14 @@ function AppRoutes({ backendReady = true }: AppRoutesProps) {
               element={
                 <ProtectedRoute>
                   <PrivacyPolicyPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/levels-info"
+              element={
+                <ProtectedRoute>
+                  <LevelsInfoPage />
                 </ProtectedRoute>
               }
             />
