@@ -1,4 +1,3 @@
-import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 interface TimelineEntry {
@@ -8,7 +7,6 @@ interface TimelineEntry {
 
 export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
 
   useEffect(() => {
@@ -29,23 +27,8 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
     return () => observer.disconnect();
   }, [ref]);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    // "start end" — таймлайн только-только показался снизу;
-    // "end start" — последняя запись уже ушла наверх. На длинной странице получаем
-    // плавную заливку. На короткой (1-3 записи) прогресс-бар почти сразу полный,
-    // что и нужно: тогда фоновая линия + цветная заливка перекрывают всю длину.
-    offset: ["start end", "end start"],
-  });
-
-  const heightTransform = useTransform(scrollYProgress, [0, 1], [0, height]);
-  const opacityTransform = useTransform(scrollYProgress, [0, 0.05], [0, 1]);
-
   return (
-    <div
-      className="w-full bg-background font-sans md:px-10"
-      ref={containerRef}
-    >
+    <div className="w-full bg-background font-sans md:px-10">
       <div className="max-w-7xl mx-auto py-20 px-4 md:px-8 lg:px-10">
         <h2 className="text-lg md:text-4xl mb-4 text-foreground max-w-4xl">
           История обновлений
@@ -78,19 +61,15 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
             </div>
           </div>
         ))}
+
+        {/* Соединительная полоса. Однотонный фон + градиентная заливка поверх,
+            обе всегда полной высоты — никаких scroll-linked трюков.
+            Mask мягко срезает 3% по краям, чтобы не упираться в pt-40/pb-20. */}
         <div
-          style={{
-            height: height + "px",
-          }}
+          style={{ height: height + "px" }}
           className="absolute md:left-8 left-8 top-0 overflow-hidden w-[2px] bg-muted-foreground/25 [mask-image:linear-gradient(to_bottom,transparent_0%,black_3%,black_97%,transparent_100%)]"
         >
-          <motion.div
-            style={{
-              height: heightTransform,
-              opacity: opacityTransform,
-            }}
-            className="absolute inset-x-0 top-0 w-[2px] bg-gradient-to-b from-purple-500 via-blue-500 to-purple-400 rounded-full"
-          />
+          <div className="absolute inset-x-0 top-0 h-full w-[2px] bg-gradient-to-b from-purple-500 via-blue-500 to-purple-400 rounded-full" />
         </div>
       </div>
     </div>
