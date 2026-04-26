@@ -101,7 +101,13 @@ export class ProfileService {
     }
 
     if (dto.preferences !== undefined) {
-      user.preferences = dto.preferences;
+      // PATCH-семантика: shallow-merge с существующими preferences, чтобы
+      // частичный апдейт (например, только { theme }) не затирал avatar /
+      // aiKey / tmdbApiKey и другие поля, которые отправитель в payload не включил.
+      user.preferences = {
+        ...(user.preferences ?? {}),
+        ...dto.preferences,
+      };
       changes.push('preferences');
     }
 
