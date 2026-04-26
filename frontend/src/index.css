@@ -355,9 +355,12 @@
   }
 
   /* Sonner Toast Progress Bar
-     Длительность анимации синхронизирована с App.tsx <Toaster duration>
-     через CSS-переменную --toast-duration, и ставится на паузу,
-     когда таймер sonner стоит на паузе (на hover тоста или на expand-стека).
+     Используем ::before, потому что sonner v2 уже занимает ::after на тосте:
+     `[data-sonner-toast][data-expanded='true']::after` — невидимый hover-bridge
+     над тостом (`bottom: 100%; height: calc(var(--gap)+1px)`). Селектор имеет
+     более высокую специфичность, поэтому при expand-е стека он перекрывал
+     наш `bottom: 0; height: 3px`, и цветной background всплывал над тостом
+     высокой полосой. Перенос на ::before убирает конфликт.
   */
   [data-sonner-toast] {
     position: relative;
@@ -366,13 +369,13 @@
     --toast-duration: 3s;
   }
 
-  /* Внутренний контент (иконка + текст) обрезаем по радиусу — чтобы bar не выезжал из закруглений */
+  /* Внутренний контент (иконка + текст) обрезаем по радиусу */
   [data-sonner-toast] > div {
     overflow: hidden;
     border-radius: var(--radius-lg);
   }
 
-  [data-sonner-toast]::after {
+  [data-sonner-toast]::before {
     content: '';
     position: absolute;
     bottom: 0;
@@ -388,31 +391,33 @@
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   }
 
-  /* Пауза синхронно с sonner: hover на самом тосте ИЛИ expand-стека ИЛИ hidden-страница */
-  [data-sonner-toast]:hover::after,
-  [data-sonner-toast]:has(:hover)::after,
-  [data-sonner-toaster][data-expanded='true'] [data-sonner-toast]::after,
-  [data-sonner-toast][data-paused='true']::after {
+  /* Пауза синхронно с sonner: hover тоста, expand-стека, явный паузный атрибут */
+  [data-sonner-toast]:hover::before,
+  [data-sonner-toast]:has(:hover)::before,
+  [data-sonner-toaster][data-expanded='true'] [data-sonner-toast]::before,
+  [data-sonner-toast][data-paused='true']::before {
     animation-play-state: paused;
   }
 
-  /* Когда sonner начал убирать тост — скрываем bar, чтобы он не «довоспроизводился» вместе с exit-анимацией */
-  [data-sonner-toast][data-removed='true']::after,
-  [data-sonner-toast][data-swiped='true']::after {
+  /* Прячем bar при exit/swipe, чтобы не висел поверх анимации удаления и не конфликтовал
+     с sonner-овским ::before, который активируется во время свайпа. */
+  [data-sonner-toast][data-removed='true']::before,
+  [data-sonner-toast][data-swiped='true']::before,
+  [data-sonner-toast][data-swiping='true']::before {
     display: none;
   }
 
   /* Цвет bar по типу тоста */
-  [data-sonner-toast][data-type='success']::after {
+  [data-sonner-toast][data-type='success']::before {
     background: var(--color-success);
   }
-  [data-sonner-toast][data-type='error']::after {
+  [data-sonner-toast][data-type='error']::before {
     background: var(--color-destructive);
   }
-  [data-sonner-toast][data-type='warning']::after {
+  [data-sonner-toast][data-type='warning']::before {
     background: var(--color-warning);
   }
-  [data-sonner-toast][data-type='info']::after {
+  [data-sonner-toast][data-type='info']::before {
     background: var(--color-info);
   }
 
