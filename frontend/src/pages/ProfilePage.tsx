@@ -5,7 +5,6 @@ import {
   Award,
   BookMarked,
   BookOpen,
-  Calendar,
   Check,
   Crown,
   Film,

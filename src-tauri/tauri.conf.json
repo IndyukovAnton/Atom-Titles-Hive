@@ -53,7 +53,7 @@
       "endpoints": [
         "https://github.com/IndyukovAnton/web-titles-tracker/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDEyRThBNTYxRDA5RTIwQ0UKUldUT0lKN1FZYVhvRWdXS2U1cGk0Y0gyWTRBWnhUeWdwSXZCVlFqazFsK2V1c3NsLzVPSEdIaU8K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDBBQjNGMkJGNjU5NTE5REUKUldUZUdaVmx2L0t6Q2d4OXlvM0RsUS9XczN2UWZTbzM1S0ZtampROWxqNjdnS1NYS2RHdmhaZngK",
       "dialog": false,
       "windows": {
         "installMode": "passive"

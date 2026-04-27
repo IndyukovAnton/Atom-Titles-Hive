@@ -53,7 +53,7 @@ const child = spawn(cmd, ['run', 'tauri:build'], {
       process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD ?? '',
   },
   stdio: 'inherit',
-  shell: false,
+  shell: isWin,
 });
 
 child.on('exit', (code) => process.exit(code ?? 0));
