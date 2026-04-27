@@ -31,6 +31,11 @@ export interface UserPreferences {
   /** Закреплённое пользователем звание (code из ProfileStats.earnedTitles).
       Если null/undefined — используется авто-расчёт по топ-категории/жанру. */
   selectedTitle?: string | null;
+  aiSource?: 'claude-api' | 'claude-cli';
+  anthropicApiKey?: string;
+  claudeModel?: 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
+  claudeUseWebSearch?: boolean;
+  claudeCliPath?: string;
 }
 
 @Entity('users')

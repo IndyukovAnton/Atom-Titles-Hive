@@ -9,6 +9,8 @@ interface MediaGridProps {
   error: string | null;
   onRefresh: () => void;
   onAddMedia: () => void;
+  favoriteIds?: Set<number>;
+  onToggleFavorite?: (mediaId: number, next: boolean) => void;
 }
 
 export const MediaGrid = ({
@@ -17,6 +19,8 @@ export const MediaGrid = ({
   error,
   onRefresh,
   onAddMedia,
+  favoriteIds,
+  onToggleFavorite,
 }: MediaGridProps) => {
   if (isLoading) {
     return (
@@ -58,7 +62,12 @@ export const MediaGrid = ({
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-6 pb-12 items-start">
       {mediaList.map((media) => (
-        <MediaCard key={media.id} media={media} />
+        <MediaCard
+          key={media.id}
+          media={media}
+          isFavorite={favoriteIds?.has(media.id)}
+          onToggleFavorite={onToggleFavorite}
+        />
       ))}
     </div>
   );

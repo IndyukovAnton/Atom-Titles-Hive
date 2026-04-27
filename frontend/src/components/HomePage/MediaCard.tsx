@@ -10,6 +10,8 @@ import { localizeCategory } from '../../utils/localization';
 
 interface MediaCardProps {
   media: MediaEntry;
+  isFavorite?: boolean;
+  onToggleFavorite?: (mediaId: number, next: boolean) => void;
 }
 
 const getCategoryIcon = (category?: string | null) => {
@@ -37,7 +39,8 @@ const getRatingGradient = (rating: number) => {
   return 'from-red-400 to-red-500';
 };
 
-export const MediaCard = React.memo(({ media }: MediaCardProps) => {
+export const MediaCard = React.memo(
+  ({ media, isFavorite, onToggleFavorite }: MediaCardProps) => {
   const navigate = useNavigate();
 
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -113,6 +116,30 @@ export const MediaCard = React.memo(({ media }: MediaCardProps) => {
             </div>
           )}
 
+          {/* Избранное - кнопка-звёздочка */}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+              title={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleFavorite(media.id, !isFavorite);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`absolute bottom-3 right-3 z-10 p-2 rounded-full backdrop-blur-md shadow-lg border border-white/15 transition-all ${
+                isFavorite
+                  ? 'bg-rose-500/90 text-white opacity-100'
+                  : 'bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-500/80'
+              }`}
+            >
+              <Star
+                className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`}
+              />
+            </button>
+          )}
+
           {/* Название внизу изображения */}
           <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
             <h3
@@ -132,4 +159,5 @@ export const MediaCard = React.memo(({ media }: MediaCardProps) => {
       </Card>
     </div>
   );
-});
+  },
+);

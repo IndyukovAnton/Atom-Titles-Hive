@@ -133,12 +133,18 @@ export default function SettingsPage() {
           <Button
             variant="ghost"
             size="icon"
-            asChild
+            type="button"
+            aria-label="Назад"
             className="rounded-full hover:bg-background/80"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
           >
-            <Link to="/">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">

@@ -29,6 +29,7 @@
     "pkg:build": "npm run build && node scripts/pkg-backend.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",

@@ -95,7 +95,7 @@ export default function RecommendationsPage() {
 
         <div className="flex-1 overflow-hidden relative bg-muted/10">
           <ScrollArea className="h-full w-full">
-            <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500 max-w-7xl relative z-10 bg-background/80 backdrop-blur-sm rounded-2xl my-4 shadow-lg">
+            <div className="w-full p-6 space-y-8 animate-in fade-in duration-500 relative z-10 bg-background/80 backdrop-blur-sm rounded-2xl my-4 mx-4 shadow-lg">
               <div className="flex flex-col gap-3">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/20">

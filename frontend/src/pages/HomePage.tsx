@@ -19,6 +19,7 @@ import { useFilters } from '../hooks/useFilters';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DndContext, useSensor, useSensors, PointerSensor, type DragEndEvent } from '@dnd-kit/core';
 import { mediaApi, type MediaEntry } from '../api/media';
+import { libraryApi } from '../api/library';
 import { FallingText } from '../components/easter-eggs/FallingText';
 import { logger } from '@/utils/logger';
 
@@ -28,6 +29,48 @@ export default function HomePage() {
   const location = useLocation();
   const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>(location.state?.groupId ?? 'all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    libraryApi
+      .listFavoriteMediaIds()
+      .then((ids) => {
+        if (!cancelled) setFavoriteIds(new Set(ids));
+      })
+      .catch(() => {
+        // ignore — favorite indicator just won't be shown
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleFavorite = async (mediaId: number, next: boolean) => {
+    // Optimistic update
+    setFavoriteIds((prev) => {
+      const updated = new Set(prev);
+      if (next) updated.add(mediaId);
+      else updated.delete(mediaId);
+      return updated;
+    });
+    try {
+      if (next) {
+        await libraryApi.addMediaFavorite(mediaId);
+      } else {
+        await libraryApi.removeMediaFavorite(mediaId);
+      }
+    } catch (err) {
+      // Revert on failure
+      setFavoriteIds((prev) => {
+        const reverted = new Set(prev);
+        if (next) reverted.delete(mediaId);
+        else reverted.add(mediaId);
+        return reverted;
+      });
+      logger.error('Failed to toggle favorite', err);
+    }
+  };
 
   // Хуки для поиска и фильтрации
   const {
@@ -291,12 +334,14 @@ export default function HomePage() {
           <div className="flex-1 overflow-hidden relative bg-muted/10">
             <ScrollArea className="h-full w-full">
                <div className="p-6">
-                  <MediaGrid 
+                  <MediaGrid
                     mediaList={mediaList}
                     isLoading={isMediaLoading}
                     error={mediaError}
                     onRefresh={handleRefresh}
                     onAddMedia={() => setIsAddModalOpen(true)}
+                    favoriteIds={favoriteIds}
+                    onToggleFavorite={(id, next) => void handleToggleFavorite(id, next)}
                   />
                </div>
             </ScrollArea>

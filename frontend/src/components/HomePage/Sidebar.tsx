@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Layers, FolderOpen, Edit, Trash, Sparkles } from 'lucide-react';
+import { Plus, Layers, FolderOpen, Edit, Trash, Sparkles, Pin, Star } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -142,6 +142,8 @@ export const Sidebar = ({
   const navigate = useNavigate();
   const location = useLocation();
   const isRecommendationsPage = location.pathname === '/recommendations';
+  const isConsiderationsPage = location.pathname === '/considerations';
+  const isFavoritesPage = location.pathname === '/favorites';
 
   const items = useMemo(() => ((groupStats?.groups) || []).map(g => ({ ...g, id: g.id, name: g.name, parentId: g.parentId })) as unknown as Group[], [groupStats]);
 
@@ -207,6 +209,24 @@ export const Sidebar = ({
           >
             <Sparkles className="mr-2 h-4 w-4" />
             Рекомендации
+          </Button>
+
+          <Button
+            variant={isConsiderationsPage ? "secondary" : "ghost"}
+            className={cn("w-full justify-start text-indigo-500 hover:text-indigo-600 hover:bg-indigo-500/10", isConsiderationsPage && "bg-indigo-500/10 text-indigo-600")}
+            onClick={() => navigate('/considerations')}
+          >
+            <Pin className="mr-2 h-4 w-4" />
+            Подумаю
+          </Button>
+
+          <Button
+            variant={isFavoritesPage ? "secondary" : "ghost"}
+            className={cn("w-full justify-start text-rose-500 hover:text-rose-600 hover:bg-rose-500/10", isFavoritesPage && "bg-rose-500/10 text-rose-600")}
+            onClick={() => navigate('/favorites')}
+          >
+            <Star className="mr-2 h-4 w-4" />
+            Избранное
           </Button>
 
           <div className="my-2 border-t border-border/50" />

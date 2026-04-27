@@ -2,6 +2,8 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use std::sync::{Arc, Mutex};
 use tauri::Emitter;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 use std::env;
@@ -174,6 +176,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(backend_state.clone())
         .invoke_handler(tauri::generate_handler![get_backend_port])
         .setup(move |app| {
@@ -211,24 +214,67 @@ pub fn run() {
                 }
             }
 
+            // Tray icon: позволяет окну скрываться при закрытии и
+            // приложение продолжает работать в фоне, в т.ч. для уведомлений.
+            let show_item = MenuItem::with_id(app, "show", "Открыть Seen", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Выйти", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let tray_quit_state = backend_state.clone();
+            let _tray = TrayIconBuilder::with_id("seen-tray")
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("Seen")
+                .menu(&menu)
+                .on_menu_event(move |app_handle, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.unminimize();
+                        }
+                    }
+                    "quit" => {
+                        // Завершаем backend и выходим
+                        if let Ok(mut state) = tray_quit_state.lock() {
+                            if let Some(child) = state.child.take() {
+                                let _ = child.kill();
+                            }
+                        }
+                        app_handle.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click {
+                        button: tauri::tray::MouseButton::Left,
+                        button_state: tauri::tray::MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            let _ = window.unminimize();
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .on_window_event(move |window, event| {
-            // Cleanup при закрытии главного окна
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
+            // Закрытие окна — НЕ выходим, прячем в трей. Сидим в фоне для
+            // долгих задач (генерация рекомендаций, уведомления).
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" {
-                    log::info!("Main window closing, terminating backend...");
-                    if let Ok(mut state) = cleanup_state.lock() {
-                        if let Some(child) = state.child.take() {
-                            if let Err(e) = child.kill() {
-                                log::warn!("Failed to kill backend process: {}", e);
-                            } else {
-                                log::info!("Backend process terminated");
-                            }
-                        }
-                    }
+                    log::info!("Close requested — hiding to tray instead of quitting");
+                    let _ = window.hide();
+                    api.prevent_close();
                 }
             }
+            // backend cleanup живёт теперь в tray "Quit" handler — там мы
+            // действительно выходим.
+            let _ = &cleanup_state;
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

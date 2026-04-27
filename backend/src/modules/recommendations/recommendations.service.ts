@@ -320,23 +320,4 @@ export class RecommendationsService {
       return [];
     }
   }
-
-  getAiRecommendations(prompt: string, provider: string) {
-    // In a real app, this would call OpenAI/Anthropic/Gemini API via HTTP
-    // Mocking response
-    return [
-      {
-        title: 'Dune: Part Two',
-        description: `AI (${provider}) suggests this because it matches your taste in epic sci-fi.`,
-        year: 2024,
-        rating: 8.9,
-      },
-      {
-        title: 'Oppenheimer',
-        description: `AI (${provider}) suggests this based on high ratings.`,
-        year: 2023,
-        rating: 8.8,
-      },
-    ];
-  }
 }

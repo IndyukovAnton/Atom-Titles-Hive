@@ -6,10 +6,13 @@ import { AppService } from './app.service';
 import { User } from './entities/user.entity';
 import { MediaEntry } from './entities/media-entry.entity';
 import { MediaFile } from './entities/media-file.entity';
+import { MediaFavorite } from './entities/media-favorite.entity';
 import { Group } from './entities/group.entity';
+import { SavedRecommendation } from './entities/saved-recommendation.entity';
 import { AuthModule } from './modules/auth/auth.module';
 import { MediaModule } from './modules/media/media.module';
 import { GroupsModule } from './modules/groups/groups.module';
+import { LibraryModule } from './modules/library/library.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { LoggerService } from './utils/logger.service';
@@ -23,6 +26,7 @@ import { AddMediaFiles1768297695198 } from './migrations/1768297695198-AddMediaF
 import { AddUserPersonalization1768446524526 } from './migrations/1768446524526-AddUserPersonalization';
 import { AddGoogleAuthFields1768473242770 } from './migrations/1768473242770-AddGoogleAuthFields';
 import { AddCreatedAtIndexes1777708800000 } from './migrations/1777708800000-AddCreatedAtIndexes';
+import { AddLibraryEntities1782000000000 } from './migrations/1782000000000-AddLibraryEntities';
 
 @Module({
   imports: [
@@ -55,12 +59,20 @@ import { AddCreatedAtIndexes1777708800000 } from './migrations/1777708800000-Add
           AddUserPersonalization1768446524526,
           AddGoogleAuthFields1768473242770,
           AddCreatedAtIndexes1777708800000,
+          AddLibraryEntities1782000000000,
         ];
 
         return {
           type: 'sqlite',
           database: dbPath,
-          entities: [User, MediaEntry, MediaFile, Group],
+          entities: [
+            User,
+            MediaEntry,
+            MediaFile,
+            MediaFavorite,
+            Group,
+            SavedRecommendation,
+          ],
           synchronize,
           migrations,
           // We run migrations manually at bootstrap to support legacy DB upgrades
@@ -77,6 +89,7 @@ import { AddCreatedAtIndexes1777708800000 } from './migrations/1777708800000-Add
     AuthModule,
     MediaModule,
     GroupsModule,
+    LibraryModule,
     ProfileModule,
     RecommendationsModule,
   ],

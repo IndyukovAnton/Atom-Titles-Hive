@@ -20,6 +20,8 @@ const MediaDetailPage = lazy(() => import('./pages/MediaDetailPage'));
 const ChangelogPage = lazy(() => import('./pages/ChangelogPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage'));
+const ConsiderationsPage = lazy(() => import('./pages/ConsiderationsPage'));
+const FavoritesPage = lazy(() => import('./pages/FavoritesPage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
 const LevelsInfoPage = lazy(() => import('./pages/LevelsInfoPage'));
 
@@ -171,6 +173,22 @@ function AppRoutes({ backendReady = true }: AppRoutesProps) {
               element={
                 <ProtectedRoute>
                   <RecommendationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/considerations"
+              element={
+                <ProtectedRoute>
+                  <ConsiderationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/favorites"
+              element={
+                <ProtectedRoute>
+                  <FavoritesPage />
                 </ProtectedRoute>
               }
             />

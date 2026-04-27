@@ -32,6 +32,11 @@ export interface UserPreferences {
   addEntryPreviewStyle?: 'mirror' | 'poster';
   /** Закреплённое звание (code из ProfileStats.earnedTitles), null = авто. */
   selectedTitle?: string | null;
+  aiSource?: 'claude-api' | 'claude-cli';
+  anthropicApiKey?: string;
+  claudeModel?: 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
+  claudeUseWebSearch?: boolean;
+  claudeCliPath?: string;
 }
 
 export interface UserProfile {
