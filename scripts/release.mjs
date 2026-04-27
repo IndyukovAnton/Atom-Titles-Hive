@@ -16,6 +16,31 @@ import { homedir, platform } from 'node:os';
 import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
+
+// Load .env from project root so signing-related vars (notably
+// TAURI_SIGNING_PRIVATE_KEY_PASSWORD) don't have to be exported manually each
+// time. Existing environment vars take precedence — .env only fills gaps.
+const envPath = path.join(root, '.env');
+if (existsSync(envPath)) {
+  const raw = readFileSync(envPath, 'utf8');
+  for (const rawLine of raw.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
 const keyPath =
   process.env.TAURI_SIGNING_KEY_FILE ||
   path.join(homedir(), '.tauri', 'seen.key');
