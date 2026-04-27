@@ -1,10 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Server, XCircle } from 'lucide-react';
 import { isTauri, waitForBackend, setBackendUrl } from '../../utils/tauri';
 import { clearApiUrl } from '../../config';
 
 type BackendStatus = 'loading' | 'ready' | 'error';
+
+// Каждый этап = «пока меньше N секунд, показываем это сообщение». Чисто
+// визуальная подсказка: backend через stdout про этапы не репортит, но
+// эмпирически старт укладывается в ~10–15s, и подменять текст лучше, чем
+// держать одно «Запуск сервера…» на всю длительность.
+const PROGRESS_STAGES: Array<{ untilSec: number; text: string }> = [
+  { untilSec: 3, text: 'Запуск сервера…' },
+  { untilSec: 8, text: 'Инициализация модулей…' },
+  { untilSec: 15, text: 'Подготовка базы данных…' },
+  { untilSec: 30, text: 'Почти готово…' },
+  { untilSec: Infinity, text: 'Это занимает дольше обычного…' },
+];
+
+const stageFor = (seconds: number) =>
+  PROGRESS_STAGES.find((s) => seconds < s.untilSec)!.text;
 
 interface BackendLoaderProps {
   children: React.ReactNode;
@@ -21,10 +36,21 @@ interface BackendLoaderProps {
  * В браузере сразу показывает children.
  */
 export function BackendLoader({ children, onReady, onError }: BackendLoaderProps) {
-  const [status, setStatus] = useState<BackendStatus>(() => 
+  const [status, setStatus] = useState<BackendStatus>(() =>
     isTauri() ? 'loading' : 'ready'
   );
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const startedAtRef = useRef<number>(Date.now());
+
+  // Тик каждую секунду пока крутимся — для смены сообщений и таймера.
+  useEffect(() => {
+    if (status !== 'loading') return;
+    const id = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startedAtRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [status]);
 
   useEffect(() => {
     if (!isTauri()) {
@@ -86,17 +112,18 @@ export function BackendLoader({ children, onReady, onError }: BackendLoaderProps
             {/* Text */}
             <div className="space-y-2">
               <h2 className="text-xl font-semibold text-foreground">
-                Запуск сервера...
+                {stageFor(elapsedSec)}
               </h2>
               <p className="text-sm text-muted-foreground max-w-xs">
-                Подождите, локальный сервер инициализируется
+                Локальный сервер инициализируется. Это разовая операция при
+                запуске.
               </p>
             </div>
 
             {/* Loading indicator */}
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex items-center gap-2 text-muted-foreground tabular-nums">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Инициализация...</span>
+              <span className="text-sm">{elapsedSec}s</span>
             </div>
           </motion.div>
         )}

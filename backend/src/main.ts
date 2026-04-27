@@ -8,11 +8,62 @@ if (!globalLike.crypto) {
   (globalThis as unknown as { crypto: unknown }).crypto = crypto.webcrypto;
 }
 import { ValidationPipe } from '@nestjs/common';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { AppModule } from './app.module';
 import { LoggerService } from './utils/logger.service';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
+
+// Identifiers that earlier builds of this app shipped with. When the user
+// updates from an older build, Tauri creates a fresh app-data directory under
+// the new identifier, leaving the real database stranded under the old one.
+// We copy it across on first start so users don't appear to lose all their data.
+const LEGACY_APP_DATA_DIRS = [
+  'com.indyukov.atom-titles-hive',
+  'AtomTitlesHive',
+];
+
+const LEGACY_DB_THRESHOLD_BYTES = 100 * 1024;
+
+function migrateLegacyDatabaseFile(): void {
+  const dbPath = process.env.DATABASE_PATH;
+  if (!dbPath) return;
+
+  const targetExists = fs.existsSync(dbPath);
+  const targetIsEmpty =
+    !targetExists || fs.statSync(dbPath).size < LEGACY_DB_THRESHOLD_BYTES;
+  if (!targetIsEmpty) return;
+
+  const appDir = path.dirname(dbPath);
+  const parentDir = path.dirname(appDir);
+
+  for (const legacyName of LEGACY_APP_DATA_DIRS) {
+    const candidate = path.join(parentDir, legacyName, 'database.sqlite');
+    if (
+      !fs.existsSync(candidate) ||
+      fs.statSync(candidate).size < LEGACY_DB_THRESHOLD_BYTES
+    ) {
+      continue;
+    }
+
+    fs.mkdirSync(appDir, { recursive: true });
+    fs.copyFileSync(candidate, dbPath);
+    console.log(
+      `[startup] Migrated legacy database from ${candidate} to ${dbPath}`,
+    );
+
+    const candidateJwt = path.join(path.dirname(candidate), 'jwt_secret.txt');
+    const targetJwt = path.join(appDir, 'jwt_secret.txt');
+    if (fs.existsSync(candidateJwt) && !fs.existsSync(targetJwt)) {
+      fs.copyFileSync(candidateJwt, targetJwt);
+      console.log('[startup] Migrated legacy jwt_secret.txt');
+    }
+
+    return;
+  }
+}
 
 async function ensureMigrationsAndUpgradeLegacySqlite(
   dataSource: DataSource,
@@ -90,6 +141,10 @@ async function ensureMigrationsAndUpgradeLegacySqlite(
 }
 
 async function bootstrap() {
+  // Run BEFORE NestFactory.create — TypeORM creates the sqlite file on first
+  // connection, which would defeat our "is the target empty?" check.
+  migrateLegacyDatabaseFile();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
+import { UpdateChecker } from '@/components/ui/UpdateChecker';
 import { AlertCircle } from 'lucide-react';
 
 interface AuthLayoutProps {
@@ -19,6 +20,10 @@ export default function AuthLayout({ children, title, subtitle, error }: AuthLay
       <AnimatedBackground />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(var(--primary),0.05)_1px,transparent_1px)] bg-[length:50px_50px] [mask-image:radial-gradient(ellipse_at_center,black,transparent)] opacity-30 animate-[spin_240s_linear_infinite]" />
+      </div>
+
+      <div className="absolute top-3 right-3 z-20">
+        <UpdateChecker className="bg-background/40 backdrop-blur-md hover:bg-background/60 rounded-full" />
       </div>
 
       <Card className="w-full max-w-[440px] shadow-2xl backdrop-blur-xl bg-card/80 border-white/20 dark:border-white/10 relative z-10 animate-in fade-in zoom-in-95 duration-500 slide-in-from-bottom-4">
