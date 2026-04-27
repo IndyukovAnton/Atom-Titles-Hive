@@ -51,7 +51,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/IndyukovAnton/web-titles-tracker/releases/latest/download/latest.json"
+        "https://github.com/IndyukovAnton/Atom-Titles-Hive/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk3MTAwRERBMkMwMzM3NDkKUldSSk53TXMyZzBRbHpoaTlyQXAwd0FUMmg5R0ZQRlhjajAxNzVMOWNOZGN4QjZsNUx1cm1pZHoK",
       "dialog": false,

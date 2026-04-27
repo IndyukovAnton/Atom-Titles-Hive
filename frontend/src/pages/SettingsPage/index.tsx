@@ -24,7 +24,7 @@ import { useAuthStore } from '@/store/authStore';
 import { logger } from '@/utils/logger';
 
 const RELEASES_URL =
-  'https://github.com/IndyukovAnton/web-titles-tracker/releases/latest';
+  'https://github.com/IndyukovAnton/Atom-Titles-Hive/releases/latest';
 
 const isTauri = (): boolean =>
   typeof window !== 'undefined' &&
