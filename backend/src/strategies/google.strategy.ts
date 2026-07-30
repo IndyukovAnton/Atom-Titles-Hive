@@ -18,7 +18,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
     const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL');
 
-    const provided = [clientID, clientSecret, callbackURL].filter(Boolean).length;
+    const provided = [clientID, clientSecret, callbackURL].filter(
+      Boolean,
+    ).length;
     const isConfigured = provided === 3;
     const isPartial = provided > 0 && provided < 3;
 
@@ -47,7 +49,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     this.isConfigured = isConfigured;
 
     if (!isConfigured) {
-      GoogleStrategy.logger.log('Google OAuth not configured — strategy disabled');
+      GoogleStrategy.logger.log(
+        'Google OAuth not configured — strategy disabled',
+      );
     }
   }
 

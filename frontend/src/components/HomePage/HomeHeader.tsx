@@ -97,7 +97,12 @@ export const HomeHeader = ({
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full h-9 w-9 relative"
+              aria-label="Меню пользователя"
+            >
               <Avatar className="h-8 w-8">
                 <AvatarImage src={avatar} alt={username} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">

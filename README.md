@@ -101,13 +101,24 @@ npm install
 
 ### 2. Запуск в режиме разработки
 
-**Терминал 1 — Backend:**
+**Одной командой (рекомендуется):**
+```bash
+npm run dev:all
+```
+Оркестратор `scripts/dev.mjs` сначала поднимает backend, ждёт ответа
+`GET /health`, и только потом стартует frontend — гонки «фронт раньше
+API» больше нет. Старое параллельное поведение доступно как
+`npm run dev:parallel`.
+
+**Или вручную, двумя терминалами:**
+
+*Терминал 1 — Backend:*
 ```bash
 cd backend
 npm run start:dev
 ```
 
-**Терминал 2 — Frontend:**
+*Терминал 2 — Frontend:*
 ```bash
 cd frontend
 npm run dev

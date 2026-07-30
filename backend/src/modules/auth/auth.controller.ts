@@ -11,6 +11,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from '../../dto/register.dto';
 import { LoginDto } from '../../dto/login.dto';
@@ -18,6 +19,10 @@ import { ChangePasswordDto } from '../../dto/change-password.dto';
 import type { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import {
+  AUTH_THROTTLE_LIMIT,
+  THROTTLE_TTL_MS,
+} from '../../config/throttle.config';
 
 @Controller('auth')
 export class AuthController {
@@ -26,11 +31,14 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
+  // Жёсткий лимит на попытки входа/регистрации — защита от брутфорса.
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: THROTTLE_TTL_MS } })
   @Post('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: THROTTLE_TTL_MS } })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() dto: LoginDto) {
@@ -66,7 +74,8 @@ export class AuthController {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5005';
 
-    // Передаем токен через query parameter
-    res.redirect(`${frontendUrl}/auth/callback?token=${result.access_token}`);
+    // Токен передаём во фрагменте (#), а не в query: фрагмент не попадает
+    // в access-логи серверов, Referer и сетевые журналы.
+    res.redirect(`${frontendUrl}/auth/callback#token=${result.access_token}`);
   }
 }

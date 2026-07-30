@@ -81,7 +81,11 @@ describe('authStore', () => {
       const { register } = useAuthStore.getState();
       
       await act(async () => {
-        await register('newuser', 'new@example.com', 'password123');
+        await register({
+          username: 'newuser',
+          email: 'new@example.com',
+          password: 'password123',
+        });
       });
 
       const state = useAuthStore.getState();
@@ -98,7 +102,7 @@ describe('authStore', () => {
       
       await act(async () => {
         try {
-          await register('', '', '');
+          await register({ username: '', password: '' });
         } catch {
           // Expected to throw
         }

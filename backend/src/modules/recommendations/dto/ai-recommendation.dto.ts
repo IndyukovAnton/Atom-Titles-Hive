@@ -13,7 +13,7 @@ import {
 import { CONTENT_TYPES, MOOD_TAGS } from './claude-recommendation.dto';
 import type { ContentType, MoodTag } from './claude-recommendation.dto';
 
-export const AI_SOURCES = ['claude-api', 'claude-cli'] as const;
+export const AI_SOURCES = ['claude-api', 'claude-cli', 'codex-cli'] as const;
 export type AiSourceLiteral = (typeof AI_SOURCES)[number];
 
 export class AiRecommendationFiltersDto {

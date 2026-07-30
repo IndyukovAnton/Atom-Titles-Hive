@@ -5,6 +5,7 @@ export interface Group {
   name: string;
   userId: number;
   parentId?: number | null;
+  sortOrder?: number;
   createdAt: string;
   updatedAt: string;
   count?: number; // From stats
@@ -12,16 +13,27 @@ export interface Group {
 
 export interface CreateGroupData {
   name: string;
-  parentId?: number;
+  parentId?: number | null;
+}
+
+export interface MoveGroupData {
+  parentId: number | null;
+  beforeId?: number | null;
+}
+
+export interface GroupStatsItem {
+  id: number;
+  name: string;
+  parentId?: number | null;
+  sortOrder?: number;
+  /** Записи напрямую в этой группе */
+  count: number;
+  /** Записи этой группы и всех дочерних */
+  totalCount?: number;
 }
 
 export interface GroupStats {
-  groups: {
-    id: number;
-    name: string;
-    parentId?: number | null;
-    count: number;
-  }[];
+  groups: GroupStatsItem[];
   ungrouped: number;
 }
 
@@ -48,6 +60,11 @@ export const groupsApi = {
 
   update: async (id: number, data: CreateGroupData): Promise<Group> => {
     const response = await apiClient.patch(`/groups/${id}`, data);
+    return response.data;
+  },
+
+  move: async (id: number, data: MoveGroupData): Promise<Group> => {
+    const response = await apiClient.patch(`/groups/${id}/move`, data);
     return response.data;
   },
 

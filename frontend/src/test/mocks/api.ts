@@ -54,9 +54,9 @@ export const handlers = [
   }),
 
   http.post(`${API_URL}/auth/register`, async ({ request }) => {
-    const body = await request.json() as { username: string; email: string; password: string };
-    
-    if (body.username && body.email && body.password) {
+    const body = await request.json() as { username: string; email?: string; password: string };
+
+    if (body.username && body.password) {
       return HttpResponse.json(mockAuthResponse);
     }
     
@@ -101,6 +101,12 @@ export const handlers = [
     return HttpResponse.json([mockMediaEntry]);
   }),
 
+  // Cover search (CoverImagePicker в AddMediaModal). Объявлен ДО /media/:id,
+  // иначе параметризованный хендлер перехватит "search-covers" как id.
+  http.get(`${API_URL}/media/search-covers`, () => {
+    return HttpResponse.json([]);
+  }),
+
   http.get(`${API_URL}/media/:id`, ({ params }) => {
     return HttpResponse.json({ ...mockMediaEntry, id: Number(params.id) });
   }),
@@ -111,6 +117,12 @@ export const handlers = [
   }),
 
   http.put(`${API_URL}/media/:id`, async ({ request, params }) => {
+    const body = await request.json() as object;
+    return HttpResponse.json({ ...mockMediaEntry, ...body, id: Number(params.id) });
+  }),
+
+  // mediaApi.update использует PATCH
+  http.patch(`${API_URL}/media/:id`, async ({ request, params }) => {
     const body = await request.json() as object;
     return HttpResponse.json({ ...mockMediaEntry, ...body, id: Number(params.id) });
   }),
@@ -136,6 +148,11 @@ export const handlers = [
     return HttpResponse.json({ ...mockGroup, ...body, id: 2 });
   }),
 
+  http.patch(`${API_URL}/groups/:id/move`, async ({ request, params }) => {
+    const body = await request.json() as object;
+    return HttpResponse.json({ ...mockGroup, ...body, id: Number(params.id) });
+  }),
+
   http.patch(`${API_URL}/groups/:id`, async ({ request, params }) => {
     const body = await request.json() as object;
     return HttpResponse.json({ ...mockGroup, ...body, id: Number(params.id) });
@@ -150,6 +167,11 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  // Library endpoints
+  http.get(`${API_URL}/library/favorites/ids`, () => {
+    return HttpResponse.json([]);
+  }),
+
   // Profile endpoints
   http.get(`${API_URL}/profile`, () => {
     return HttpResponse.json(mockUser);
@@ -158,6 +180,18 @@ export const handlers = [
   http.put(`${API_URL}/profile`, async ({ request }) => {
     const body = await request.json() as object;
     return HttpResponse.json({ ...mockUser, ...body });
+  }),
+
+  // HomeHeader подтягивает уровень/звание для дропдауна профиля
+  http.get(`${API_URL}/profile/stats`, () => {
+    return HttpResponse.json({
+      level: 1,
+      title: null,
+      totalEntries: 0,
+      completedEntries: 0,
+      totalWatchTime: 0,
+      currentStreak: 0,
+    });
   }),
 ];
 

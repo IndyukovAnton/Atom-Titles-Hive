@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check, CloudDownload, Type, Upload } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { logger } from '@/utils/logger';
 import { PRESET_FONTS } from '@/constants/fonts';
 

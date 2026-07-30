@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PersonalizationProvider } from '../../contexts/PersonalizationContext';
 
 interface AllTheProvidersProps {
   children: React.ReactNode;
@@ -29,7 +30,12 @@ const AllTheProviders = ({ children }: AllTheProvidersProps) => {
   const [client] = useState(() => makeQueryClient());
   return (
     <QueryClientProvider client={client}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <BrowserRouter>
+        {/* Реальный провайдер вместо моков: компоненты, использующие
+            usePersonalization (AddMediaModal, HomePage и др.), иначе падают
+            с "must be used within PersonalizationProvider". */}
+        <PersonalizationProvider>{children}</PersonalizationProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };

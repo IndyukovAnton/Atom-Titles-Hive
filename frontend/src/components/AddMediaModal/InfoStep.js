@@ -1,0 +1,9 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { FormInput, FormSelect, StarRating } from '@/components/Form';
+import { CategoryTilePicker } from './CategoryTilePicker';
+export function InfoStep({ isSubmitting, groupOptions, onOpenCreateGroup, }) {
+    return (_jsxs("div", { className: "space-y-5", children: [_jsx(FormInput, { name: "title", label: "\u0427\u0442\u043E \u0434\u043E\u0431\u0430\u0432\u0438\u043C?", placeholder: "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0444\u0438\u043B\u044C\u043C\u0430, \u043A\u043D\u0438\u0433\u0438 \u0438\u043B\u0438 \u0438\u0433\u0440\u044B...", disabled: isSubmitting, className: "h-12 text-lg" }), _jsx(CategoryTilePicker, { name: "category", label: "\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F", disabled: isSubmitting }), _jsxs("div", { className: "space-y-2", children: [_jsx(Label, { className: "text-sm font-semibold text-foreground", children: "\u0413\u0440\u0443\u043F\u043F\u0430" }), _jsxs("div", { className: "flex gap-2", children: [_jsx("div", { className: "flex-1 min-w-0", children: _jsx(FormSelect, { name: "groupId", options: groupOptions, placeholder: "\u0411\u0435\u0437 \u0433\u0440\u0443\u043F\u043F\u044B", disabled: isSubmitting, className: "w-full" }) }), _jsxs(Button, { type: "button", variant: "outline", onClick: onOpenCreateGroup, disabled: isSubmitting, className: "shrink-0 cursor-pointer border-dashed hover:border-primary hover:bg-primary/5 hover:text-primary", children: [_jsx(Plus, { className: "h-4 w-4 mr-1.5" }), "\u041D\u043E\u0432\u0430\u044F"] })] })] }), _jsx(StarRating, { name: "rating", label: "\u0412\u0430\u0448\u0430 \u043E\u0446\u0435\u043D\u043A\u0430", className: "w-full" })] }));
+}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Fingerprint, TriangleAlert } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,9 +35,10 @@ import { logger } from '@/utils/logger';
 import { AxiosError } from 'axios';
 
 export function SecurityTab() {
-  const [message, setMessage] = useState<
-    { type: 'success' | 'error'; text: string } | null
-  >(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const methods = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
@@ -85,9 +86,9 @@ export function SecurityTab() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-      <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
-        <CardHeader>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+      <Card className="gap-3 overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
+        <CardHeader className="px-4 pb-0">
           <CardTitle className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 ring-1 ring-red-500/20">
               <Fingerprint className="h-5 w-5" />
@@ -96,7 +97,7 @@ export function SecurityTab() {
           </CardTitle>
           <CardDescription>Обновите пароль для защиты аккаунта</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-4">
           <FormProvider {...methods}>
             <form
               onSubmit={handleSubmit(onPasswordSubmit)}
@@ -154,26 +155,22 @@ export function SecurityTab() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border border-destructive/20 shadow-lg bg-destructive/5 backdrop-blur-sm">
-        <CardHeader>
+      <Card className="gap-3 overflow-hidden border border-destructive/20 shadow-lg bg-destructive/5 backdrop-blur-sm">
+        <CardHeader className="px-4 pb-0">
           <CardTitle className="flex items-center gap-3 text-destructive">
-            <div className="p-2.5 rounded-xl bg-destructive/10 ring-1 ring-destructive/20">
+            <div className="p-2 rounded-xl bg-destructive/10 ring-1 ring-destructive/20">
               <TriangleAlert className="h-5 w-5" />
             </div>
             Опасная зона
           </CardTitle>
-          <CardDescription className="text-destructive/80">
-            Действия с необратимыми последствиями
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="p-4 border border-destructive/20 rounded-xl bg-background/50">
+        <CardContent className="px-4 pb-4">
+          <div className="p-3 border border-destructive/20 rounded-xl bg-background/50">
             <h4 className="font-semibold text-destructive mb-1">
               Сброс данных
             </h4>
             <p className="text-sm text-muted-foreground mb-4">
-              Удаляет всю вашу коллекцию, оценки и историю просмотров. Это
-              действие нельзя отменить.
+              Удаляет все данные из приложения. Это действие нельзя отменить.
             </p>
             <AlertDialog>
               <AlertDialogTrigger asChild>

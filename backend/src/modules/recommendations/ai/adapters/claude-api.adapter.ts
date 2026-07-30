@@ -107,7 +107,7 @@ export class ClaudeApiAdapter implements AiSourceAdapter {
               yield {
                 kind: 'progress',
                 stage: 'web_searching',
-                message: 'Ищу в вебе свежие релизы…',
+                message: 'Ищу в интернете свежие релизы…',
               };
             }
           } else if (block.type === 'text' && block.text.trim()) {

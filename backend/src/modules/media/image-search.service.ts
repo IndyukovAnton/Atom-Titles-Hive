@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as cheerio from 'cheerio';
+import { assertPublicHttpUrl } from '../../utils/url-safety.util';
 
 export interface CoverImage {
   id: string;
@@ -12,6 +13,9 @@ interface BingImageMetadata {
   murl?: string;
   turl?: string;
 }
+
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const DOWNLOAD_TIMEOUT_MS = 15_000;
 
 @Injectable()
 export class ImageSearchService {
@@ -167,7 +171,9 @@ export class ImageSearchService {
           : String(primaryError);
 
       if (!fallbackUrl || fallbackUrl === url) {
-        this.logger.error(`Failed to download image: ${url} — ${primaryMessage}`);
+        this.logger.error(
+          `Failed to download image: ${url} — ${primaryMessage}`,
+        );
         throw primaryError;
       }
 
@@ -191,14 +197,25 @@ export class ImageSearchService {
   }
 
   private async fetchAsBase64(url: string): Promise<string> {
+    // SSRF-защита: URL приходит от клиента, поэтому валидируем хост,
+    // запрещаем редиректы (публичный URL мог бы увести на internal-адрес)
+    // и ограничиваем размер/время загрузки.
+    assertPublicHttpUrl(url);
+
     this.logger.log(`Downloading image: ${url}`);
 
     const response = await fetch(url, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     });
+
+    if (response.status >= 300 && response.status < 400) {
+      throw new Error('Redirects are not allowed when downloading images');
+    }
 
     if (!response.ok) {
       throw new Error(
@@ -206,7 +223,16 @@ export class ImageSearchService {
       );
     }
 
+    const contentLength = Number(response.headers.get('content-length') ?? 0);
+    if (contentLength > MAX_IMAGE_BYTES) {
+      throw new Error('Image exceeds the maximum allowed size');
+    }
+
     const buffer = await response.arrayBuffer();
+    if (buffer.byteLength > MAX_IMAGE_BYTES) {
+      throw new Error('Image exceeds the maximum allowed size');
+    }
+
     return Buffer.from(buffer).toString('base64');
   }
 

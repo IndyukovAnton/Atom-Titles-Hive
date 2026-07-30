@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { RecommendationItem } from '@/api/recommendations';
+import { normalizeGenres } from '@/utils/normalize-genres';
 
 const GENRE_COLORS = [
   'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
@@ -20,8 +21,8 @@ const GENRE_COLORS = [
 
 interface RecommendationsGridProps {
   items: RecommendationItem[];
-  type?: 'internal' | 'external' | 'ai';
-  onAdd: (item: RecommendationItem) => void;
+  /** Если не передан — карточка без действия (например, записи уже в библиотеке). */
+  onAdd?: (item: RecommendationItem) => void;
 }
 
 export function RecommendationsGrid({
@@ -30,7 +31,9 @@ export function RecommendationsGrid({
 }: RecommendationsGridProps) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {items.map((item, idx) => (
+      {items.map((item, idx) => {
+        const genres = normalizeGenres(item.genres);
+        return (
         <motion.div
           key={`${item.title}-${idx}`}
           initial={{ opacity: 0, scale: 0.95 }}
@@ -59,16 +62,18 @@ export function RecommendationsGrid({
                 )}
               </div>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4">
-                <Button
-                  size="lg"
-                  className="w-full gap-2 font-semibold shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                  onClick={() => onAdd(item)}
-                >
-                  <Plus className="w-5 h-5" />
-                  Add to Library
-                </Button>
-              </div>
+              {onAdd && !item.inLibrary && (
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4">
+                  <Button
+                    size="lg"
+                    className="w-full gap-2 font-semibold shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                    onClick={() => onAdd(item)}
+                  >
+                    <Plus className="w-5 h-5" />
+                    В библиотеку
+                  </Button>
+                </div>
+              )}
             </div>
             <CardHeader className="p-4 pb-2 space-y-2">
               <CardTitle
@@ -78,7 +83,7 @@ export function RecommendationsGrid({
                 {item.title}
               </CardTitle>
               <div className="flex flex-wrap gap-1.5">
-                {(item.genres || []).slice(0, 2).map((g: string, i: number) => (
+                {genres.slice(0, 2).map((g: string, i: number) => (
                   <Badge
                     key={g}
                     variant="outline"
@@ -106,7 +111,8 @@ export function RecommendationsGrid({
             </CardContent>
           </Card>
         </motion.div>
-      ))}
+        );
+      })}
     </div>
   );
 }

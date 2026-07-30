@@ -58,8 +58,15 @@ fn load_or_create_jwt_secret(app_data_dir: &Path) -> Result<String, String> {
     Ok(secret)
 }
 
-/// Запускает backend sidecar с указанным портом
-pub fn spawn_backend(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, String> {
+/// Запускает backend sidecar с указанным портом.
+/// Порт записывается в состояние только после маркера BACKEND_READY в stdout —
+/// иначе `get_backend_port` отдавал бы порт, на котором Nest ещё не слушает,
+/// и frontend стрелял бы запросами в мёртвый сокет (гонка при старте).
+pub fn spawn_backend(
+    app: &tauri::AppHandle,
+    port: u16,
+    backend_state: Arc<Mutex<BackendState>>,
+) -> Result<CommandChild, String> {
     let is_dev = cfg!(debug_assertions);
 
     // Получаем переменные окружения
@@ -133,7 +140,13 @@ pub fn spawn_backend(app: &tauri::AppHandle, port: u16) -> Result<CommandChild, 
                         if let Some(port_str) = line.trim().strip_prefix("BACKEND_READY:") {
                             if let Ok(actual_port) = port_str.parse::<u16>() {
                                 log::info!("Backend ready on port {}", actual_port);
-                                
+
+                                // Только теперь backend реально слушает порт —
+                                // публикуем его для команды get_backend_port.
+                                if let Ok(mut state) = backend_state.lock() {
+                                    state.port = Some(actual_port);
+                                }
+
                                 // Отправляем событие во frontend
                                 let _ = app_handle.emit("backend-ready", actual_port);
                             }
@@ -201,11 +214,13 @@ pub fn run() {
             log::info!("Starting backend sidecar on port {}", port);
 
             // Запускаем backend sidecar
-            match spawn_backend(app.handle(), port) {
+            match spawn_backend(app.handle(), port, backend_state.clone()) {
                 Ok(child) => {
                     let mut state = backend_state.lock().unwrap();
                     state.child = Some(child);
-                    state.port = Some(port);
+                    // state.port намеренно НЕ выставляем здесь — только после
+                    // BACKEND_READY (см. spawn_backend), иначе фронт получит
+                    // порт, который ещё никто не слушает.
                     log::info!("Backend sidecar spawned successfully");
                 }
                 Err(e) => {

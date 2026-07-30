@@ -4,9 +4,9 @@ import { LoggerService } from './logger.service';
 export class CleanTypeOrmLogger implements Logger {
   constructor(private readonly logger: LoggerService) {}
 
-  logQuery(query: string, parameters?: any[], queryRunner?: QueryRunner) {
+  logQuery(query: string, parameters?: any[], _queryRunner?: QueryRunner) {
     const cleanedQuery = this.cleanQuery(query);
-    this.logger.log(`query: ${cleanedQuery}`);
+    void this.logger.log(`query: ${cleanedQuery}`);
     if (parameters && parameters.length) {
       // Опционально: можно раскомментировать, если нужны параметры
       // this.logger.debug(`parameters: ${JSON.stringify(parameters)}`);
@@ -16,41 +16,45 @@ export class CleanTypeOrmLogger implements Logger {
   logQueryError(
     error: string | Error,
     query: string,
-    parameters?: any[],
-    queryRunner?: QueryRunner,
+    _parameters?: any[],
+    _queryRunner?: QueryRunner,
   ) {
     const cleanedQuery = this.cleanQuery(query);
-    this.logger.error(`query failed: ${cleanedQuery}`);
-    this.logger.error(`error: ${error}`);
+    void this.logger.error(`query failed: ${cleanedQuery}`);
+    void this.logger.error(`error: ${String(error)}`);
   }
 
   logQuerySlow(
     time: number,
     query: string,
-    parameters?: any[],
-    queryRunner?: QueryRunner,
+    _parameters?: any[],
+    _queryRunner?: QueryRunner,
   ) {
     const cleanedQuery = this.cleanQuery(query);
-    this.logger.warn(`query is slow: ${time}ms`);
-    this.logger.warn(`execution: ${cleanedQuery}`);
+    void this.logger.warn(`query is slow: ${time}ms`);
+    void this.logger.warn(`execution: ${cleanedQuery}`);
   }
 
-  logSchemaBuild(message: string, queryRunner?: QueryRunner) {
-    this.logger.log(`schema build: ${message}`);
+  logSchemaBuild(message: string, _queryRunner?: QueryRunner) {
+    void this.logger.log(`schema build: ${message}`);
   }
 
-  logMigration(message: string, queryRunner?: QueryRunner) {
-    this.logger.log(`migration: ${message}`);
+  logMigration(message: string, _queryRunner?: QueryRunner) {
+    void this.logger.log(`migration: ${message}`);
   }
 
-  log(level: 'log' | 'info' | 'warn', message: any, queryRunner?: QueryRunner) {
+  log(
+    level: 'log' | 'info' | 'warn',
+    message: any,
+    _queryRunner?: QueryRunner,
+  ) {
     switch (level) {
       case 'log':
       case 'info':
-        this.logger.log(message);
+        void this.logger.log(String(message));
         break;
       case 'warn':
-        this.logger.warn(message);
+        void this.logger.warn(String(message));
         break;
     }
   }

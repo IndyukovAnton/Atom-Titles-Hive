@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Eye, Moon, Palette, RotateCcw, Save, Sun, Type } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -82,8 +82,8 @@ export function AppearanceTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
-        <CardHeader>
+      <Card className="gap-3 overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
+        <CardHeader className="px-4 pb-2">
           <CardTitle className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 ring-1 ring-purple-500/20">
               <Palette className="h-5 w-5" />
@@ -94,7 +94,7 @@ export function AppearanceTab() {
             Цветовая схема интерфейса и фон рабочего пространства
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="px-4 pb-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20">
@@ -140,8 +140,8 @@ export function AppearanceTab() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
-        <CardHeader>
+      <Card className="gap-3 overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
+        <CardHeader className="px-4 pb-2">
           <CardTitle className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20">
               <Type className="h-5 w-5" />
@@ -152,7 +152,7 @@ export function AppearanceTab() {
             Размер и семейство шрифта для комфортного чтения
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="px-4 pb-4 space-y-4">
           <FontSettings
             fontFamily={draftFontFamily}
             fontSize={draftFontSize}
@@ -185,8 +185,8 @@ export function AppearanceTab() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
-        <CardHeader>
+      <Card className="gap-3 overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
+        <CardHeader className="px-4 pb-2">
           <CardTitle className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-400 ring-1 ring-pink-500/20">
               <Eye className="h-5 w-5" />
@@ -197,10 +197,11 @@ export function AppearanceTab() {
             Как будет выглядеть карточка-превью в форме добавления
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <CardContent className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {(['mirror', 'poster'] as const).map((style) => {
             const isActive = addEntryPreviewStyle === style;
-            const label = style === 'mirror' ? 'Как в библиотеке' : 'Кинопостер';
+            const label =
+              style === 'mirror' ? 'Как в библиотеке' : 'Кинопостер';
             const desc =
               style === 'mirror'
                 ? 'Точная копия карточки из библиотеки — видишь ровно то, что получишь'
@@ -226,7 +227,9 @@ export function AppearanceTab() {
                 >
                   <span
                     className={`text-xs font-medium ${
-                      style === 'mirror' ? 'text-muted-foreground' : 'text-white'
+                      style === 'mirror'
+                        ? 'text-muted-foreground'
+                        : 'text-white'
                     }`}
                   >
                     {style === 'mirror' ? 'MediaCard' : 'Poster'}
@@ -235,7 +238,9 @@ export function AppearanceTab() {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{label}</span>
                   {isActive && (
-                    <span className="text-xs text-primary font-medium">Выбрано</span>
+                    <span className="text-xs text-primary font-medium">
+                      Выбрано
+                    </span>
                   )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
@@ -244,7 +249,6 @@ export function AppearanceTab() {
           })}
         </CardContent>
       </Card>
-
     </div>
   );
 }

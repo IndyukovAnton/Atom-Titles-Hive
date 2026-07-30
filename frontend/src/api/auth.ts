@@ -7,7 +7,7 @@ export interface LoginData {
 
 export interface RegisterData {
   username: string;
-  email: string;
+  email?: string;
   password: string;
 }
 
@@ -32,17 +32,24 @@ export interface UserPreferences {
   addEntryPreviewStyle?: 'mirror' | 'poster';
   /** Закреплённое звание (code из ProfileStats.earnedTitles), null = авто. */
   selectedTitle?: string | null;
-  aiSource?: 'claude-api' | 'claude-cli';
+  aiSource?: 'claude-api' | 'claude-cli' | 'codex-cli';
   anthropicApiKey?: string;
   claudeModel?: 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
   claudeUseWebSearch?: boolean;
   claudeCliPath?: string;
+  codexCliPath?: string;
+  codexModel?: string;
+  codexUseWebSearch?: boolean;
+  /** Вычисляемые сервером флаги (только чтение): ключи хранятся, но не возвращаются. */
+  hasAiKey?: boolean;
+  hasAnthropicApiKey?: boolean;
+  hasTmdbApiKey?: boolean;
 }
 
 export interface UserProfile {
   id: number;
   username: string;
-  email: string;
+  email: string | null;
   birthDate?: string;
   preferences?: UserPreferences;
   hasCompletedOnboarding: boolean;

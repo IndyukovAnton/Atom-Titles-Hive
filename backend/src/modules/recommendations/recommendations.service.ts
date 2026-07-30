@@ -12,6 +12,8 @@ type Recommendation = {
   genres: string[];
   category?: string;
   reason: string;
+  /** true — запись уже есть в библиотеке пользователя (кнопка «В библиотеку» не нужна). */
+  inLibrary?: boolean;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -26,6 +28,8 @@ export class RecommendationsService {
     private userRepository: Repository<User>,
   ) {}
 
+  // Жанры в библиотеке пользователь указывает на русском — алиасы обязательны,
+  // иначе внешние источники никогда не срабатывают.
   private genreMappingJikan: Record<string, number> = {
     Action: 1,
     Adventure: 2,
@@ -39,6 +43,21 @@ export class RecommendationsService {
     Horror: 14,
     Thriller: 41,
     Supernatural: 37,
+    Sports: 30,
+    Боевик: 1,
+    Приключения: 2,
+    Комедия: 4,
+    Фантастика: 24,
+    Повседневность: 36,
+    Фэнтези: 10,
+    Драма: 8,
+    Романтика: 22,
+    Детектив: 7,
+    Мистика: 7,
+    Хоррор: 14,
+    Триллер: 41,
+    Сверхъестественное: 37,
+    Спорт: 30,
   };
 
   private genreMappingTmdb: Record<string, number> = {
@@ -61,16 +80,52 @@ export class RecommendationsService {
     Thriller: 53,
     War: 10752,
     Western: 37,
+    Боевик: 28,
+    Приключения: 12,
+    Анимация: 16,
+    Комедия: 35,
+    Криминал: 80,
+    Документальное: 99,
+    Драма: 18,
+    Семейный: 10751,
+    Фэнтези: 14,
+    История: 36,
+    Хоррор: 27,
+    Музыка: 10402,
+    Детектив: 9648,
+    Мистика: 9648,
+    Романтика: 10749,
+    Фантастика: 878,
+    Триллер: 53,
+    Военный: 10752,
+    Вестерн: 37,
   };
 
-  async getTopRatedInLibrary(userId: number, limit: number = 10) {
-    // Возвращаем топ записи ДРУГИХ пользователей (исключая свои)
-    return this.mediaRepository
+  async getTopRatedInLibrary(
+    userId: number,
+    limit: number = 10,
+  ): Promise<Recommendation[]> {
+    // Топ оценок из собственной библиотеки пользователя.
+    const topMedia = await this.mediaRepository
       .createQueryBuilder('media')
-      .where('media.userId != :userId', { userId })
+      .where('media.userId = :userId', { userId })
+      .andWhere('media.rating > 0')
       .orderBy('media.rating', 'DESC')
       .take(limit)
       .getMany();
+
+    // Отдаём контракт Recommendation, а не сырую сущность: genres в БД — JSON-строка,
+    // а служебные поля (userId, groupId, timestamps) наружу не нужны.
+    return topMedia.map((m) => ({
+      title: m.title,
+      image: m.image ?? undefined,
+      description: m.description ?? undefined,
+      rating: m.rating,
+      genres: this.parseGenres(m.genres),
+      category: m.category ?? undefined,
+      reason: 'Top rated in your library',
+      inLibrary: true,
+    }));
   }
 
   async getRecommendationsByGenre(userId: number): Promise<Recommendation[]> {
@@ -94,28 +149,9 @@ export class RecommendationsService {
       return [];
     }
 
-    // Helper to safely parse genres
-    const parseGenres = (genresData: unknown): string[] => {
-      if (!genresData) return [];
-      try {
-        if (Array.isArray(genresData)) {
-          return genresData.filter((g): g is string => typeof g === 'string');
-        }
-        if (typeof genresData !== 'string') return [];
-        const parsed: unknown = JSON.parse(genresData);
-        if (!Array.isArray(parsed)) return [];
-        return parsed.filter((g): g is string => typeof g === 'string');
-      } catch {
-        if (typeof genresData === 'string') {
-          return genresData.split(',').map((s) => s.trim());
-        }
-        return [];
-      }
-    };
-
     const parsedMedia = allMedia.map((m) => ({
       ...m,
-      genresList: parseGenres(m.genres),
+      genresList: this.parseGenres(m.genres),
     }));
 
     // 2. Analyze User Preferences (Adaptive)
@@ -172,6 +208,7 @@ export class RecommendationsService {
         genres: r.genresList,
         category: r.category ?? undefined,
         reason: 'Recommended from your backlog',
+        inLibrary: true,
       }));
 
     // 4. External Recommendations
@@ -202,6 +239,28 @@ export class RecommendationsService {
     // Simple shuffle
     const shuffled = allRecs.sort(() => 0.5 - Math.random());
     return shuffled;
+  }
+
+  /** genres в БД хранятся JSON-строкой, но терпим и массив, и CSV-строку. */
+  private parseGenres(genresData: unknown): string[] {
+    if (!genresData) return [];
+    try {
+      if (Array.isArray(genresData)) {
+        return genresData.filter((g): g is string => typeof g === 'string');
+      }
+      if (typeof genresData !== 'string') return [];
+      const parsed: unknown = JSON.parse(genresData);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((g): g is string => typeof g === 'string');
+    } catch {
+      if (typeof genresData === 'string') {
+        return genresData
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      return [];
+    }
   }
 
   private async fetchJikanRecommendations(
@@ -263,6 +322,7 @@ export class RecommendationsService {
             genres,
             category: 'Anime',
             reason: 'Popular Anime in your favorite genres',
+            inLibrary: false,
           };
         })
         .filter((r): r is Recommendation => r !== null);
@@ -314,6 +374,7 @@ export class RecommendationsService {
           genres: [],
           category: 'Movie',
           reason: 'Top Rated Movie matching your taste',
+          inLibrary: false,
         };
       });
     } catch {

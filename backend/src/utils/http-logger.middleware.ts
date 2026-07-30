@@ -18,7 +18,7 @@ export class HttpLoggerMiddleware implements NestMiddleware {
     // void this.logger.log(`${method} ${originalUrl} - User: ${userId}`);
 
     // Переопределяем метод end для логирования после завершения запроса
-    const originalEnd = res.end.bind(res) as typeof res.end;
+    const originalEnd = res.end.bind(res);
     const loggerInstance = this.logger;
 
     res.end = function (

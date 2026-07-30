@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 import * as crypto from 'crypto';
 // Polyfill global crypto for TypeORM/pkg compatibility
 const globalLike = globalThis as unknown as { crypto?: unknown };
@@ -148,6 +149,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
+  app.use(helmet());
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
@@ -183,9 +185,11 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3553;
-  await app.listen(port);
+  // Desktop sidecar: слушаем только loopback, чтобы API не был доступен из LAN.
+  const host = configService.get<string>('HOST') || '127.0.0.1';
+  await app.listen(port, host);
 
-  const message = `Backend running on http://localhost:${port}`;
+  const message = `Backend running on http://${host}:${port}`;
   console.log(`🚀 ${message}`);
   await logger.log(message);
 

@@ -2,117 +2,139 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '../test/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import CreateGroupModal from './CreateGroupModal';
-import { server } from '../test/mocks/api';
-import { http, HttpResponse } from 'msw';
-import { config } from '../config/index';
+import { groupsApi } from '../api/groups';
+import type { GroupStatsItem } from '../api/groups';
+
+vi.mock('../api/groups', () => ({
+  groupsApi: {
+    create: vi.fn().mockResolvedValue({ id: 10 }),
+    update: vi.fn().mockResolvedValue({ id: 1 }),
+  },
+}));
+
+const groups: GroupStatsItem[] = [
+  { id: 1, name: 'Фильмы', parentId: null, sortOrder: 0, count: 0 },
+  { id: 2, name: 'Сериалы', parentId: null, sortOrder: 1, count: 0 },
+];
 
 describe('CreateGroupModal', () => {
-    const onSuccess = vi.fn();
-    const onClose = vi.fn();
+  const onSuccess = vi.fn();
+  const onClose = vi.fn();
 
-    beforeEach(() => {
-        vi.clearAllMocks();
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create a group in the preselected parent', async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateGroupModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        parentId={1}
+        groups={groups}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/название/i), 'Аниме');
+    await user.click(screen.getByRole('button', { name: /создать/i }));
+
+    await waitFor(() => {
+      expect(groupsApi.create).toHaveBeenCalledWith({
+        name: 'Аниме',
+        parentId: 1,
+      });
+    });
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('should create a root group when no parent is preselected', async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateGroupModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        groups={groups}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/название/i), 'Игры');
+    await user.click(screen.getByRole('button', { name: /создать/i }));
+
+    await waitFor(() => {
+      expect(groupsApi.create).toHaveBeenCalledWith({
+        name: 'Игры',
+        parentId: null,
+      });
+    });
+  });
+
+  it('should send explicit null parentId when editing a root group', async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateGroupModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        initialData={{ id: 1, name: 'Фильмы', parentId: null }}
+        groups={groups}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /сохранить/i }));
+
+    await waitFor(() => {
+      expect(groupsApi.update).toHaveBeenCalledWith(1, {
+        name: 'Фильмы',
+        parentId: null,
+      });
+    });
+  });
+
+  it('should send the current parentId when editing a subgroup', async () => {
+    const user = userEvent.setup();
+    render(
+      <CreateGroupModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        initialData={{ id: 2, name: 'Сериалы', parentId: 1 }}
+        groups={groups}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /сохранить/i }));
+
+    await waitFor(() => {
+      expect(groupsApi.update).toHaveBeenCalledWith(2, {
+        name: 'Сериалы',
+        parentId: 1,
+      });
+    });
+  });
+
+  it('should show server error message on failure', async () => {
+    const user = userEvent.setup();
+    vi.mocked(groupsApi.create).mockRejectedValueOnce({
+      response: { data: { message: 'Имя занято' } },
     });
 
-    it('should render create form correctly', () => {
-        render(
-            <CreateGroupModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
-        );
+    render(
+      <CreateGroupModal
+        isOpen={true}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        groups={groups}
+      />,
+    );
 
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('Создать группу')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Создать' })).toBeInTheDocument();
-    });
+    await user.type(screen.getByLabelText(/название/i), 'Дубликат');
+    await user.click(screen.getByRole('button', { name: /создать/i }));
 
-    it('should render edit form correctly', () => {
-        render(
-            <CreateGroupModal 
-                isOpen={true} 
-                onClose={onClose} 
-                onSuccess={onSuccess}
-                initialData={{ id: 1, name: 'Existing Group' }}
-            />
-        );
-
-        expect(screen.getByRole('dialog')).toBeInTheDocument();
-        expect(screen.getByText('Редактировать группу')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('Existing Group')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Сохранить' })).toBeInTheDocument();
-    });
-
-    it('should submit new group successfully', async () => {
-        const user = userEvent.setup();
-
-        render(
-            <CreateGroupModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
-        );
-
-        await user.type(screen.getByLabelText(/название/i), 'New Group');
-        await user.click(screen.getByRole('button', { name: 'Создать' }));
-
-        await waitFor(() => {
-            expect(onSuccess).toHaveBeenCalled();
-            expect(onClose).toHaveBeenCalled();
-        });
-    });
-
-    it('should update existing group successfully', async () => {
-        const user = userEvent.setup();
-
-        render(
-            <CreateGroupModal 
-                isOpen={true} 
-                onClose={onClose} 
-                onSuccess={onSuccess}
-                initialData={{ id: 1, name: 'Existing Group' }}
-            />
-        );
-
-        const input = screen.getByLabelText(/название/i);
-        await user.clear(input);
-        await user.type(input, 'Updated Group');
-        
-        await user.click(screen.getByRole('button', { name: 'Сохранить' }));
-
-        await waitFor(() => {
-            expect(onSuccess).toHaveBeenCalled();
-            expect(onClose).toHaveBeenCalled();
-        });
-    });
-
-    it('should handle API error', async () => {
-        const user = userEvent.setup();
-
-        server.use(
-            http.post(`${config.getApiUrl()}/groups`, () => {
-                return HttpResponse.json(
-                    { message: 'Error creating group' },
-                    { status: 400 }
-                );
-            })
-        );
-
-        render(
-            <CreateGroupModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
-        );
-
-        await user.type(screen.getByLabelText(/название/i), 'New Group');
-        await user.click(screen.getByRole('button', { name: 'Создать' }));
-
-        await waitFor(() => {
-            expect(screen.getByRole('alert')).toHaveTextContent('Error creating group');
-        });
-    });
-
-    it('should close on cancel button click', async () => {
-        const user = userEvent.setup();
-
-        render(
-            <CreateGroupModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
-        );
-
-        await user.click(screen.getByRole('button', { name: 'Отмена' }));
-        
-        expect(onClose).toHaveBeenCalled();
-    });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Имя занято');
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
 });

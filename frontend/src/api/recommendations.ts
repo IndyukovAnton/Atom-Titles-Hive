@@ -10,6 +10,9 @@ export interface RecommendationItem {
   genres?: string[];
   reason?: string;
   category?: string;
+  source?: string;
+  /** true — запись уже есть в библиотеке пользователя. */
+  inLibrary?: boolean;
 }
 
 export type ClaudeContentType =
@@ -35,7 +38,7 @@ export type ClaudeModelId =
   | 'claude-sonnet-4-6'
   | 'claude-haiku-4-5';
 
-export type AiSource = 'claude-api' | 'claude-cli';
+export type AiSource = 'claude-api' | 'claude-cli' | 'codex-cli';
 
 export interface AICard {
   title: string;
@@ -141,9 +144,16 @@ const getAuthToken = (): string | null => {
   }
 };
 
+const STALL_TIMEOUT_MS = 90_000;
+
 /**
  * Streams AI recommendations via SSE. Caller passes an AbortSignal to cancel
  * mid-stream (kills CLI / aborts API request server-side).
+ *
+ * Встроенный stall-watchdog: если за STALL_TIMEOUT_MS не пришло ни одного
+ * байта (включая keepalive-пинги сервера) — соединение считается мёртвым
+ * (типично при тихом обрыве сети/VPN, когда TCP не шлёт FIN) и запрос
+ * прерывается с понятной ошибкой вместо бесконечного ожидания.
  */
 export async function* streamAiRecommendations(
   payload: AiRequestPayload,
@@ -151,44 +161,73 @@ export async function* streamAiRecommendations(
 ): AsyncGenerator<AiStreamEvent> {
   const baseUrl = config.getApiUrl();
   const token = getAuthToken();
-  const response = await fetch(`${baseUrl}/recommendations/ai`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(payload),
-    signal,
-  });
 
-  if (!response.ok || !response.body) {
-    let message = `Stream request failed (HTTP ${response.status})`;
-    try {
-      const text = await response.text();
-      if (text) message = text;
-    } catch {
-      // ignore
+  const internal = new AbortController();
+  const onExternalAbort = () => internal.abort();
+  signal.addEventListener('abort', onExternalAbort);
+
+  let stalled = false;
+  let stallTimer: ReturnType<typeof setTimeout> | null = null;
+  const resetStallTimer = () => {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => {
+      stalled = true;
+      internal.abort();
+    }, STALL_TIMEOUT_MS);
+  };
+
+  try {
+    resetStallTimer();
+    const response = await fetch(`${baseUrl}/recommendations/ai`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+      signal: internal.signal,
+    });
+
+    if (!response.ok || !response.body) {
+      let message = `Stream request failed (HTTP ${response.status})`;
+      try {
+        const text = await response.text();
+        if (text) message = text;
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
     }
-    throw new Error(message);
-  }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      resetStallTimer();
+      buffer += decoder.decode(value, { stream: true });
 
-    let blockEnd: number;
-    while ((blockEnd = buffer.indexOf('\n\n')) >= 0) {
-      const block = buffer.slice(0, blockEnd);
-      buffer = buffer.slice(blockEnd + 2);
-      const event = parseSseBlock(block);
-      if (event) yield event;
+      let blockEnd: number;
+      while ((blockEnd = buffer.indexOf('\n\n')) >= 0) {
+        const block = buffer.slice(0, blockEnd);
+        buffer = buffer.slice(blockEnd + 2);
+        const event = parseSseBlock(block);
+        if (event) yield event;
+      }
     }
+  } catch (err) {
+    if (stalled) {
+      throw new Error(
+        'Соединение с сервером потеряно: нет данных более 90 секунд. Проверьте сеть (VPN/прокси) и попробуйте снова.',
+      );
+    }
+    throw err;
+  } finally {
+    if (stallTimer) clearTimeout(stallTimer);
+    signal.removeEventListener('abort', onExternalAbort);
   }
 }
 
@@ -229,6 +268,13 @@ export const recommendationsApi = {
   getCliStatus: async (): Promise<CliStatus> => {
     const response = await axios.get<CliStatus>(
       '/recommendations/ai/cli-status',
+    );
+    return response.data;
+  },
+
+  getCodexCliStatus: async (): Promise<CliStatus> => {
+    const response = await axios.get<CliStatus>(
+      '/recommendations/ai/codex-cli-status',
     );
     return response.data;
   },

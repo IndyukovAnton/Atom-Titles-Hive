@@ -12,6 +12,7 @@ import {
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from '../../dto/create-group.dto';
 import { UpdateGroupDto } from '../../dto/update-group.dto';
+import { MoveGroupDto } from '../../dto/move-group.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 
@@ -50,6 +51,15 @@ export class GroupsController {
     @Body() updateGroupDto: UpdateGroupDto,
   ) {
     return this.groupsService.update(+id, req.user.userId, updateGroupDto);
+  }
+
+  @Patch(':id/move')
+  move(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() moveGroupDto: MoveGroupDto,
+  ) {
+    return this.groupsService.move(+id, req.user.userId, moveGroupDto);
   }
 
   @Delete(':id')

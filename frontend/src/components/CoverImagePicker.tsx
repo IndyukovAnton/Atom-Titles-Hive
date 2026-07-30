@@ -66,15 +66,19 @@ export function CoverImagePicker({
     }
   }, [initialQuery]);
 
-  // Reset loading states when results change
-  useEffect(() => {
+  // Reset loading states when results change. Паттерн "adjust state during
+  // render" (react.dev): синхронный setState внутри useEffect ловит правило
+  // react-hooks/set-state-in-effect и лишний рендер-цикл.
+  const [prevResults, setPrevResults] = useState(results);
+  if (prevResults !== results) {
+    setPrevResults(results);
     const newStates: Record<string, boolean> = {};
     results.forEach((img) => {
       newStates[img.id] = true; // Mark as loading
     });
     setImageLoadingStates(newStates);
     setImageErrorStates({});
-  }, [results]);
+  }
 
   // Add timeout for image loading (5 seconds)
   useEffect(() => {

@@ -71,4 +71,11 @@ describe('PreviewCard', () => {
     render(<Harness values={{ title: 'Test', rating: 0 }} />);
     expect(screen.queryByTestId('preview-rating')).not.toBeInTheDocument();
   });
+
+  it('Poster: does not crash on unknown category and falls back to default icon', () => {
+    mockStyle('poster');
+    render(<Harness values={{ title: 'Legacy', category: 'Фильм' }} />);
+    expect(screen.getByTestId('preview-poster')).toBeInTheDocument();
+    expect(screen.getByText('Legacy')).toBeInTheDocument();
+  });
 });

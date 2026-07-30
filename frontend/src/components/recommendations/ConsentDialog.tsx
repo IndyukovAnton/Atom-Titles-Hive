@@ -48,8 +48,8 @@ export function ConsentDialog({ open, onCancel, onAccept }: ConsentDialogProps) 
           </p>
           <p className="text-xs">
             Anthropic может использовать запрос для улучшения моделей согласно
-            их Terms of Service. Если вы используете privacy-mode ключ — не
-            будет.
+            их условиям использования. Если вы используете privacy-mode ключ —
+            не будет.
           </p>
         </div>
 

@@ -15,6 +15,7 @@ import type { MediaEntry } from './media-entry.entity';
 @Entity('groups')
 @Index(['userId'])
 @Index(['userId', 'createdAt'])
+@Index(['userId', 'parentId', 'sortOrder'])
 export class Group {
   @PrimaryGeneratedColumn()
   id: number;
@@ -31,6 +32,9 @@ export class Group {
 
   @Column({ nullable: true })
   parentId: number | null;
+
+  @Column({ default: 0 })
+  sortOrder: number;
 
   @ManyToOne(() => Group, (group) => group.children, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parentId' })

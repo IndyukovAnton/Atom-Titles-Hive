@@ -138,6 +138,17 @@ function TreeItemLabel<T = any>({ item: propItem, children, className, ...props 
   const isExpanded = typeof item.isExpanded === 'function' ? item.isExpanded() : false;
   const itemName = typeof item.getItemName === 'function' ? item.getItemName() : '';
 
+  // Тоггл раскрытия бессмыслен у папки без детей — скрываем его,
+  // оставляя placeholder той же ширины, чтобы текст не съезжал.
+  const hasChildren = (() => {
+    if (!isFolder || typeof item.getChildren !== 'function') return false;
+    try {
+      return (item.getChildren()?.length ?? 0) > 0;
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <span
       data-slot="tree-item-label"
@@ -148,14 +159,21 @@ function TreeItemLabel<T = any>({ item: propItem, children, className, ...props 
       {...props}
     >
       {isFolder &&
-        (toggleIconType === 'plus-minus' ? (
-          isExpanded ? (
-            <SquareMinus className="text-muted-foreground size-3.5" stroke="currentColor" strokeWidth="1" />
+        (hasChildren ? (
+          toggleIconType === 'plus-minus' ? (
+            isExpanded ? (
+              <SquareMinus className="text-muted-foreground size-3.5" stroke="currentColor" strokeWidth="1" />
+            ) : (
+              <SquarePlus className="text-muted-foreground size-3.5" stroke="currentColor" strokeWidth="1" />
+            )
           ) : (
-            <SquarePlus className="text-muted-foreground size-3.5" stroke="currentColor" strokeWidth="1" />
+            <ChevronDownIcon className="text-muted-foreground size-4 group-aria-[expanded=false]:-rotate-90" />
           )
         ) : (
-          <ChevronDownIcon className="text-muted-foreground size-4 group-aria-[expanded=false]:-rotate-90" />
+          <span
+            aria-hidden="true"
+            className={toggleIconType === 'plus-minus' ? 'size-3.5' : 'size-4'}
+          />
         ))}
       {children || itemName}
     </span>

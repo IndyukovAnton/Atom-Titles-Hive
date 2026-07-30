@@ -24,6 +24,10 @@ export class EnvironmentVariables {
   PORT: number = 3553;
 
   @IsString()
+  @IsOptional()
+  HOST: string = '127.0.0.1';
+
+  @IsString()
   @MinLength(32, {
     message: 'JWT_SECRET must be at least 32 characters long for security',
   })

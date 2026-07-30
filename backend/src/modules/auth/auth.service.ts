@@ -5,13 +5,14 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../../entities/user.entity';
 import { RegisterDto } from '../../dto/register.dto';
 import { LoginDto } from '../../dto/login.dto';
 import { ChangePasswordDto } from '../../dto/change-password.dto';
 import { LoggerService } from '../../utils/logger.service';
+import { toPublicUser } from '../../utils/public-user.util';
 
 @Injectable()
 export class AuthService {
@@ -23,14 +24,23 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    // Проверка существования пользователя
+    // Email необязателен: уникальность проверяем только если он указан
+    const email = dto.email?.trim() || null;
+
+    const uniquenessConditions: FindOptionsWhere<User>[] = [
+      { username: dto.username },
+    ];
+    if (email) {
+      uniquenessConditions.push({ email });
+    }
+
     const existingUser = await this.userRepository.findOne({
-      where: [{ username: dto.username }, { email: dto.email }],
+      where: uniquenessConditions,
     });
 
     if (existingUser) {
       await this.logger.warn(
-        `Registration failed: Username or email already exists - ${dto.username}/${dto.email}`,
+        `Registration failed: Username or email already exists - ${dto.username}/${email ?? 'no-email'}`,
       );
       throw new ConflictException('Username or email already exists');
     }
@@ -41,7 +51,7 @@ export class AuthService {
     // Создание пользователя
     const user = this.userRepository.create({
       username: dto.username,
-      email: dto.email,
+      email,
       password: hashedPassword,
     });
 
@@ -57,11 +67,7 @@ export class AuthService {
 
     return {
       access_token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      },
+      user: toPublicUser(user),
     };
   }
 
@@ -103,11 +109,7 @@ export class AuthService {
 
     return {
       access_token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      },
+      user: toPublicUser(user),
     };
   }
 
@@ -181,12 +183,7 @@ export class AuthService {
 
     return {
       access_token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-      },
+      user: toPublicUser(user),
     };
   }
 
@@ -222,10 +219,6 @@ export class AuthService {
 
   async getUserProfile(userId: number) {
     const user = await this.validateUser(userId);
-    return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    };
+    return toPublicUser(user);
   }
 }

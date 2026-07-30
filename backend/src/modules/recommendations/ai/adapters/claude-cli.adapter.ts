@@ -1,6 +1,12 @@
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import { Injectable } from '@nestjs/common';
 import { LoggerService } from '../../../../utils/logger.service';
+import {
+  CLI_CARD_FORMAT_SUFFIX,
+  createCardStreamParserState,
+  feedCardText,
+  stripCardMarkers,
+} from '../card-stream-parser';
 import { RecommendationContextBuilder } from '../recommendation-context.builder';
 import { safeSpawn } from '../spawn-helpers';
 import {
@@ -9,32 +15,6 @@ import {
   AiStreamEvent,
   BuiltContext,
 } from '../types';
-
-const CARD_OPEN = '<<<CARD>>>';
-const CARD_CLOSE = '<<</CARD>>>';
-
-const CLI_SYSTEM_SUFFIX = `
-=== ВЫХОДНОЙ ФОРМАТ — ВАЖНО ===
-Каждую рекомендацию отдавай в виде блока ровно такого вида (включая маркеры):
-
-${CARD_OPEN}
-{"title":"...","originalTitle":"...","type":"movie","year":2024,"genres":["..."],"whyRecommended":"...","estimatedRating":8.5,"releasedRecently":false}
-${CARD_CLOSE}
-
-Поля внутри JSON:
-- title (обязательно): строка
-- originalTitle (опционально): строка
-- type (обязательно): один из 'movie' | 'series' | 'anime' | 'book' | 'game' | 'other'
-- year (опционально): число
-- genres (обязательно): массив строк
-- whyRecommended (обязательно): строка ≤ 300 символов
-- estimatedRating (опционально): число 1..10
-- releasedRecently (опционально): boolean
-
-Между блоками не пиши ничего лишнего. После всех блоков выведи строку: <<<DONE>>>.
-
-Если для оценки актуальности нужен веб-поиск — используй встроенный инструмент WebSearch.
-`;
 
 const CLI_TOTAL_TIMEOUT_MS = 5 * 60_000; // 5 минут общий timeout
 const FIRST_BYTE_TIMEOUT_MS = 30_000; // если за 30с ни одного байта — считаем зависшим
@@ -84,7 +64,7 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
       'stream-json',
       '--verbose',
       '--append-system-prompt',
-      ctx.systemPrompt + '\n' + CLI_SYSTEM_SUFFIX,
+      ctx.systemPrompt + '\n' + CLI_CARD_FORMAT_SUFFIX,
       '--max-turns',
       '20',
       '--permission-mode',
@@ -156,61 +136,30 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
     let totalOutput = 0;
     let cacheRead = 0;
     let lineBuf = '';
-    let cardBuf = '';
-    let inCard = false;
-    let sawDoneMarker = false;
     let resultText = '';
+    const parserState = createCardStreamParserState();
 
-    const cardEvents: AiStreamEvent[] = [];
-    const enqueueText = async (text: string): Promise<void> => {
-      let cursor = 0;
-      while (cursor < text.length) {
-        if (!inCard) {
-          const open = text.indexOf(CARD_OPEN, cursor);
-          if (open < 0) {
-            // check DONE marker
-            if (text.includes('<<<DONE>>>', cursor)) sawDoneMarker = true;
-            break;
-          }
-          cursor = open + CARD_OPEN.length;
-          inCard = true;
-          cardBuf = '';
-        } else {
-          const close = text.indexOf(CARD_CLOSE, cursor);
-          if (close < 0) {
-            cardBuf += text.slice(cursor);
-            break;
-          }
-          cardBuf += text.slice(cursor, close);
-          cursor = close + CARD_CLOSE.length;
-          inCard = false;
-          // try to parse cardBuf
-          const trimmed = this.extractJsonObject(cardBuf);
-          cardBuf = '';
-          if (!trimmed) continue;
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(trimmed);
-          } catch {
-            continue;
-          }
-          const card = this.contextBuilder.toolInputToCard(
-            parsed,
-            ctx.userTitleSet,
-          );
-          if (!card) continue;
-          if (emitted >= ctx.count) continue;
-          const tmdbEnriched = ctx.tmdbApiKey
-            ? await this.contextBuilder.enrichWithPoster(card, ctx.tmdbApiKey)
-            : card;
-          const enriched = tmdbEnriched.posterUrl
-            ? tmdbEnriched
-            : await this.contextBuilder.enrichWithCover(tmdbEnriched);
-          cardEvents.push({ kind: 'card', card: enriched });
-          emitted++;
-        }
+    const emitCardsFromText = async function* (
+      this: ClaudeCliAdapter,
+      text: string,
+    ): AsyncGenerator<AiStreamEvent> {
+      for (const parsed of feedCardText(parserState, text)) {
+        if (emitted >= ctx.count) continue;
+        const card = this.contextBuilder.toolInputToCard(
+          parsed,
+          ctx.userTitleSet,
+        );
+        if (!card) continue;
+        const tmdbEnriched = ctx.tmdbApiKey
+          ? await this.contextBuilder.enrichWithPoster(card, ctx.tmdbApiKey)
+          : card;
+        const enriched = tmdbEnriched.posterUrl
+          ? tmdbEnriched
+          : await this.contextBuilder.enrichWithCover(tmdbEnriched);
+        emitted++;
+        yield { kind: 'card', card: enriched };
       }
-    };
+    }.bind(this);
 
     const dataIter = this.iterStdoutLines(child, () => {
       if (firstByteTimer) {
@@ -238,17 +187,9 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
           for (const block of evt.message.content) {
             if (block.type === 'text' && typeof block.text === 'string') {
               const beforeCount = emitted;
-              await enqueueText(block.text);
-              while (cardEvents.length > 0) {
-                const ev = cardEvents.shift();
-                if (ev) yield ev;
-              }
+              yield* emitCardsFromText(block.text);
               if (emitted === beforeCount && block.text.trim()) {
-                // text from model that wasn't a card — surface as thinking detail
-                const snippet = block.text
-                  .replace(/<<<\/?CARD>>>/g, '')
-                  .replace(/<<<DONE>>>/g, '')
-                  .trim();
+                const snippet = stripCardMarkers(block.text);
                 if (snippet.length > 0) {
                   yield {
                     kind: 'progress',
@@ -271,7 +212,7 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
                 yield {
                   kind: 'progress',
                   stage: 'web_searching',
-                  message: 'Ищу в вебе свежие релизы…',
+                  message: 'Ищу в интернете свежие релизы…',
                 };
               } else {
                 yield {
@@ -289,7 +230,6 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
             message: 'Анализирую вашу библиотеку…',
           };
         } else if (evtType === 'user' && evt.message?.content) {
-          // tool_results — check for web_search tool usage
           for (const block of evt.message.content) {
             if (block.type && /web_search/i.test(block.type)) {
               if (!webSearched) {
@@ -305,13 +245,7 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
         } else if (evtType === 'result') {
           if (typeof evt.result === 'string') {
             resultText = evt.result;
-            // Final result might contain remaining cards we haven't seen as
-            // streaming text (some CLI versions only emit text in 'result').
-            await enqueueText(resultText);
-            while (cardEvents.length > 0) {
-              const ev = cardEvents.shift();
-              if (ev) yield ev;
-            }
+            yield* emitCardsFromText(resultText);
           }
           if (evt.usage) {
             totalInput += evt.usage.input_tokens ?? 0;
@@ -422,7 +356,7 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
       durationMs: Date.now() - startedAt,
     };
 
-    void sawDoneMarker; // not surfaced, but parsed for completeness
+    void parserState.sawDoneMarker; // parsed for completeness
   }
 
   private spawnError(err: unknown): AiStreamEvent {
@@ -475,40 +409,5 @@ export class ClaudeCliAdapter implements AiSourceAdapter {
       }
     }
     if (buf.length > 0) yield buf;
-  }
-
-  /**
-   * Tries to extract the first balanced JSON object from a string. Useful when
-   * the model adds whitespace/prose around the JSON.
-   */
-  private extractJsonObject(text: string): string | null {
-    const trimmed = text.trim();
-    const start = trimmed.indexOf('{');
-    if (start < 0) return null;
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < trimmed.length; i++) {
-      const c = trimmed[i];
-      if (escape) {
-        escape = false;
-        continue;
-      }
-      if (c === '\\') {
-        escape = true;
-        continue;
-      }
-      if (c === '"') {
-        inString = !inString;
-        continue;
-      }
-      if (inString) continue;
-      if (c === '{') depth++;
-      else if (c === '}') {
-        depth--;
-        if (depth === 0) return trimmed.slice(start, i + 1);
-      }
-    }
-    return null;
   }
 }

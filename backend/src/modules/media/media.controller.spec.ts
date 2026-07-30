@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
+import { ImageSearchService } from './image-search.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import {
   mockCreateMediaDto,
@@ -23,6 +24,11 @@ describe('MediaController', () => {
     getCategories: jest.fn(),
   };
 
+  const mockImageSearchService = {
+    searchImages: jest.fn(),
+    downloadImage: jest.fn(),
+  };
+
   const mockAuthenticatedRequest = {
     user: { userId: 1, username: 'testuser' },
   } as unknown as AuthenticatedRequest;
@@ -34,6 +40,10 @@ describe('MediaController', () => {
         {
           provide: MediaService,
           useValue: mockMediaService,
+        },
+        {
+          provide: ImageSearchService,
+          useValue: mockImageSearchService,
         },
       ],
     })

@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { mediaApi, type CreateMediaData, type MediaEntry } from '../api/media';
 import { groupsApi, type Group } from '../api/groups';
 import { AxiosError } from 'axios';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 
 import {
   mediaSchema,
@@ -172,6 +172,8 @@ export function useMediaForm({
           dataToSend.groupId = data.groupId;
         if (data.tags) dataToSend.tags = data.tags;
         if (data.genres) dataToSend.genres = data.genres;
+        // Источник не редактируется в форме — прокидываем как есть (напр. 'ai' из рекомендаций)
+        if (initialData?.source) dataToSend.source = initialData.source;
 
         if (initialData?.id) {
           await mediaApi.update(

@@ -49,9 +49,18 @@ export default function LoginPage() {
   }, [clearError, login, navigate]);
 
   return (
-    <AuthLayout title="Seen" subtitle="Добро пожаловать" error={error}>
+    <AuthLayout error={error}>
+      <div className="text-center space-y-1">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          С возвращением
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          Войдите, чтобы продолжить
+        </p>
+      </div>
+
       <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <FormInput
             name="username"
             label="Имя пользователя"
@@ -108,7 +117,7 @@ export default function LoginPage() {
             {isLoading ? 'Вход...' : 'Войти'}
           </Button>
 
-          <div className="relative py-2">
+          <div className="relative py-1">
             <div className="absolute inset-0 flex items-center">
               <Separator className="w-full" />
             </div>
@@ -121,7 +130,7 @@ export default function LoginPage() {
         </form>
       </FormProvider>
 
-      <div className="text-center text-sm text-muted-foreground mt-6">
+      <div className="text-center text-sm text-muted-foreground">
         Нет аккаунта?{' '}
         <Link to="/register" className="text-primary hover:underline font-medium">
           Зарегистрироваться

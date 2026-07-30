@@ -5,6 +5,7 @@ import { Star, Play, Film, Tv, BookOpen, Gamepad2 } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { MediaEntry } from '../../api/media';
+import { AiSourceBadge } from '@/components/AiSourceBadge';
 
 import { localizeCategory } from '../../utils/localization';
 
@@ -108,11 +109,16 @@ export const MediaCard = React.memo(
             <span className="drop-shadow">{media.rating}</span>
           </div>
 
-          {/* Категория - улучшенная */}
-          {media.category && (
-            <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-medium px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 ring-1 ring-white/10">
-              {getCategoryIcon(media.category)}
-              {localizeCategory(media.category)}
+          {/* Категория + источник */}
+          {(media.category || media.source === 'ai') && (
+            <div className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1.5">
+              {media.category && (
+                <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-medium px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 ring-1 ring-white/10">
+                  {getCategoryIcon(media.category)}
+                  {localizeCategory(media.category)}
+                </div>
+              )}
+              {media.source === 'ai' && <AiSourceBadge />}
             </div>
           )}
 

@@ -87,7 +87,11 @@ export async function safeSpawn(
   // rules. For ordinary .exe we spawn directly with no shell.
   if (isShellShim) {
     const quoted = [resolved, ...args].map(quoteForCmd).join(' ');
-    return spawn('cmd.exe', ['/d', '/s', '/c', quoted], {
+    // cmd.exe /C strips the FIRST and LAST quote when the command line starts
+    // with a quote (see "cmd /?" rule 2 — /S doesn't prevent it when there
+    // are >2 quotes). Wrapping the whole line in an extra pair of quotes
+    // keeps the inner quoting intact after that stripping.
+    return spawn('cmd.exe', ['/d', '/s', '/c', `"${quoted}"`], {
       ...options,
       shell: false,
       windowsVerbatimArguments: true,

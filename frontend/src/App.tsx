@@ -9,6 +9,7 @@ import { ConnectionStatusBanner } from './components/ui/ConnectionStatusBanner';
 import { BackendLoader } from './components/ui/BackendLoader';
 import { config } from './config';
 import { logger } from './utils/logger';
+import { scheduleStartupUpdateCheck } from './utils/updater';
 
 // Lazy-loaded pages для code splitting
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -202,6 +203,13 @@ function AppRoutes({ backendReady = true }: AppRoutesProps) {
 
 function App() {
   const [backendReady, setBackendReady] = useState(false);
+
+  // Тихая проверка обновлений один раз за сессию (только Tauri): при наличии
+  // новой версии пользователь увидит персистентный тост, а не забытую кнопку
+  // в настройках. Ошибки сети внутри глотаются.
+  useEffect(() => {
+    scheduleStartupUpdateCheck();
+  }, []);
 
   const handleBackendReady = (url: string) => {
     // Устанавливаем URL для API клиента

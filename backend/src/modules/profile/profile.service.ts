@@ -23,6 +23,14 @@ import {
   xpForLevel,
   type AchievementInput,
 } from '../../utils/achievements';
+import { toPublicUser } from '../../utils/public-user.util';
+
+/** Сервисные флаги, вычисляемые на чтении — клиенту нельзя их присылать. */
+const COMPUTED_PREFERENCE_KEYS = [
+  'hasAiKey',
+  'hasAnthropicApiKey',
+  'hasTmdbApiKey',
+] as const;
 
 @Injectable()
 export class ProfileService {
@@ -46,18 +54,12 @@ export class ProfileService {
     );
 
     return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
+      ...toPublicUser(user),
       createdAt: user.createdAt,
-      birthDate: user.birthDate,
-      preferences: user.preferences,
-      hasCompletedOnboarding: user.hasCompletedOnboarding,
     };
   }
 
   async updateProfile(userId: number, dto: UpdateProfileDto) {
-    // Trigger rebuild 1
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
@@ -116,9 +118,13 @@ export class ProfileService {
       // PATCH-семантика: shallow-merge с существующими preferences, чтобы
       // частичный апдейт (например, только { theme }) не затирал avatar /
       // aiKey / tmdbApiKey и другие поля, которые отправитель в payload не включил.
+      const incoming = { ...dto.preferences };
+      for (const key of COMPUTED_PREFERENCE_KEYS) {
+        delete (incoming as Record<string, unknown>)[key];
+      }
       user.preferences = {
         ...(user.preferences ?? {}),
-        ...dto.preferences,
+        ...incoming,
       };
       changes.push('preferences');
     }
@@ -128,20 +134,12 @@ export class ProfileService {
       changes.push('hasCompletedOnboarding');
     }
 
-    // Trigger rebuild 2
     await this.userRepository.save(user);
     await this.logger.log(
       `Profile updated for user ${userId} (${user.username}). Changed fields: ${changes.join(', ')}`,
     );
 
-    return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      birthDate: user.birthDate,
-      preferences: user.preferences,
-      hasCompletedOnboarding: user.hasCompletedOnboarding,
-    };
+    return toPublicUser(user);
   }
 
   /**

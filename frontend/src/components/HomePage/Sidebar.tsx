@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Layers, FolderOpen, Edit, Trash, Sparkles, Pin, Star } from 'lucide-react';
+import { Plus, Layers, FolderOpen, Edit, Trash, Sparkles, Pin, Star, CornerUpLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { Group, GroupStats } from '../../api/groups';
+import type { GroupStats, GroupStatsItem } from '../../api/groups';
 import { type ItemInstance, syncDataLoaderFeature } from '@headless-tree/core';
 import { useTree } from '@headless-tree/react';
 import { Tree, TreeItem, TreeItemLabel } from '@/components/ui/tree';
@@ -15,7 +15,15 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
+import { sortByOrder, type DropPosition } from '@/utils/group-tree';
+
+export const GROUP_ROOT_DROPPABLE_ID = 'group-root';
+
+export interface GroupDropIndicator {
+  overId: string | null;
+  position: DropPosition | null;
+  forbidden: boolean;
+}
 
 interface SidebarProps {
   groupStats: GroupStats | null;
@@ -24,91 +32,103 @@ interface SidebarProps {
   onCreateGroup: (parentId?: number) => void;
   onEditGroup: (id: number) => void;
   onDeleteGroup: (id: number) => void;
-  onDragEnd?: (result: unknown) => void;
+  /** Идёт ли сейчас перетаскивание группы (показываем root-зону) */
+  isGroupDragging?: boolean;
+  dropIndicator?: GroupDropIndicator;
 }
-// ...
-// ... (SidebarTreeItem component remains same, but let's check if I need to update it? No I will use original context or simple replacement)
 
-const SidebarTreeItem = ({ 
-    item, 
-    selectedGroupId, 
-    onSelectGroup, 
-    onCreateGroup, 
-    onEditGroup, 
-    onDeleteGroup 
+const SidebarTreeItem = ({
+    item,
+    selectedGroupId,
+    onSelectGroup,
+    onCreateGroup,
+    onEditGroup,
+    onDeleteGroup,
+    dropPosition,
+    isForbiddenTarget,
 }: {
-    item: ItemInstance<Group>;
+    item: ItemInstance<GroupStatsItem>;
     selectedGroupId: number | null | 'all';
     onSelectGroup: (id: number | null | 'all') => void;
     onCreateGroup: (parentId?: number) => void;
     onEditGroup: (id: number) => void;
     onDeleteGroup: (id: number) => void;
+    dropPosition: DropPosition | null;
+    isForbiddenTarget: boolean;
 }) => {
     const data = item.getItemData();
     const isSelected = selectedGroupId === data.id;
 
-    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    const { setNodeRef: setDroppableRef } = useDroppable({
         id: `group-${data.id}`,
         data: data,
     });
 
-    const { attributes, listeners, setNodeRef: setDraggableRef, transform, isDragging } = useDraggable({
+    const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
         id: `group-${data.id}`,
         data: data,
     });
 
-    const style = {
-        transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.5 : 1,
-    };
+    const displayCount = data.totalCount ?? data.count ?? 0;
 
     return (
-        <div 
+        <div
             ref={(node) => {
                 setDroppableRef(node);
                 setDraggableRef(node);
-            }} 
-            style={style}
+            }}
             className={cn(
-                "rounded-md transition-colors", 
-                isOver && "bg-primary/20 ring-2 ring-primary/50"
+                "relative rounded-md transition-colors",
+                dropPosition === 'inside' && "bg-primary/20 ring-2 ring-primary/50",
+                isForbiddenTarget && "ring-2 ring-destructive/50"
             )}
         >
-            <TreeItem 
+            {dropPosition === 'before' && (
+                <div className="pointer-events-none absolute -top-0.5 inset-x-2 z-20 h-0.5 rounded-full bg-primary" />
+            )}
+            {dropPosition === 'after' && (
+                <div className="pointer-events-none absolute -bottom-0.5 inset-x-2 z-20 h-0.5 rounded-full bg-primary" />
+            )}
+            <TreeItem
                 item={item}
                 className="w-full"
+                style={{ opacity: isDragging ? 0.4 : 1 }}
             >
                 <ContextMenu>
                     <ContextMenuTrigger asChild>
-                    <div 
+                    <div
                         className={cn(
                         "flex items-center w-full p-2 rounded-md hover:bg-accent/50 cursor-pointer text-sm font-medium transition-colors group/item",
                         isSelected ? "bg-secondary/50 text-secondary-foreground" : "text-muted-foreground",
-                        isOver && "bg-transparent"
+                        dropPosition === 'inside' && "bg-transparent"
                         )}
                         onClick={() => onSelectGroup(data.id)}
                     >
                         {/* Drag handle */}
-                        <div 
-                            {...attributes} 
-                            {...listeners} 
+                        <div
+                            {...attributes}
+                            {...listeners}
                             className="mr-2 opacity-0 group-hover/item:opacity-50 cursor-grab active:cursor-grabbing hover:opacity-100 transition-opacity"
                             title="Перетащить"
+                            aria-label={`Перетащить группу ${item.getItemName()}`}
                         >
                             <Layers className="h-3.5 w-3.5" />
                         </div>
 
-                        <TreeItemLabel 
-                        item={item} 
+                        <TreeItemLabel
+                        item={item}
                         className="flex-1 bg-transparent hover:bg-transparent p-0 data-[selected=true]:bg-transparent data-[selected=true]:text-current"
                         >
                             <span className="truncate">
                             {item.getItemName()}
                             </span>
                         </TreeItemLabel>
-                        {(data.count || 0) > 0 && (
-                            <span className="text-xs ml-2 bg-background/50 px-2 py-0.5 rounded-full opacity-70">
-                            {data.count}
+                        {displayCount > 0 && (
+                            <span
+                                className="text-xs ml-2 bg-background/50 px-2 py-0.5 rounded-full opacity-70"
+                                title="Записей с учётом подпапок"
+                            >
+                            {displayCount}
                             </span>
                         )}
                     </div>
@@ -137,6 +157,8 @@ export const Sidebar = ({
   onCreateGroup,
   onEditGroup,
   onDeleteGroup,
+  isGroupDragging = false,
+  dropIndicator,
 }: SidebarProps) => {
 
   const navigate = useNavigate();
@@ -145,20 +167,25 @@ export const Sidebar = ({
   const isConsiderationsPage = location.pathname === '/considerations';
   const isFavoritesPage = location.pathname === '/favorites';
 
-  const items = useMemo(() => ((groupStats?.groups) || []).map(g => ({ ...g, id: g.id, name: g.name, parentId: g.parentId })) as unknown as Group[], [groupStats]);
+  const items = useMemo<GroupStatsItem[]>(
+    () => sortByOrder(groupStats?.groups ?? []),
+    [groupStats],
+  );
 
-  const tree = useTree<Group>({
+  const tree = useTree<GroupStatsItem>({
     features: [syncDataLoaderFeature],
     rootItemId: 'root',
     getItemName: (item) => item.getItemData().name,
     isItemFolder: () => true,
     dataLoader: {
       getItem: (itemId: string) => {
-         if (itemId === 'root') return { id: 0, name: 'Root', parentId: null } as unknown as Group;
-         return items.find(i => i.id.toString() === itemId) || {} as Group; 
+         if (itemId === 'root') {
+           return { id: 0, name: 'Root', parentId: null, count: 0 } as GroupStatsItem;
+         }
+         return items.find(i => i.id.toString() === itemId) || {} as GroupStatsItem;
       },
       getChildren: (itemId: string) => {
-        const children = itemId === 'root' 
+        const children = itemId === 'root'
           ? items.filter(i => !i.parentId)
           : items.filter(i => i.parentId && i.parentId.toString() === itemId);
         return children.map(i => i.id.toString());
@@ -175,23 +202,31 @@ export const Sidebar = ({
     }
   });
 
-  // Special droppable for "All" or "Ungrouped"? 
-  // For now let's just make sure we export a droppable zone for "Ungrouped" if needed.
-  // Actually usually you drop into a specific folder.
-  
+  // syncDataLoaderFeature не следит за данными сам — перестраиваем дерево
+  // при изменении списка групп (reorder, перенос, создание, удаление).
+  useEffect(() => {
+    tree.rebuildTree();
+  }, [items, tree]);
+
   const { setNodeRef: setUngroupedRef, isOver: isUngroupedOver } = useDroppable({
     id: 'group-null',
     data: { id: null, name: 'Ungrouped' }
   });
 
+  const { setNodeRef: setRootZoneRef } = useDroppable({
+    id: GROUP_ROOT_DROPPABLE_ID,
+  });
+
+  const isRootZoneTargeted = dropIndicator?.overId === GROUP_ROOT_DROPPABLE_ID;
+
   return (
     <aside className="w-64 border-r bg-muted/20 flex flex-col shrink-0">
       <div id="sidebar-tour-header" className="p-4 border-b flex items-center justify-between h-14">
         <span className="font-semibold tracking-tight">Группы</span>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => onCreateGroup()} 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onCreateGroup()}
           title="Создать группу"
           aria-label="Создать группу"
           className="h-8 w-8"
@@ -199,7 +234,7 @@ export const Sidebar = ({
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      
+
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-1">
           <Button
@@ -257,25 +292,46 @@ export const Sidebar = ({
           </div>
 
           <div className="my-2 border-t border-border/50" />
-          
+
           <Tree tree={tree} className="space-y-1">
-            {tree.getItems().map((item) => (
-              <SidebarTreeItem 
-                key={item.getId()} 
-                item={item}
-                selectedGroupId={selectedGroupId}
-                onSelectGroup={onSelectGroup}
-                onCreateGroup={onCreateGroup}
-                onEditGroup={onEditGroup}
-                onDeleteGroup={onDeleteGroup}
-              />
-            ))}
+            {tree.getItems().map((item) => {
+              const itemDndId = `group-${item.getItemData().id}`;
+              const isTarget = dropIndicator?.overId === itemDndId;
+              return (
+                <SidebarTreeItem
+                  key={item.getId()}
+                  item={item}
+                  selectedGroupId={selectedGroupId}
+                  onSelectGroup={onSelectGroup}
+                  onCreateGroup={onCreateGroup}
+                  onEditGroup={onEditGroup}
+                  onDeleteGroup={onDeleteGroup}
+                  dropPosition={isTarget && !dropIndicator?.forbidden ? dropIndicator?.position ?? null : null}
+                  isForbiddenTarget={isTarget && (dropIndicator?.forbidden ?? false)}
+                />
+              );
+            })}
           </Tree>
 
           {items.length === 0 && (
               <div className="text-center py-4 text-xs text-muted-foreground">
                   Нет групп
               </div>
+          )}
+
+          {isGroupDragging && (
+            <div
+              ref={setRootZoneRef}
+              className={cn(
+                "mt-2 flex items-center justify-center gap-2 rounded-md border-2 border-dashed px-3 py-2.5 text-xs text-muted-foreground transition-colors",
+                isRootZoneTargeted
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border"
+              )}
+            >
+              <CornerUpLeft className="h-3.5 w-3.5" />
+              Переместить в корень
+            </div>
           )}
         </div>
       </ScrollArea>

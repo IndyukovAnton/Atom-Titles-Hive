@@ -72,7 +72,7 @@ export const NotificationCenter = () => {
                 size="icon" 
                 className="h-8 w-8 text-muted-foreground hover:text-primary"
                 onClick={markAllAsRead}
-                title="Пометить все как прочитанные"
+                aria-label="Пометить все как прочитанные"
                 disabled={unreadCount === 0}
             >
                 <CheckCheck className="h-4 w-4" />
@@ -82,7 +82,7 @@ export const NotificationCenter = () => {
                 size="icon" 
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
                 onClick={clearAll}
-                title="Очистить историю"
+                aria-label="Очистить историю"
                 disabled={notifications.length === 0}
             >
                 <Trash2 className="h-4 w-4" />

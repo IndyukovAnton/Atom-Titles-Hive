@@ -92,6 +92,9 @@ describe('AuthService', () => {
           id: mockUser.id,
           username: mockUser.username,
           email: mockUser.email,
+          birthDate: undefined,
+          preferences: null,
+          hasCompletedOnboarding: false,
         },
       });
       expect(mockLoggerService.log).toHaveBeenCalled();
@@ -117,6 +120,56 @@ describe('AuthService', () => {
         createCall.password!,
       );
       expect(isHashed).toBe(true);
+    });
+
+    it('should register a user without email', async () => {
+      const dtoWithoutEmail = {
+        username: 'noemailuser',
+        password: 'password123',
+      } as RegisterDto;
+      const mockUser = createMockUser({
+        id: 2,
+        username: dtoWithoutEmail.username,
+        email: null,
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.create.mockReturnValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
+      mockJwtService.sign.mockReturnValue('test-jwt-token');
+
+      const result = await service.register(dtoWithoutEmail);
+
+      // Без email уникальность проверяется только по username
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: [{ username: dtoWithoutEmail.username }],
+      });
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: null }),
+      );
+      expect(result.user.email).toBeNull();
+    });
+
+    it('should normalize empty email to null', async () => {
+      const dtoWithEmptyEmail = {
+        ...mockRegisterDto,
+        email: '   ',
+      } as RegisterDto;
+      const mockUser = createMockUser({ email: null });
+
+      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.create.mockReturnValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
+      mockJwtService.sign.mockReturnValue('test-jwt-token');
+
+      await service.register(dtoWithEmptyEmail);
+
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: [{ username: dtoWithEmptyEmail.username }],
+      });
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: null }),
+      );
     });
 
     it('should throw ConflictException if username already exists', async () => {
@@ -167,6 +220,7 @@ describe('AuthService', () => {
       const mockUser = await createUserWithHashedPassword('password123', {
         id: 1,
         username: mockLoginDto.username,
+        hasCompletedOnboarding: false,
       });
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
@@ -187,9 +241,35 @@ describe('AuthService', () => {
           id: mockUser.id,
           username: mockUser.username,
           email: mockUser.email,
+          birthDate: undefined,
+          preferences: null,
+          hasCompletedOnboarding: false,
         },
       });
       expect(mockLoggerService.log).toHaveBeenCalled();
+    });
+
+    it('should return onboarding status and sanitized preferences in login response', async () => {
+      // Регрессия: без hasCompletedOnboarding в ответе логина фронтенд
+      // после каждого входа считал онбординг непройденным и перезапускал тур.
+      const mockUser = await createUserWithHashedPassword('password123', {
+        id: 1,
+        username: mockLoginDto.username,
+        hasCompletedOnboarding: true,
+        preferences: { theme: 'dark', aiKey: 'secret-ai-key' },
+      });
+
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockJwtService.sign.mockReturnValue('test-jwt-token');
+
+      const result = await service.login(mockLoginDto);
+
+      expect(result.user.hasCompletedOnboarding).toBe(true);
+      expect(result.user.preferences).toMatchObject({
+        theme: 'dark',
+        hasAiKey: true,
+      });
+      expect(JSON.stringify(result.user)).not.toContain('secret-ai-key');
     });
 
     it('should throw UnauthorizedException if user does not exist', async () => {
@@ -274,6 +354,7 @@ describe('AuthService', () => {
         id: 1,
         username: 'testuser',
         email: 'test@example.com',
+        hasCompletedOnboarding: true,
       });
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
@@ -283,6 +364,9 @@ describe('AuthService', () => {
         id: mockUser.id,
         username: mockUser.username,
         email: mockUser.email,
+        birthDate: undefined,
+        preferences: null,
+        hasCompletedOnboarding: true,
       });
     });
 

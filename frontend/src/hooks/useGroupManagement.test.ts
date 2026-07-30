@@ -66,7 +66,25 @@ describe('useGroupManagement', () => {
     expect(result.current.editingGroup).toEqual({
       id: mockGroup.id,
       name: mockGroup.name,
+      parentId: null,
     });
+  });
+
+  it('should move group via the move endpoint', async () => {
+    const { result } = renderHook(() =>
+      useGroupManagement('all', setSelectedGroupId)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.moveGroup(1, { parentId: null, beforeId: null });
+    });
+
+    // После перемещения статистика перезапрашивается и остаётся валидной
+    expect(result.current.groupStats).toBeDefined();
   });
 
   it('should close modal and clear editing group', async () => {

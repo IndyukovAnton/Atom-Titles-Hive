@@ -9,6 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 import AddMediaModal from '@/components/AddMediaModal';
 import PhotoViewer from '@/components/PhotoViewer';
+import { AiSourceBadge } from '@/components/AiSourceBadge';
 import {
   localizeCategory,
   localizeGenre,
@@ -136,9 +137,14 @@ export default function MediaDetailPage() {
                   )}
                 </div>
 
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-                  {media.title}
-                </h1>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+                    {media.title}
+                  </h1>
+                  {media.source === 'ai' && (
+                    <AiSourceBadge className="px-2.5 py-1.5 text-xs" />
+                  )}
+                </div>
 
                 {media.genres && media.genres.length > 0 && (
                   <div className="flex flex-wrap gap-2 select-none">

@@ -126,6 +126,28 @@ input::-ms-clear {
   display: none;
 }
 
+/* Тонкий ненавязчивый скроллбар для полей ввода и небольших overflow-областей */
+@utility pretty-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent)
+    transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -381,6 +403,24 @@ input::-ms-clear {
   [data-sonner-toast] > div {
     overflow: hidden;
     border-radius: var(--radius-lg);
+  }
+
+  /* Длинный текст (stack-trace, вывод CLI) не должен разрывать тост:
+     flex-контейнеру нужен min-width: 0, иначе он отказывается сжиматься,
+     а текст переносим посимвольно и сохраняем \n из исходного сообщения */
+  [data-sonner-toast] [data-content] {
+    min-width: 0;
+  }
+
+  [data-sonner-toast] [data-title],
+  [data-sonner-toast] [data-description] {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+    /* очень длинный текст прокручивается внутри, а не раздувает тост */
+    max-height: 10em;
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
 
   [data-sonner-toast]::before {

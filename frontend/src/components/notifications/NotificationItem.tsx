@@ -93,7 +93,7 @@ export const NotificationItem = ({
               variant="ghost" 
               size="icon" 
               className="h-6 w-6 hover:text-primary"
-              title="Прочитать"
+              aria-label="Прочитать"
               onClick={(e) => {
                 e.stopPropagation();
                 onMarkAsRead(id);
@@ -106,7 +106,7 @@ export const NotificationItem = ({
             variant="ghost" 
             size="icon" 
             className="h-6 w-6 hover:text-destructive"
-            title="Удалить"
+            aria-label="Удалить"
             onClick={(e) => {
               e.stopPropagation();
               onRemove(id);

@@ -4,7 +4,7 @@ import {
   downloadCover,
   type CoverImage,
 } from '../api/coverSearch';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { logger } from '../utils/logger';
 import type { LoggedError } from '@/components/ErrorDetailsDialog';
 

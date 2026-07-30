@@ -14,6 +14,8 @@ import { MediaService } from './media.service';
 import { ImageSearchService } from './image-search.service';
 import { CreateMediaDto } from '../../dto/create-media.dto';
 import { UpdateMediaDto } from '../../dto/update-media.dto';
+import { DownloadCoverDto } from '../../dto/download-cover.dto';
+import { AddMediaFileDto } from '../../dto/add-media-file.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../../types/authenticated-request.interface';
 import { MediaFilters } from '../../types/media-filters.interface';
@@ -90,7 +92,7 @@ export class MediaController {
   @Post('download-cover')
   async downloadCover(
     @Request() req: AuthenticatedRequest,
-    @Body() body: { url: string; thumbnail?: string },
+    @Body() body: DownloadCoverDto,
   ) {
     return await this.imageSearchService.downloadImage(
       body.url,
@@ -127,7 +129,7 @@ export class MediaController {
   addFile(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { url: string; type: 'image' | 'video' },
+    @Body() body: AddMediaFileDto,
   ) {
     return this.mediaService.addFile(+id, req.user.userId, body.url, body.type);
   }

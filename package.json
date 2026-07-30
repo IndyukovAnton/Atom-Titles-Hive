@@ -8,7 +8,8 @@
     "tauri:build": "tauri build",
     "dev:backend": "cd backend && npm run start:dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:all": "node scripts/dev.mjs",
+    "dev:parallel": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:backend": "cd backend && npm run build",
     "build:backend:sidecar": "cd backend && npm run pkg:build",
     "build:frontend": "cd frontend && npm run build",
@@ -19,6 +20,7 @@
     "test:frontend:ci": "npm --prefix frontend run test:ci",
     "check": "npm run lint:frontend && npm run test:frontend:ci && npm run lint:backend && npm run test:backend:ci && npm run build:all",
     "sync:version": "node scripts/sync-version.mjs",
+    "sync:version:check": "node scripts/sync-version.mjs --check",
     "version": "node scripts/sync-version.mjs && git add frontend/package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml",
     "setup:updater": "node scripts/setup-updater.mjs",
     "release:build": "node scripts/release.mjs"

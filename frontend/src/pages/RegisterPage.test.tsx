@@ -55,6 +55,38 @@ describe('RegisterPage', () => {
         });
     });
 
+    it('should submit form without email and redirect on success', async () => {
+        const user = userEvent.setup();
+        render(<RegisterPage />);
+
+        await user.type(screen.getByLabelText(/имя пользователя/i), 'noemailuser');
+        await user.type(screen.getByLabelText(/^Пароль/i), 'password123');
+        await user.type(screen.getByLabelText(/^Подтвердите пароль/i), 'password123');
+
+        await user.click(
+          screen.getByRole('button', { name: /^зарегистрироваться$/i }),
+        );
+
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/');
+        });
+    });
+
+    it('should validate email format when provided', async () => {
+        const user = userEvent.setup();
+        render(<RegisterPage />);
+
+        await user.type(screen.getByLabelText(/email/i), 'invalid-email');
+        await user.click(
+          screen.getByRole('button', { name: /^зарегистрироваться$/i }),
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText(/введите корректный email/i)).toBeInTheDocument();
+        });
+        expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
     it('should validate password mismatch', async () => {
         const user = userEvent.setup();
         render(<RegisterPage />);

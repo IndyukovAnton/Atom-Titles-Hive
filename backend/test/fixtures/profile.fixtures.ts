@@ -24,7 +24,12 @@ export const mockProfileStatsDto: ProfileStatsDto = {
   level: 2,
   levelProgress: 50,
   levelTarget: 150,
-  title: { code: 'category_movie', label: 'Киноман', source: 'category', basis: 'Movie' },
+  title: {
+    code: 'category_movie',
+    label: 'Киноман',
+    source: 'category',
+    basis: 'Movie',
+  },
   earnedTitles: [],
   achievements: [],
 };

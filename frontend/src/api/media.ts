@@ -21,6 +21,7 @@ export interface MediaEntry {
   tags?: string[];
   files?: MediaFile[];
   groupId?: number | null;
+  source?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +37,7 @@ export interface CreateMediaData {
   category?: string;
   tags?: string[];
   groupId?: number | null;
+  source?: string;
 }
 
 export const mediaApi = {

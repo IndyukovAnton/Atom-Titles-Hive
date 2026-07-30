@@ -31,11 +31,14 @@ export interface UserPreferences {
   /** Закреплённое пользователем звание (code из ProfileStats.earnedTitles).
       Если null/undefined — используется авто-расчёт по топ-категории/жанру. */
   selectedTitle?: string | null;
-  aiSource?: 'claude-api' | 'claude-cli';
+  aiSource?: 'claude-api' | 'claude-cli' | 'codex-cli';
   anthropicApiKey?: string;
   claudeModel?: 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
   claudeUseWebSearch?: boolean;
   claudeCliPath?: string;
+  codexCliPath?: string;
+  codexModel?: string;
+  codexUseWebSearch?: boolean;
 }
 
 @Entity('users')
@@ -46,8 +49,12 @@ export class User {
   @Column({ unique: true, length: 50 })
   username: string;
 
-  @Column({ unique: true, length: 100 })
-  email: string;
+  // Nullable: email необязателен при регистрации, но заполняется для OAuth-аккаунтов
+  // и используется для склейки Google↔local. UNIQUE в SQLite допускает множественные NULL.
+  // type: 'varchar' указан явно — union-тип string | null рефлексией даёт "Object",
+  // который TypeORM не умеет маппить на sqlite.
+  @Column({ type: 'varchar', unique: true, length: 100, nullable: true })
+  email?: string | null;
 
   @Column({ length: 255, nullable: true })
   password?: string; // Будет храниться хеш, может быть пустым для Google-пользователей

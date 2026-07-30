@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { logger } from '../utils/logger';
 
 const AuthCallbackPage = () => {
@@ -10,9 +10,15 @@ const AuthCallbackPage = () => {
   const { setToken } = useAuthStore();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    // Токен приходит во фрагменте (#token=...) — так он не попадает
+    // в серверные логи и Referer. Query-параметр оставлен как fallback.
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const token = hashParams.get('token') ?? searchParams.get('token');
 
     if (token) {
+      // Сразу убираем токен из адресной строки, чтобы он не остался в истории.
+      window.history.replaceState(null, '', window.location.pathname);
+
       setToken(token)
         .then(() => {
           toast.success('Авторизация прошла успешно!');

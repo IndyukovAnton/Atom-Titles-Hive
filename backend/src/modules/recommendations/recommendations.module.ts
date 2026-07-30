@@ -7,6 +7,7 @@ import { ImageSearchService } from '../media/image-search.service';
 import { AiOrchestratorService } from './ai/ai-orchestrator.service';
 import { ClaudeApiAdapter } from './ai/adapters/claude-api.adapter';
 import { ClaudeCliAdapter } from './ai/adapters/claude-cli.adapter';
+import { CodexCliAdapter } from './ai/adapters/codex-cli.adapter';
 import { CliStatusService } from './ai/cli-status.service';
 import { RecommendationContextBuilder } from './ai/recommendation-context.builder';
 import { RecommendationsController } from './recommendations.controller';
@@ -22,6 +23,7 @@ import { RecommendationsService } from './recommendations.service';
     RecommendationContextBuilder,
     ClaudeApiAdapter,
     ClaudeCliAdapter,
+    CodexCliAdapter,
     AiOrchestratorService,
     CliStatusService,
   ],

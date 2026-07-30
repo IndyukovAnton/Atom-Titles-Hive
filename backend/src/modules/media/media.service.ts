@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, DataSource } from 'typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { MediaFile } from '../../entities/media-file.entity';
+import { Group } from '../../entities/group.entity';
 import { CreateMediaDto } from '../../dto/create-media.dto';
 import { UpdateMediaDto } from '../../dto/update-media.dto';
 import { LoggerService } from '../../utils/logger.service';
@@ -15,12 +20,18 @@ export class MediaService {
     private mediaRepository: Repository<MediaEntry>,
     @InjectRepository(MediaFile)
     private mediaFileRepository: Repository<MediaFile>,
+    @InjectRepository(Group)
+    private groupRepository: Repository<Group>,
     private logger: LoggerService,
     private dataSource: DataSource,
   ) {}
 
   async create(userId: number, dto: CreateMediaDto): Promise<MediaEntry> {
     try {
+      if (dto.groupId != null) {
+        await this.assertGroupOwnership(dto.groupId, userId);
+      }
+
       const media = new MediaEntry();
       media.title = dto.title;
       media.image = dto.image ?? null;
@@ -33,6 +44,7 @@ export class MediaService {
       media.tags = dto.tags ? JSON.stringify(dto.tags) : null;
       media.startDate = dto.startDate ? new Date(dto.startDate) : null;
       media.endDate = dto.endDate ? new Date(dto.endDate) : null;
+      media.source = dto.source ?? null;
 
       const saved = await this.mediaRepository.save(media);
       await this.logger.log(
@@ -58,9 +70,13 @@ export class MediaService {
         if (filters.groupId === null) {
           query.andWhere('media.groupId IS NULL');
         } else {
-          query.andWhere('media.groupId = :groupId', {
-            groupId: filters.groupId,
-          });
+          // Родительская папка включает записи из всех дочерних —
+          // иначе при выборе родителя пользователь видел бы пустой список.
+          const groupIds = await this.collectSubtreeGroupIds(
+            userId,
+            filters.groupId,
+          );
+          query.andWhere('media.groupId IN (:...groupIds)', { groupIds });
         }
       }
 
@@ -113,6 +129,10 @@ export class MediaService {
   ): Promise<MediaEntry> {
     await this.findOne(id, userId);
 
+    if (dto.groupId != null) {
+      await this.assertGroupOwnership(dto.groupId, userId);
+    }
+
     const updateData: Partial<MediaEntry> = {};
 
     // Копируем простые поля
@@ -122,6 +142,7 @@ export class MediaService {
     if (dto.rating !== undefined) updateData.rating = dto.rating;
     if (dto.category !== undefined) updateData.category = dto.category;
     if (dto.groupId !== undefined) updateData.groupId = dto.groupId;
+    if (dto.source !== undefined) updateData.source = dto.source;
 
     // Преобразуем массивы в JSON строки
     if (dto.genres !== undefined) {
@@ -234,6 +255,59 @@ export class MediaService {
     await this.mediaFileRepository.remove(file);
   }
 
+  /**
+   * Возвращает id самой группы и всех её потомков.
+   * Групп пользователя немного — дешевле загрузить их разом и пройти
+   * поддерево в памяти, чем строить рекурсивные запросы в SQLite.
+   */
+  private async collectSubtreeGroupIds(
+    userId: number,
+    rootGroupId: number,
+  ): Promise<number[]> {
+    const groups = await this.groupRepository.find({
+      where: { userId },
+      select: ['id', 'parentId'],
+    });
+
+    const childrenByParent = new Map<number, number[]>();
+    for (const group of groups) {
+      if (group.parentId == null) continue;
+      const children = childrenByParent.get(group.parentId) ?? [];
+      children.push(group.id);
+      childrenByParent.set(group.parentId, children);
+    }
+
+    const subtreeIds: number[] = [];
+    // visited — защита от циклов в повреждённых данных (бесконечный обход)
+    const visited = new Set<number>();
+    const stack = [rootGroupId];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      subtreeIds.push(current);
+      stack.push(...(childrenByParent.get(current) ?? []));
+    }
+    return subtreeIds;
+  }
+
+  /**
+   * Гарантирует, что группа существует и принадлежит пользователю —
+   * иначе запись можно было бы привязать к чужой группе по произвольному id.
+   */
+  private async assertGroupOwnership(
+    groupId: number,
+    userId: number,
+  ): Promise<void> {
+    const group = await this.groupRepository.findOne({
+      where: { id: groupId, userId },
+    });
+
+    if (!group) {
+      throw new BadRequestException('Group not found or access denied');
+    }
+  }
+
   async factoryReset(userId: number): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -242,9 +316,16 @@ export class MediaService {
     try {
       await queryRunner.query('PRAGMA foreign_keys = OFF;');
 
-      await queryRunner.query('DELETE FROM media_files;');
-      await queryRunner.query('DELETE FROM media_entries;');
-      await queryRunner.query('DELETE FROM groups;');
+      // Сброс строго в рамках текущего пользователя: DELETE без userId
+      // стёр бы данные всех аккаунтов в общей SQLite-базе.
+      await queryRunner.query(
+        'DELETE FROM media_files WHERE mediaId IN (SELECT id FROM media_entries WHERE userId = ?);',
+        [userId],
+      );
+      await queryRunner.query('DELETE FROM media_entries WHERE userId = ?;', [
+        userId,
+      ]);
+      await queryRunner.query('DELETE FROM groups WHERE userId = ?;', [userId]);
 
       await queryRunner.query('PRAGMA foreign_keys = ON;');
       await queryRunner.commitTransaction();

@@ -1,12 +1,16 @@
 import type { AICard, ClaudeContentType } from '@/api/recommendations';
+import type { MediaFormData } from '@/schemas/mediaSchema';
 
-const TYPE_TO_CATEGORY: Record<ClaudeContentType, string> = {
-  movie: 'Фильм',
-  series: 'Сериал',
-  anime: 'Аниме',
-  book: 'Книга',
-  game: 'Игра',
-  other: 'Другое',
+type MediaCategory = MediaFormData['category'];
+
+// 'other' не имеет аналога в mediaSchema — категорию выберет пользователь.
+const TYPE_TO_CATEGORY: Record<ClaudeContentType, MediaCategory | undefined> = {
+  movie: 'Movie',
+  series: 'Series',
+  anime: 'Anime',
+  book: 'Book',
+  game: 'Game',
+  other: undefined,
 };
 
 export function aiCardToAddMediaInitial(card: AICard) {
@@ -17,5 +21,6 @@ export function aiCardToAddMediaInitial(card: AICard) {
     rating: 0,
     genres: card.genres,
     category: TYPE_TO_CATEGORY[card.type],
+    source: 'ai',
   };
 }

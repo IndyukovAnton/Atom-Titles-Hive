@@ -6,7 +6,11 @@ import {
   Min,
   Max,
   IsArray,
+  IsIn,
 } from 'class-validator';
+
+export const MEDIA_SOURCES = ['ai'] as const;
+export type MediaSource = (typeof MEDIA_SOURCES)[number];
 
 export class CreateMediaDto {
   @IsString()
@@ -50,4 +54,8 @@ export class CreateMediaDto {
   @IsOptional()
   @IsNumber({}, { message: 'groupId должен быть числом или null' })
   groupId?: number | null;
+
+  @IsOptional()
+  @IsIn(MEDIA_SOURCES, { message: 'Недопустимый источник записи' })
+  source?: MediaSource;
 }

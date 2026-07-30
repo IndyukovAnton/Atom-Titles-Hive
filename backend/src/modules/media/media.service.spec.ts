@@ -3,8 +3,9 @@ import { MediaService } from './media.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { MediaFile } from '../../entities/media-file.entity';
+import { Group } from '../../entities/group.entity';
 import { LoggerService } from '../../utils/logger.service';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import {
   createMockMediaEntry,
@@ -42,6 +43,11 @@ describe('MediaService', () => {
     remove: jest.fn(),
   };
 
+  const mockGroupRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
   const mockDataSource = {
     createQueryRunner: jest.fn(),
   };
@@ -63,6 +69,10 @@ describe('MediaService', () => {
         {
           provide: getRepositoryToken(MediaFile),
           useValue: mockMediaFileRepository,
+        },
+        {
+          provide: getRepositoryToken(Group),
+          useValue: mockGroupRepository,
         },
         {
           provide: LoggerService,
@@ -100,6 +110,28 @@ describe('MediaService', () => {
         'Database error',
       );
       expect(mockLoggerService.error).toHaveBeenCalled();
+    });
+
+    it('should persist source when provided', async () => {
+      const mockMedia = createMockMediaEntry({ source: 'ai' });
+      mockRepository.save.mockResolvedValue(mockMedia);
+
+      await service.create(1, { ...mockCreateMediaDto, source: 'ai' });
+
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ source: 'ai' }),
+      );
+    });
+
+    it('should default source to null when not provided', async () => {
+      const mockMedia = createMockMediaEntry();
+      mockRepository.save.mockResolvedValue(mockMedia);
+
+      await service.create(1, mockCreateMediaDto);
+
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ source: null }),
+      );
     });
   });
 
@@ -144,6 +176,49 @@ describe('MediaService', () => {
         { category: 'Movie' },
       );
     });
+
+    it('should filter by ungrouped when groupId is null', async () => {
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+
+      await service.findAll(1, { groupId: null });
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'media.groupId IS NULL',
+      );
+      expect(mockGroupRepository.find).not.toHaveBeenCalled();
+    });
+
+    it('should include media from descendant groups when filtering by group', async () => {
+      mockGroupRepository.find.mockResolvedValue([
+        { id: 1, parentId: null },
+        { id: 2, parentId: 1 },
+        { id: 3, parentId: 2 },
+        { id: 4, parentId: null },
+      ]);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+
+      await service.findAll(1, { groupId: 1 });
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'media.groupId IN (:...groupIds)',
+        { groupIds: [1, 2, 3] },
+      );
+    });
+
+    it('should not hang on cyclic parentId data (legacy corruption)', async () => {
+      mockGroupRepository.find.mockResolvedValue([
+        { id: 1, parentId: 2 },
+        { id: 2, parentId: 1 },
+      ]);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+
+      await service.findAll(1, { groupId: 1 });
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'media.groupId IN (:...groupIds)',
+        { groupIds: [1, 2] },
+      );
+    });
   });
 
   describe('findOne', () => {
@@ -184,6 +259,19 @@ describe('MediaService', () => {
 
       await expect(service.update(999, 1, mockUpdateMediaDto)).rejects.toThrow(
         NotFoundException,
+      );
+    });
+
+    it('should update source when provided', async () => {
+      const mockMedia = createMockMediaEntry({ source: 'ai' });
+      mockRepository.findOne.mockResolvedValue(mockMedia);
+      mockRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update(1, 1, { source: 'ai' });
+
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ source: 'ai' }),
       );
     });
   });
@@ -230,6 +318,94 @@ describe('MediaService', () => {
       const result = await service.getCategories(1);
 
       expect(result).toEqual(['Movie', 'Series']);
+    });
+  });
+
+  describe('group ownership', () => {
+    it('create should reject a group owned by another user', async () => {
+      mockGroupRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.create(1, { ...mockCreateMediaDto, groupId: 42 }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('create should accept a group owned by the user', async () => {
+      mockGroupRepository.findOne.mockResolvedValue({ id: 42, userId: 1 });
+      const mockMedia = createMockMediaEntry({ groupId: 42 });
+      mockRepository.save.mockResolvedValue(mockMedia);
+
+      const result = await service.create(1, {
+        ...mockCreateMediaDto,
+        groupId: 42,
+      });
+
+      expect(mockGroupRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 42, userId: 1 },
+      });
+      expect(result).toEqual(mockMedia);
+    });
+
+    it('update should reject a group owned by another user', async () => {
+      mockRepository.findOne.mockResolvedValue(createMockMediaEntry());
+      mockGroupRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.update(1, 1, { groupId: 42 })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('factoryReset', () => {
+    const createMockQueryRunner = () => ({
+      connect: jest.fn(),
+      startTransaction: jest.fn(),
+      query: jest.fn(),
+      commitTransaction: jest.fn(),
+      rollbackTransaction: jest.fn(),
+      release: jest.fn(),
+    });
+
+    it('should delete only the current user data', async () => {
+      const queryRunner = createMockQueryRunner();
+      mockDataSource.createQueryRunner.mockReturnValue(queryRunner);
+
+      await service.factoryReset(7);
+
+      const calls = queryRunner.query.mock.calls as [string, unknown[]?][];
+      const sqlStatements = calls.map(([sql]) => sql);
+
+      expect(sqlStatements).toContain(
+        'DELETE FROM media_entries WHERE userId = ?;',
+      );
+      expect(sqlStatements).toContain('DELETE FROM groups WHERE userId = ?;');
+      expect(
+        sqlStatements.some((sql) => sql.includes('DELETE FROM media_files')),
+      ).toBe(true);
+
+      // Все DELETE параметризованы userId — данных других пользователей не касаемся
+      const deleteCalls = calls.filter(([sql]) => sql.startsWith('DELETE'));
+      for (const [, params] of deleteCalls) {
+        expect(params).toEqual([7]);
+      }
+
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunner.rollbackTransaction).not.toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
+    });
+
+    it('should rollback transaction on error', async () => {
+      const queryRunner = createMockQueryRunner();
+      queryRunner.query.mockRejectedValueOnce(new Error('DB failure'));
+      mockDataSource.createQueryRunner.mockReturnValue(queryRunner);
+
+      await expect(service.factoryReset(7)).rejects.toThrow('DB failure');
+
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(queryRunner.commitTransaction).not.toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
     });
   });
 });

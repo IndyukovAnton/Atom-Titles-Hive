@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pin, Star, Plus, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { useNavigate } from 'react-router-dom';
 
 import { Sidebar, HomeHeader } from '@/components/HomePage';
@@ -58,6 +58,7 @@ export default function ConsiderationsPage() {
   const [addModalInitialData, setAddModalInitialData] = useState<
     Partial<MediaEntry> | undefined
   >(undefined);
+  const [addingRecId, setAddingRecId] = useState<number | null>(null);
 
   const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>(
     'all',
@@ -98,7 +99,23 @@ export default function ConsiderationsPage() {
   const handleAddToLibrary = (rec: SavedRecommendation) => {
     const initial = aiCardToAddMediaInitial(savedRecToAICard(rec));
     setAddModalInitialData(initial);
+    setAddingRecId(rec.id);
     setIsAddModalOpen(true);
+  };
+
+  const handleAddSuccess = async () => {
+    if (addingRecId !== null) {
+      try {
+        await libraryApi.removeSavedRecommendation(addingRecId);
+        setItems((prev) => prev.filter((r) => r.id !== addingRecId));
+      } catch {
+        toast.error(
+          'Запись добавлена в библиотеку, но убрать её из «Подумаю» не удалось',
+        );
+      }
+      setAddingRecId(null);
+    }
+    toast.success('Название добавлено в библиотеку');
   };
 
   const handleMoveToFavorites = async (rec: SavedRecommendation) => {
@@ -147,7 +164,7 @@ export default function ConsiderationsPage() {
 
         <div className="flex-1 overflow-hidden relative bg-muted/10">
           <ScrollArea className="h-full w-full">
-            <div className="w-full p-6 space-y-6 mx-4 my-4 bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg">
+            <div className="w-full p-6 space-y-6 mx-4 my-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20">
                   <Pin className="w-7 h-7 text-indigo-500" />
@@ -237,10 +254,9 @@ export default function ConsiderationsPage() {
         onClose={() => {
           setIsAddModalOpen(false);
           setAddModalInitialData(undefined);
+          setAddingRecId(null);
         }}
-        onSuccess={() => {
-          toast.success('Title added to library');
-        }}
+        onSuccess={() => void handleAddSuccess()}
         initialData={addModalInitialData as MediaEntry}
       />
 

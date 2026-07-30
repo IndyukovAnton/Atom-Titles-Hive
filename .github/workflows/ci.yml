@@ -30,6 +30,9 @@ jobs:
       - name: Install (root)
         run: npm ci
 
+      - name: Version sync check
+        run: node scripts/sync-version.mjs --check
+
       - name: Install (backend)
         run: npm ci
         working-directory: backend

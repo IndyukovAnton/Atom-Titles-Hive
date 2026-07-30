@@ -53,7 +53,7 @@ export function CategoryTilePicker({ name, label, disabled }: CategoryTilePicker
                   disabled={disabled}
                   onClick={() => field.onChange(cat.value)}
                   className={cn(
-                    'group relative flex flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-medium transition-all cursor-pointer',
+                    'group relative flex items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs font-medium transition-all cursor-pointer',
                     'hover:border-[color:var(--accent-tile)] hover:bg-[color-mix(in_oklab,var(--accent-tile)_8%,transparent)]',
                     selected
                       ? 'border-[color:var(--accent-tile)] bg-[color-mix(in_oklab,var(--accent-tile)_14%,transparent)] text-[color:var(--accent-tile)] shadow-sm'
@@ -62,7 +62,7 @@ export function CategoryTilePicker({ name, label, disabled }: CategoryTilePicker
                   )}
                   style={{ ['--accent-tile' as string]: accent }}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span>{cat.label}</span>
                 </button>
               );

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import AuthLayout from '../layouts/AuthLayout';
@@ -46,7 +46,11 @@ export default function RegisterPage() {
     clearError();
 
     try {
-      await registerUser(data.username, data.email, data.password);
+      await registerUser({
+        username: data.username,
+        email: data.email || undefined,
+        password: data.password,
+      });
       navigate('/');
     } catch {
       // Ошибка уже обработана в store
@@ -54,19 +58,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <AuthLayout title="Seen" subtitle="Создать аккаунт" error={error}>
-      {/* Hero section */}
+    <AuthLayout error={error}>
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="text-center mb-6"
+        className="text-center space-y-1"
       >
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-3">
-          <UserPlus className="w-4 h-4" />
-          <span>Присоединяйтесь к нам</span>
-        </div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">
           Создайте свой аккаунт
         </h2>
         <p className="text-muted-foreground text-sm">
@@ -77,6 +76,7 @@ export default function RegisterPage() {
       <FormProvider {...methods}>
         <motion.form
           onSubmit={handleSubmit(onSubmit)}
+          noValidate
           className="space-y-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -110,10 +110,10 @@ export default function RegisterPage() {
               label="Email"
               type="email"
               placeholder="Введите email"
-              required
               disabled={isLoading}
               autoComplete="email"
               className="h-11"
+              description="Необязательно — для восстановления доступа"
             />
           </motion.div>
 
@@ -207,14 +207,14 @@ export default function RegisterPage() {
           >
             <Button
               type="submit"
-              className="w-full h-11 text-base font-medium mt-2"
+              className="w-full h-11 text-base font-medium"
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Регистрация...' : 'Зарегистрироваться'}
             </Button>
 
-            <div className="relative py-2">
+            <div className="relative py-1">
               <div className="absolute inset-0 flex items-center">
                 <Separator className="w-full" />
               </div>
@@ -229,7 +229,7 @@ export default function RegisterPage() {
       </FormProvider>
 
       <motion.div
-        className="text-center text-sm text-muted-foreground mt-6"
+        className="text-center text-sm text-muted-foreground"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}

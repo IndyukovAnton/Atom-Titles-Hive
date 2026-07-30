@@ -28,10 +28,14 @@ export function usePhotoViewerControls({
   const currentFile = currentIndex !== null ? files[currentIndex] : null;
   const isOpen = currentIndex !== null;
 
-  useEffect(() => {
+  // Сброс зума/позиции при смене слайда. Паттерн "adjust state during render"
+  // вместо эффекта: синхронный setState в useEffect ловит react-hooks v7.
+  const [prevIndex, setPrevIndex] = useState(currentIndex);
+  if (prevIndex !== currentIndex) {
+    setPrevIndex(currentIndex);
     setZoom(1);
     setPosition({ x: 0, y: 0 });
-  }, [currentIndex]);
+  }
 
   const handleZoomIn = useCallback(() => {
     setZoom((prev) => Math.min(prev + ZOOM_STEP, MAX_ZOOM));

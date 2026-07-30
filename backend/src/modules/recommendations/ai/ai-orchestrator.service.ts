@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from '../../../entities/user.entity';
 import { ClaudeApiAdapter } from './adapters/claude-api.adapter';
 import { ClaudeCliAdapter } from './adapters/claude-cli.adapter';
+import { CodexCliAdapter } from './adapters/codex-cli.adapter';
 import { RecommendationContextBuilder } from './recommendation-context.builder';
 import { AiRequestParams, AiSourceAdapter, AiStreamEvent } from './types';
 
@@ -13,6 +14,7 @@ export class AiOrchestratorService {
     private readonly contextBuilder: RecommendationContextBuilder,
     private readonly apiAdapter: ClaudeApiAdapter,
     private readonly cliAdapter: ClaudeCliAdapter,
+    private readonly codexAdapter: CodexCliAdapter,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
@@ -25,6 +27,16 @@ export class AiOrchestratorService {
     const prefs = user?.preferences;
 
     const source = requested ?? prefs?.aiSource ?? 'claude-api';
+
+    if (source === 'codex-cli') {
+      return {
+        source,
+        useWebSearch: prefs?.codexUseWebSearch ?? true,
+        cliPath: prefs?.codexCliPath,
+        codexModel: prefs?.codexModel,
+        count: 10,
+      };
+    }
 
     return {
       source,
@@ -59,7 +71,11 @@ export class AiOrchestratorService {
     const ctx = await this.contextBuilder.build(userId, params);
 
     const adapter: AiSourceAdapter =
-      params.source === 'claude-cli' ? this.cliAdapter : this.apiAdapter;
+      params.source === 'codex-cli'
+        ? this.codexAdapter
+        : params.source === 'claude-cli'
+          ? this.cliAdapter
+          : this.apiAdapter;
 
     yield* adapter.stream(ctx, params, abortSignal);
   }

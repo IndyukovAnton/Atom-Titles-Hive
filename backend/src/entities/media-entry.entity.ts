@@ -49,6 +49,9 @@ export class MediaEntry {
   @Column({ type: 'text', nullable: true })
   tags: string | null; // JSON массив в БД
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  source: string | null; // Откуда добавлена запись: 'ai' — из ИИ-рекомендаций
+
   @ManyToOne('User', 'mediaEntries', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Sparkles, Library, TrendingUp, Brain } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type { RecommendationItem } from '@/api/recommendations';
+import { libraryApi } from '@/api/library';
+import { SAVED_RECS_QUERY_KEY } from '@/hooks/useSavedRecommendations';
 import {
   Tabs,
   TabsContent,
@@ -27,11 +30,16 @@ export default function RecommendationsPage() {
   const [activeTab, setActiveTab] = useState('top-rated');
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addModalInitialData, setAddModalInitialData] = useState<
     Partial<MediaEntry> | undefined
   >(undefined);
+  // Id закреплённой (📌/⭐) рекомендации, которую сейчас добавляют в библиотеку.
+  const [consumingSavedRecId, setConsumingSavedRecId] = useState<
+    number | null
+  >(null);
 
   const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>(
     'all',
@@ -53,20 +61,44 @@ export default function RecommendationsPage() {
     navigate('/', { state: { groupId: id } });
   };
 
-  const handleAddRecommendation = (item: RecommendationItem) => {
+  const handleAddRecommendation = (
+    item: RecommendationItem,
+    savedRecId?: number,
+  ) => {
     setAddModalInitialData({
       title: item.title,
       description: item.description,
       image: item.image,
       rating: item.rating,
-      tags: item.genres,
+      genres: item.genres,
+      category: item.category,
+      source: item.source,
     });
+    setConsumingSavedRecId(savedRecId ?? null);
     setIsAddModalOpen(true);
   };
 
   const handleCloseAddModal = () => {
     setIsAddModalOpen(false);
     setAddModalInitialData(undefined);
+    setConsumingSavedRecId(null);
+  };
+
+  const handleAddSuccess = async () => {
+    if (consumingSavedRecId !== null) {
+      try {
+        await libraryApi.removeSavedRecommendation(consumingSavedRecId);
+        await queryClient.invalidateQueries({
+          queryKey: SAVED_RECS_QUERY_KEY,
+        });
+      } catch {
+        toast.error(
+          'Запись добавлена, но закреплённая рекомендация осталась — уберите её вручную',
+        );
+      }
+      setConsumingSavedRecId(null);
+    }
+    toast.success('Название добавлено в библиотеку');
   };
 
   return (
@@ -95,18 +127,18 @@ export default function RecommendationsPage() {
 
         <div className="flex-1 overflow-hidden relative bg-muted/10">
           <ScrollArea className="h-full w-full">
-            <div className="w-full p-6 space-y-8 animate-in fade-in duration-500 relative z-10 bg-background/80 backdrop-blur-sm rounded-2xl my-4 mx-4 shadow-lg">
+            <div className="w-full max-w-[1600px] mx-auto p-6 space-y-8 animate-in fade-in duration-500 relative z-10 my-4">
               <div className="flex flex-col gap-3">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/20">
                     <Sparkles className="w-7 h-7 text-amber-500" />
                   </div>
                   <span className="bg-gradient-to-r from-amber-500 to-yellow-500 bg-clip-text text-transparent">
-                    Your Discover Feed
+                    Ваша лента открытий
                   </span>
                 </h1>
                 <p className="text-muted-foreground ml-14">
-                  AI-powered suggestions based on your unique taste.
+                  ИИ-рекомендации на основе вашего уникального вкуса.
                 </p>
               </div>
 
@@ -122,24 +154,24 @@ export default function RecommendationsPage() {
                     className="flex items-center gap-2"
                   >
                     <TrendingUp className="w-4 h-4" />
-                    Top Rated
+                    Топ оценок
                   </TabsTrigger>
                   <TabsTrigger
                     value="genres"
                     className="flex items-center gap-2"
                   >
                     <Library className="w-4 h-4" />
-                    By Genres
+                    По жанрам
                   </TabsTrigger>
                   <TabsTrigger value="ai" className="flex items-center gap-2">
                     <Brain className="w-4 h-4" />
-                    AI Assistant
+                    AI-ассистент
                   </TabsTrigger>
                 </TabsList>
 
                 <div className="mt-6 min-h-[400px]">
                   <TabsContent value="top-rated" className="mt-0">
-                    <TopRatedSection onAdd={handleAddRecommendation} />
+                    <TopRatedSection />
                   </TabsContent>
                   <TabsContent value="genres" className="mt-0">
                     <GenresSection onAdd={handleAddRecommendation} />
@@ -157,9 +189,7 @@ export default function RecommendationsPage() {
       <AddMediaModal
         isOpen={isAddModalOpen}
         onClose={handleCloseAddModal}
-        onSuccess={() => {
-          toast.success('Title added to library');
-        }}
+        onSuccess={() => void handleAddSuccess()}
         initialData={addModalInitialData as MediaEntry}
       />
 

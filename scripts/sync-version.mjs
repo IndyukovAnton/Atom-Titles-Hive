@@ -4,8 +4,9 @@
 // and src-tauri/Cargo.toml.
 //
 // Usage:
-//   node scripts/sync-version.mjs       — sync silently
-//   npm run sync:version                — same, via npm script
+//   node scripts/sync-version.mjs         — sync silently
+//   node scripts/sync-version.mjs --check — only verify, exit 1 on drift (CI)
+//   npm run sync:version                  — same, via npm script
 //
 // Hooked into the `npm version` lifecycle (root package.json `scripts.version`)
 // so `npm version patch|minor|major` automatically rewrites the satellites
@@ -26,7 +27,16 @@ if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
   process.exit(1);
 }
 
-console.log(`Syncing version ${version} across satellites…`);
+const checkOnly = process.argv.includes('--check');
+// В check-режиме собираем расхождения и падаем с exit 1 — так CI ловит
+// ручные правки версии в одном из файлов, минуя sync.
+const drifted = [];
+
+if (checkOnly) {
+  console.log(`Checking version ${version} across satellites…`);
+} else {
+  console.log(`Syncing version ${version} across satellites…`);
+}
 let touched = 0;
 
 // frontend/package.json
@@ -34,10 +44,14 @@ let touched = 0;
   const path = resolve(root, 'frontend/package.json');
   const pkg = JSON.parse(readFileSync(path, 'utf-8'));
   if (pkg.version !== version) {
-    pkg.version = version;
-    writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-    console.log('  ✓ frontend/package.json');
-    touched++;
+    if (checkOnly) {
+      drifted.push(`frontend/package.json (has ${pkg.version})`);
+    } else {
+      pkg.version = version;
+      writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+      console.log('  ✓ frontend/package.json');
+      touched++;
+    }
   }
 }
 
@@ -46,10 +60,14 @@ let touched = 0;
   const path = resolve(root, 'src-tauri/tauri.conf.json');
   const conf = JSON.parse(readFileSync(path, 'utf-8'));
   if (conf.version !== version) {
-    conf.version = version;
-    writeFileSync(path, JSON.stringify(conf, null, 2) + '\n');
-    console.log('  ✓ src-tauri/tauri.conf.json');
-    touched++;
+    if (checkOnly) {
+      drifted.push(`src-tauri/tauri.conf.json (has ${conf.version})`);
+    } else {
+      conf.version = version;
+      writeFileSync(path, JSON.stringify(conf, null, 2) + '\n');
+      console.log('  ✓ src-tauri/tauri.conf.json');
+      touched++;
+    }
   }
 }
 
@@ -63,10 +81,25 @@ let touched = 0;
     (_, pre, _curr, post) => `${pre}${version}${post}`,
   );
   if (updated !== original) {
-    writeFileSync(path, updated);
-    console.log('  ✓ src-tauri/Cargo.toml');
-    touched++;
+    if (checkOnly) {
+      const current = original.match(/\[package\][\s\S]*?\nversion\s*=\s*"([^"]+)"/)?.[1];
+      drifted.push(`src-tauri/Cargo.toml (has ${current ?? 'unparseable'})`);
+    } else {
+      writeFileSync(path, updated);
+      console.log('  ✓ src-tauri/Cargo.toml');
+      touched++;
+    }
   }
 }
 
-console.log(touched === 0 ? '  (already in sync)' : `Done — ${touched} file(s) updated.`);
+if (checkOnly) {
+  if (drifted.length > 0) {
+    console.error(`✗ Version drift detected (root says ${version}):`);
+    for (const file of drifted) console.error(`  - ${file}`);
+    console.error('  Run `npm run sync:version` to fix.');
+    process.exit(1);
+  }
+  console.log('  ✓ all satellites in sync');
+} else {
+  console.log(touched === 0 ? '  (already in sync)' : `Done — ${touched} file(s) updated.`);
+}

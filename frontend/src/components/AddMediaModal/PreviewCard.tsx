@@ -24,6 +24,10 @@ const CATEGORY_ACCENT: Record<Category, string> = {
   Manga: 'var(--accent-cyan)',
 };
 
+function isCategory(value: string | undefined): value is Category {
+  return !!value && value in CATEGORY_ICON;
+}
+
 function ratingGradient(rating: number) {
   if (rating >= 8) return 'from-emerald-500 to-green-600';
   if (rating >= 6) return 'from-amber-400 to-yellow-500';
@@ -49,8 +53,8 @@ function useValues(): PreviewValues {
 }
 
 function CoverPlaceholder({ category }: { category: Category | '' | undefined }) {
-  const Icon = category ? CATEGORY_ICON[category as Category] : Film;
-  const accent = category ? CATEGORY_ACCENT[category as Category] : 'var(--muted-foreground)';
+  const Icon = isCategory(category) ? CATEGORY_ICON[category] : Film;
+  const accent = isCategory(category) ? CATEGORY_ACCENT[category] : 'var(--muted-foreground)';
   return (
     <div
       className="absolute inset-0 flex items-center justify-center"
@@ -66,8 +70,7 @@ function CoverPlaceholder({ category }: { category: Category | '' | undefined })
 function MirrorPreview({ values }: { values: PreviewValues }) {
   const { title, category, rating, image } = values;
   const hasRating = typeof rating === 'number' && rating > 0;
-  const categoryIcon = category ? CATEGORY_ICON[category as Category] : null;
-  const CategoryIcon = categoryIcon;
+  const CategoryIcon = isCategory(category) ? CATEGORY_ICON[category] : null;
   const localized = localizeCategory(category || null);
 
   return (
@@ -121,8 +124,8 @@ function MirrorPreview({ values }: { values: PreviewValues }) {
 
 function PosterPreview({ values }: { values: PreviewValues }) {
   const { title, category, rating, image } = values;
-  const Icon = category ? CATEGORY_ICON[category as Category] : Film;
-  const accent = category ? CATEGORY_ACCENT[category as Category] : 'var(--primary)';
+  const Icon = isCategory(category) ? CATEGORY_ICON[category] : Film;
+  const accent = isCategory(category) ? CATEGORY_ACCENT[category] : 'var(--primary)';
   const localized = localizeCategory(category || null);
 
   return (

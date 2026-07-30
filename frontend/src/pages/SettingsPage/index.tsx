@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  ArrowLeft,
+  Blocks,
   Download,
   GraduationCap,
   Loader2,
@@ -12,27 +12,38 @@ import {
   User,
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AccountSettings } from '@/components/personalization/AccountSettings';
+import { SubPageNav } from '@/components/SubPageNav';
 import { AppearanceTab } from './AppearanceTab';
 import { IntegrationsTab } from './IntegrationsTab';
+import { ProvidersTab } from './ProvidersTab';
 import { SecurityTab } from './SecurityTab';
 import { useAuthStore } from '@/store/authStore';
-import { logger } from '@/utils/logger';
+import { runInteractiveUpdateCheck } from '@/utils/updater';
 
-const RELEASES_URL =
-  'https://github.com/IndyukovAnton/Atom-Titles-Hive/releases/latest';
-
-const isTauri = (): boolean =>
-  typeof window !== 'undefined' &&
-  '__TAURI_INTERNALS__' in window &&
-  Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
-
-const SETTINGS_TABS = ['appearance', 'account', 'integrations', 'security'] as const;
+const SETTINGS_TABS = [
+  'appearance',
+  'account',
+  'integrations',
+  'providers',
+  'security',
+] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
+
+const TAB_ITEMS: Array<{
+  value: SettingsTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { value: 'appearance', label: 'Внешний вид', icon: Palette },
+  { value: 'account', label: 'Аккаунт', icon: User },
+  { value: 'integrations', label: 'Интеграции & AI', icon: Sparkles },
+  { value: 'providers', label: 'Провайдеры', icon: Blocks },
+  { value: 'security', label: 'Безопасность', icon: Shield },
+];
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -40,7 +51,9 @@ export default function SettingsPage() {
   const requestTourReplay = useAuthStore((s) => s.requestTourReplay);
 
   const tabParam = searchParams.get('tab');
-  const activeTab: SettingsTab = (SETTINGS_TABS as readonly string[]).includes(tabParam ?? '')
+  const activeTab: SettingsTab = (SETTINGS_TABS as readonly string[]).includes(
+    tabParam ?? '',
+  )
     ? (tabParam as SettingsTab)
     : 'appearance';
 
@@ -57,97 +70,25 @@ export default function SettingsPage() {
 
   const [isChecking, setIsChecking] = useState(false);
 
-  // Tauri auto-update flow:
-  //  1. `check()` стучится на updater.endpoints (см. tauri.conf.json), сравнивает
-  //     версию манифеста с текущей по semver.
-  //  2. Если новее — скачиваем и ставим, потом релоним приложение.
-  //  3. Если plugin не установлен (браузерная dev-сборка) или сеть упала —
-  //     открываем GitHub Releases во внешнем браузере как fallback.
+  // Вся updater-логика — в utils/updater (общая с UpdateChecker):
+  // check → downloadAndInstall с прогрессом → relaunch; в браузере и при
+  // ошибке сети открывается GitHub Releases как fallback.
   const handleCheckUpdates = async () => {
-    if (!isTauri()) {
-      window.open(RELEASES_URL, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
     setIsChecking(true);
-    const checkingToast = toast.loading('Проверяем наличие обновлений…');
     try {
-      const { check } = await import('@tauri-apps/plugin-updater');
-      const update = await check();
-
-      if (!update) {
-        toast.success('Установлена последняя версия', { id: checkingToast });
-        return;
-      }
-
-      toast.dismiss(checkingToast);
-      toast.info(`Доступна версия ${update.version} — скачиваю…`);
-      let total = 0;
-      let downloaded = 0;
-      const progressToast = toast.loading('Загрузка обновления…');
-      await update.downloadAndInstall((event) => {
-        switch (event.event) {
-          case 'Started':
-            total = event.data.contentLength ?? 0;
-            break;
-          case 'Progress':
-            downloaded += event.data.chunkLength;
-            if (total > 0) {
-              const pct = Math.round((downloaded / total) * 100);
-              toast.loading(`Загрузка обновления… ${pct}%`, {
-                id: progressToast,
-              });
-            }
-            break;
-          case 'Finished':
-            toast.success('Обновление загружено, перезапускаю…', {
-              id: progressToast,
-            });
-            break;
-        }
-      });
-      const { relaunch } = await import('@tauri-apps/plugin-process');
-      await relaunch();
-    } catch (e) {
-      logger.error('Update check failed', e);
-      toast.error(
-        'Не удалось проверить обновления. Откройте страницу релизов вручную.',
-        {
-          id: checkingToast,
-          action: {
-            label: 'Открыть',
-            onClick: () =>
-              window.open(RELEASES_URL, '_blank', 'noopener,noreferrer'),
-          },
-        },
-      );
+      await runInteractiveUpdateCheck();
     } finally {
       setIsChecking(false);
     }
   };
 
   return (
-    <div className="container max-w-5xl py-8 px-4 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            aria-label="Назад"
-            className="rounded-full hover:bg-background/80"
-            onClick={() => {
-              if (window.history.length > 1) {
-                navigate(-1);
-              } else {
-                navigate('/');
-              }
-            }}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+    <>
+      <SubPageNav />
+      <div className="container max-w-5xl py-6 px-4 mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+            <h1 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
               Настройки
             </h1>
             <p className="text-muted-foreground text-sm flex items-center gap-2">
@@ -161,107 +102,110 @@ export default function SettingsPage() {
               </Badge>
             </p>
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCheckUpdates}
+              disabled={isChecking}
+              className="rounded-full"
+            >
+              {isChecking ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Проверить обновления
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReplayTour}
+              className="rounded-full"
+            >
+              <GraduationCap className="mr-2 h-4 w-4" />
+              Обучение
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="rounded-full"
+            >
+              <Link to="/changelog">
+                <Sparkle className="mr-2 h-4 w-4" />
+                Что нового?
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="rounded-full"
+            >
+              <Link to="/privacy">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Приватность
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCheckUpdates}
-            disabled={isChecking}
-            className="rounded-full"
-          >
-            {isChecking ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            Проверить обновления
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReplayTour}
-            className="rounded-full"
-          >
-            <GraduationCap className="mr-2 h-4 w-4" />
-            Обучение
-          </Button>
-          <Button variant="outline" size="sm" asChild className="rounded-full">
-            <Link to="/changelog">
-              <Sparkle className="mr-2 h-4 w-4" />
-              Что нового?
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild className="rounded-full">
-            <Link to="/privacy">
-              <ShieldCheck className="mr-2 h-4 w-4" />
-              Приватность
-            </Link>
-          </Button>
-        </div>
-      </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="space-y-8"
+        >
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto p-1.5 bg-muted/40 backdrop-blur-sm rounded-xl border">
+            {TAB_ITEMS.map(({ value, label, icon: Icon }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="rounded-lg py-2.5 gap-2 transition-all duration-300 data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-indigo-500/30 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400"
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline truncate">{label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1.5 bg-muted/40 backdrop-blur-sm rounded-xl border">
-          <TabsTrigger
+          <TabsContent
             value="appearance"
-            className="rounded-lg py-2.5 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-300"
+            className="space-y-6 animate-in slide-in-from-left-4 duration-300 zoom-in-95"
           >
-            <Palette className="w-4 h-4" />
-            <span className="hidden sm:inline">Внешний вид</span>
-          </TabsTrigger>
-          <TabsTrigger
+            <AppearanceTab />
+          </TabsContent>
+
+          <TabsContent
             value="account"
-            className="rounded-lg py-2.5 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-300"
+            className="space-y-6 animate-in slide-in-from-right-4 duration-300 zoom-in-95"
           >
-            <User className="w-4 h-4" />
-            <span className="hidden sm:inline">Аккаунт</span>
-          </TabsTrigger>
-          <TabsTrigger
+            <AccountSettings />
+          </TabsContent>
+
+          <TabsContent
             value="integrations"
-            className="rounded-lg py-2.5 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-300"
+            className="space-y-6 animate-in slide-in-from-bottom-4 duration-300 zoom-in-95"
           >
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">Интеграции & AI</span>
-          </TabsTrigger>
-          <TabsTrigger
+            <IntegrationsTab />
+          </TabsContent>
+
+          <TabsContent
+            value="providers"
+            className="space-y-6 animate-in slide-in-from-bottom-4 duration-300 zoom-in-95"
+          >
+            <ProvidersTab />
+          </TabsContent>
+
+          <TabsContent
             value="security"
-            className="rounded-lg py-2.5 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-300"
+            className="space-y-6 animate-in slide-in-from-right-4 duration-300 zoom-in-95"
           >
-            <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Безопасность</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          value="appearance"
-          className="space-y-6 animate-in slide-in-from-left-4 duration-300 zoom-in-95"
-        >
-          <AppearanceTab />
-        </TabsContent>
-
-        <TabsContent
-          value="account"
-          className="space-y-6 animate-in slide-in-from-right-4 duration-300 zoom-in-95"
-        >
-          <AccountSettings />
-        </TabsContent>
-
-        <TabsContent
-          value="integrations"
-          className="space-y-6 animate-in slide-in-from-bottom-4 duration-300 zoom-in-95"
-        >
-          <IntegrationsTab />
-        </TabsContent>
-
-        <TabsContent
-          value="security"
-          className="space-y-6 animate-in slide-in-from-right-4 duration-300 zoom-in-95"
-        >
-          <SecurityTab />
-        </TabsContent>
-      </Tabs>
-    </div>
+            <SecurityTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }

@@ -5,7 +5,8 @@ import { getUserDataDir } from './path.utils';
 
 @Injectable()
 export class LoggerService {
-  private readonly logsDir = process.env.LOG_DIR || join(getUserDataDir(), 'logs');
+  private readonly logsDir =
+    process.env.LOG_DIR || join(getUserDataDir(), 'logs');
 
   /**
    * Форматирует текущее время в формат HH:MM:SS

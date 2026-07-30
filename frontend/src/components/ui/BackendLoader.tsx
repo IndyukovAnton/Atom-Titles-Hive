@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Server, XCircle } from 'lucide-react';
 import { isTauri, waitForBackend, setBackendUrl } from '../../utils/tauri';
@@ -41,13 +41,15 @@ export function BackendLoader({ children, onReady, onError }: BackendLoaderProps
   );
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [elapsedSec, setElapsedSec] = useState(0);
-  const startedAtRef = useRef<number>(Date.now());
 
   // Тик каждую секунду пока крутимся — для смены сообщений и таймера.
+  // Точка отсчёта живёт внутри эффекта: Date.now() в теле рендера
+  // (useRef(Date.now())) — impure-вызов, который ловит react-hooks v7.
   useEffect(() => {
     if (status !== 'loading') return;
+    const startedAt = Date.now();
     const id = setInterval(() => {
-      setElapsedSec(Math.floor((Date.now() - startedAtRef.current) / 1000));
+      setElapsedSec(Math.floor((Date.now() - startedAt) / 1000));
     }, 1000);
     return () => clearInterval(id);
   }, [status]);

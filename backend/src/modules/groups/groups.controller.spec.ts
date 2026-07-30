@@ -18,6 +18,7 @@ describe('GroupsController', () => {
     findAll: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
+    move: jest.fn(),
     remove: jest.fn(),
     getGroupStats: jest.fn(),
   };
@@ -129,6 +130,19 @@ describe('GroupsController', () => {
         mockUpdateGroupDto,
       );
       expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('move', () => {
+    it('should move group', async () => {
+      const moveDto = { parentId: null, beforeId: 2 };
+      const expectedResult = createMockGroup();
+      mockGroupsService.move.mockResolvedValue(expectedResult);
+
+      const result = controller.move(mockAuthenticatedRequest, '1', moveDto);
+
+      expect(mockGroupsService.move).toHaveBeenCalledWith(1, 1, moveDto);
+      await expect(result).resolves.toEqual(expectedResult);
     });
   });
 

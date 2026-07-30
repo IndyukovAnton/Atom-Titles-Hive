@@ -1,4 +1,10 @@
-import { IsNumber, IsString, IsEmail, IsDate } from 'class-validator';
+import {
+  IsNumber,
+  IsString,
+  IsEmail,
+  IsDate,
+  IsOptional,
+} from 'class-validator';
 import { ProfileStatsDto } from './profile-stats.dto';
 
 /**
@@ -11,8 +17,9 @@ export class ProfileResponseDto {
   @IsString()
   username: string;
 
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email: string | null;
 
   @IsDate()
   createdAt: Date;

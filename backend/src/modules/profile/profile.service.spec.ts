@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProfileService } from './profile.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/user.entity';
+import { User, UserPreferences } from '../../entities/user.entity';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { LoggerService } from '../../utils/logger.service';
 import { NotFoundException } from '@nestjs/common';
@@ -70,7 +70,7 @@ describe('ProfileService - Statistics', () => {
 
       const result = await service.getStats(1);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         totalEntries: 0,
         favoriteCategory: null,
         favoriteGenre: null,
@@ -319,6 +319,80 @@ describe('ProfileService - Statistics', () => {
       expect(mockLoggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('Statistics accessed by user 1'),
       );
+    });
+  });
+
+  describe('profile privacy', () => {
+    const secrets: UserPreferences = {
+      theme: 'dark',
+      aiKey: 'secret-ai-key',
+      anthropicApiKey: 'sk-ant-secret',
+      tmdbApiKey: 'tmdb-secret',
+    };
+
+    it('getProfile should not expose API keys, only presence flags', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        ...mockUser,
+        preferences: secrets,
+      } as User);
+
+      const result = await service.getProfile(1);
+
+      expect(result.preferences).toMatchObject({
+        theme: 'dark',
+        hasAiKey: true,
+        hasAnthropicApiKey: true,
+        hasTmdbApiKey: true,
+      });
+
+      const serialized = JSON.stringify(result.preferences);
+      expect(serialized).not.toContain('secret-ai-key');
+      expect(serialized).not.toContain('sk-ant-secret');
+      expect(serialized).not.toContain('tmdb-secret');
+    });
+
+    it('getProfile should report false flags when keys are not set', async () => {
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue({
+        ...mockUser,
+        preferences: { theme: 'light' },
+      } as User);
+
+      const result = await service.getProfile(1);
+
+      expect(result.preferences).toMatchObject({
+        theme: 'light',
+        hasAiKey: false,
+        hasAnthropicApiKey: false,
+        hasTmdbApiKey: false,
+      });
+    });
+
+    it('updateProfile should strip computed flags and keep stored keys on partial update', async () => {
+      const existingUser = {
+        ...mockUser,
+        preferences: { theme: 'dark', anthropicApiKey: 'sk-ant-secret' },
+      } as User;
+      jest.spyOn(userRepository, 'findOne').mockResolvedValue(existingUser);
+      const saveSpy = jest
+        .spyOn(userRepository, 'save')
+        .mockImplementation((user) => Promise.resolve(user as User));
+
+      const result = await service.updateProfile(1, {
+        preferences: {
+          theme: 'light',
+          hasAnthropicApiKey: false,
+        } as unknown as UserPreferences,
+      });
+
+      const savedUser = saveSpy.mock.calls[0][0] as User;
+      expect(savedUser.preferences).toMatchObject({
+        theme: 'light',
+        anthropicApiKey: 'sk-ant-secret',
+      });
+      expect(savedUser.preferences).not.toHaveProperty('hasAnthropicApiKey');
+
+      expect(result.preferences).toMatchObject({ hasAnthropicApiKey: true });
+      expect(JSON.stringify(result.preferences)).not.toContain('sk-ant-secret');
     });
   });
 });

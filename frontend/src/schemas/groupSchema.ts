@@ -9,7 +9,8 @@ export const groupSchema = z.object({
     .min(1, 'Название группы обязательно')
     .max(100, 'Название не должно превышать 100 символов')
     .trim(),
-  parentId: z.number().optional(),
+  /** null — папка в корне */
+  parentId: z.number().nullable().optional(),
 });
 
 export type GroupFormData = z.infer<typeof groupSchema>;

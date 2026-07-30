@@ -27,10 +27,15 @@ export const registerSchema = z.object({
     .max(50, 'Имя пользователя слишком длинное')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Только латинские буквы, цифры, _ и -'),
   
+  // Email необязателен: пустая строка допустима, непустая должна быть валидным email.
+  // refine вместо union с z.literal(''), чтобы сохранить читаемое сообщение об ошибке.
   email: z
     .string()
-    .min(1, 'Email обязателен')
-    .email('Введите корректный email'),
+    .max(100, 'Email слишком длинный')
+    .refine(
+      (value) => value === '' || z.string().email().safeParse(value).success,
+      'Введите корректный email',
+    ),
   
   password: z
     .string()

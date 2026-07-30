@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import AddMediaModal from '../components/AddMediaModal';
@@ -11,17 +11,69 @@ import {
   SearchBar,
   FilterPanel
 } from '../components/HomePage';
+import { GROUP_ROOT_DROPPABLE_ID } from '../components/HomePage/Sidebar';
 import { ConfirmationDialog } from '../components/ui/confirmation-dialog';
 import { useMediaData } from '../hooks/useMediaData';
 import { useGroupManagement } from '../hooks/useGroupManagement';
 import { useSearch } from '../hooks/useSearch';
 import { useFilters } from '../hooks/useFilters';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DndContext, useSensor, useSensors, PointerSensor, type DragEndEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
 import { mediaApi, type MediaEntry } from '../api/media';
 import { libraryApi } from '../api/library';
-import { FallingText } from '../components/easter-eggs/FallingText';
 import { logger } from '@/utils/logger';
+import {
+  collectDescendantIds,
+  isNoopMove,
+  resolveGroupDrop,
+  type DropPosition,
+  type GroupDropResolution,
+} from '@/utils/group-tree';
+
+interface GroupDragState {
+  isGroupDragging: boolean;
+  draggedGroupName: string | null;
+  overId: string | null;
+  position: DropPosition | null;
+  forbidden: boolean;
+}
+
+const INITIAL_GROUP_DRAG_STATE: GroupDragState = {
+  isGroupDragging: false,
+  draggedGroupName: null,
+  overId: null,
+  position: null,
+  forbidden: false,
+};
+
+/**
+ * Позиция курсора относительно строки-цели: верхняя/нижняя четверть —
+ * сортировка (before/after), середина — вложение (inside).
+ */
+function getDropPosition(event: DragOverEvent | DragEndEvent): DropPosition {
+  const { over, delta, activatorEvent } = event;
+  if (!over) return 'inside';
+
+  const pointerY =
+    activatorEvent instanceof PointerEvent
+      ? activatorEvent.clientY + delta.y
+      : null;
+  if (pointerY === null || over.rect.height === 0) return 'inside';
+
+  const ratio = (pointerY - over.rect.top) / over.rect.height;
+  if (ratio < 0.25) return 'before';
+  if (ratio > 0.75) return 'after';
+  return 'inside';
+}
 
 export default function HomePage() {
   const { user, logout } = useAuthStore();
@@ -181,21 +233,76 @@ export default function HomePage() {
     })
   );
 
+  const groups = useMemo(() => groupStats?.groups ?? [], [groupStats]);
+  const [groupDragState, setGroupDragState] = useState<GroupDragState>(
+    INITIAL_GROUP_DRAG_STATE,
+  );
+
   const handleRefresh = async () => {
     await Promise.all([loadMedia(), loadGroups()]);
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const activeId = event.active.id.toString();
+    if (!activeId.startsWith('group-')) return;
+
+    const groupId = Number(activeId.replace('group-', ''));
+    setGroupDragState({
+      ...INITIAL_GROUP_DRAG_STATE,
+      isGroupDragging: true,
+      draggedGroupName: groups.find((g) => g.id === groupId)?.name ?? null,
+    });
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    const activeId = active.id.toString();
+    if (!activeId.startsWith('group-')) return;
+
+    const next: GroupDragState = { ...INITIAL_GROUP_DRAG_STATE, isGroupDragging: true, draggedGroupName: groupDragState.draggedGroupName };
+
+    if (over) {
+      const overId = over.id.toString();
+
+      if (overId === GROUP_ROOT_DROPPABLE_ID) {
+        next.overId = overId;
+        next.position = 'inside';
+      } else if (overId.startsWith('group-') && overId !== 'group-null') {
+        const activeNum = Number(activeId.replace('group-', ''));
+        const targetNum = Number(overId.replace('group-', ''));
+        const forbidden =
+          targetNum === activeNum ||
+          collectDescendantIds(groups, activeNum).has(targetNum);
+
+        next.overId = overId;
+        next.forbidden = forbidden;
+        next.position = forbidden ? null : getDropPosition(event);
+      }
+    }
+
+    setGroupDragState(next);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
+    setGroupDragState(INITIAL_GROUP_DRAG_STATE);
+
     const { active, over } = event;
     if (!over) return;
 
     const activeId = active.id.toString();
     const overId = over.id.toString();
 
-    if (activeId.startsWith('media-') && overId.startsWith('group-')) {
+    if (activeId.startsWith('media-')) {
+        if (!overId.startsWith('group-')) return;
+
         const mediaId = Number(activeId.replace('media-', ''));
         const groupIdRaw = overId.replace('group-', '');
         const groupId = groupIdRaw === 'null' ? null : Number(groupIdRaw);
+
+        // Запись уже в этой группе — запрос не нужен
+        const currentGroupId =
+          (active.data.current as MediaEntry | undefined)?.groupId ?? null;
+        if (currentGroupId === groupId) return;
 
         try {
             await mediaApi.update(mediaId, { groupId });
@@ -203,41 +310,37 @@ export default function HomePage() {
         } catch (e) {
             logger.error('Failed to move media', e);
         }
-    } else if (activeId.startsWith('group-') && overId.startsWith('group-')) {
-        const groupId = Number(activeId.replace('group-', ''));
-        const targetGroupIdRaw = overId.replace('group-', '');
-        
-        // Don't allow dropping a group into itself
-        if (activeId === overId) return;
+        return;
+    }
 
-        const targetGroupId = targetGroupIdRaw === 'null' ? null : Number(targetGroupIdRaw);
-        
-        await moveGroup(groupId, targetGroupId);
-        await handleRefresh();
+    if (activeId.startsWith('group-')) {
+        const groupId = Number(activeId.replace('group-', ''));
+
+        let resolution: GroupDropResolution | null = null;
+        if (overId === GROUP_ROOT_DROPPABLE_ID) {
+          resolution = { parentId: null, beforeId: null };
+        } else if (overId.startsWith('group-') && overId !== 'group-null') {
+          const targetId = Number(overId.replace('group-', ''));
+          resolution = resolveGroupDrop({
+            activeId: groupId,
+            targetId,
+            position: getDropPosition(event),
+            groups,
+          });
+        }
+
+        // null — дроп запрещён (себя/потомка) или ничего не меняет
+        if (!resolution) return;
+        if (isNoopMove(groups, groupId, resolution)) return;
+
+        await moveGroup(groupId, resolution);
+        // Состав поддеревьев изменился — список записей родителя тоже
+        await loadMedia();
     }
   };
 
-  // Пасхалка - тройной клик
-  const clickCountRef = useRef(0);
-  // Используем any или ReturnType, так как NodeJS типы могут быть не видны
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { FallingTextComponent, activate: activateFallingText } = FallingText({});
-
-  const handleTitleClick = () => {
-    clickCountRef.current += 1;
-
-    if (clickTimerRef.current) {
-      clearTimeout(clickTimerRef.current);
-    }
-
-    if (clickCountRef.current === 3) {
-      activateFallingText();
-      clickCountRef.current = 0;
-    } else {
-      clickTimerRef.current = setTimeout(() => {
-        clickCountRef.current = 0;
-      }, 500);
-    }
+  const handleDragCancel = () => {
+    setGroupDragState(INITIAL_GROUP_DRAG_STATE);
   };
 
   const getPageTitle = () => {
@@ -246,36 +349,45 @@ export default function HomePage() {
     return groupStats?.groups.find(g => g.id === selectedGroupId)?.name || 'Группа';
   };
 
-  const handleSelectSuggestion = (_media: MediaEntry) => {
+  const handleSelectSuggestion = (media: MediaEntry) => {
     // TODO: открыть детали выбранной записи из поиска
+    void media;
   };
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      {FallingTextComponent}
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
       <div className="flex h-screen w-full bg-background overflow-hidden font-sans">
-        <Sidebar 
-          key={groupStats ? `${groupStats.groups.length}-${groupStats.ungrouped}` : 'sidebar'}
+        <Sidebar
           groupStats={groupStats}
           selectedGroupId={selectedGroupId}
           onSelectGroup={setSelectedGroupId}
           onCreateGroup={openCreateGroupModal}
           onEditGroup={openEditGroupModal}
           onDeleteGroup={confirmDelete}
+          isGroupDragging={groupDragState.isGroupDragging}
+          dropIndicator={{
+            overId: groupDragState.overId,
+            position: groupDragState.position,
+            forbidden: groupDragState.forbidden,
+          }}
         />
 
         <main className="flex-1 flex flex-col h-full min-w-0">
-          <div onClick={handleTitleClick} className="cursor-pointer select-none">
-            <HomeHeader 
-              title={getPageTitle()}
-              username={user?.username}
-              avatar={user?.preferences?.avatar}
-              onAddMedia={() => setIsAddModalOpen(true)}
-              onNavigateToProfile={() => navigate('/profile')}
-              onNavigateToSettings={() => navigate('/settings')}
-              onLogout={logout}
-            />
-          </div>
+          <HomeHeader
+            title={getPageTitle()}
+            username={user?.username}
+            avatar={user?.preferences?.avatar}
+            onAddMedia={() => setIsAddModalOpen(true)}
+            onNavigateToProfile={() => navigate('/profile')}
+            onNavigateToSettings={() => navigate('/settings')}
+            onLogout={logout}
+          />
 
           {/* Панель поиска и фильтров */}
           <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -360,6 +472,7 @@ export default function HomePage() {
           onSuccess={loadGroups}
           initialData={editingGroup}
           parentId={targetParentId}
+          groups={groups}
         />
 
         <ConfirmationDialog
@@ -378,6 +491,13 @@ export default function HomePage() {
           onComplete={handleCloseTour}
           steps={TOUR_STEPS}
         />
+        <DragOverlay dropAnimation={null}>
+          {groupDragState.isGroupDragging && groupDragState.draggedGroupName ? (
+            <div className="rounded-md bg-secondary px-3 py-2 text-sm font-medium shadow-lg ring-1 ring-border">
+              {groupDragState.draggedGroupName}
+            </div>
+          ) : null}
+        </DragOverlay>
     </DndContext>
   );
 }

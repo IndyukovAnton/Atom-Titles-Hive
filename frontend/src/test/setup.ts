@@ -70,3 +70,11 @@ Object.defineProperty(window, 'confirm', {
   writable: true,
   value: vi.fn(),
 });
+
+// PersonalizationProvider подставляет <link> на Google Fonts, и happy-dom
+// честно уходит за ним в сеть. В тестах сеть изолируем: URL preset-шрифтов
+// отключён, остальной модуль (PRESET_FONTS) остаётся реальным.
+vi.mock('../constants/fonts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../constants/fonts')>();
+  return { ...actual, getPresetFontUrl: () => undefined };
+});

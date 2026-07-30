@@ -1,6 +1,6 @@
 import { AICard, ContentType, MoodTag } from '../dto/claude-recommendation.dto';
 
-export type AiSource = 'claude-api' | 'claude-cli';
+export type AiSource = 'claude-api' | 'claude-cli' | 'codex-cli';
 
 export interface AiRequestParams {
   source: AiSource;
@@ -18,8 +18,10 @@ export interface AiRequestParams {
   apiKey?: string;
   model?: 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
   useWebSearch: boolean;
-  // CLI-only params
+  // CLI-only params (claude-cli / codex-cli)
   cliPath?: string;
+  /** Override model for Codex CLI (`codex exec -m`). */
+  codexModel?: string;
 }
 
 export interface BuiltContext {

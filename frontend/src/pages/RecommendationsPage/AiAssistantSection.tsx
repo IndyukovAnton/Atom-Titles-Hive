@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Brain, ExternalLink, Globe, Loader2, Settings as SettingsIcon, Sparkles, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertCircle, Brain, Globe, Loader2, Settings as SettingsIcon, SlidersHorizontal, Sparkles, Square } from 'lucide-react';
+import { toast } from '@/utils/app-toast';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { streamAiRecommendations } from '@/api/recommendations';
 import type {
@@ -11,19 +12,22 @@ import type {
   AiStreamErrorDetails,
   AiStreamMeta,
   AiStreamEvent,
+  AiStreamProgressStage,
   ClaudeContentType,
   ClaudeMoodTag,
   RecommendationItem,
 } from '@/api/recommendations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -43,8 +47,37 @@ import {
   type SavedRecommendation,
   type SavedRecStatus,
 } from '@/api/library';
+import {
+  SAVED_RECS_QUERY_KEY,
+  useSavedRecommendations,
+} from '@/hooks/useSavedRecommendations';
 import { useAuthStore } from '@/store/authStore';
 import { isTauri } from '@/utils/tauri';
+
+const cardKey = (c: { title: string; type: string }) =>
+  `${c.title.toLowerCase()}|${c.type}`;
+
+type ProgressEntry = {
+  stage: AiStreamProgressStage;
+  message?: string;
+  detail?: string;
+  ts: number;
+};
+
+const STAGE_LABELS: Record<AiStreamProgressStage, string> = {
+  starting: 'Запускаю…',
+  analyzing_library: 'Анализирую вашу библиотеку…',
+  thinking: 'Думаю…',
+  web_searching: 'Ищу в интернете свежие релизы…',
+  web_search_done: 'Получил результаты веб-поиска',
+  tool_use: 'Использую инструмент…',
+  cards_streaming: 'Формирую карточки…',
+};
+
+function stageLabel(entry?: ProgressEntry): string {
+  if (entry?.message) return entry.message;
+  return entry ? STAGE_LABELS[entry.stage] : STAGE_LABELS.thinking;
+}
 
 type ContentTypeFilter = Exclude<ClaudeContentType, 'other'>;
 
@@ -67,7 +100,7 @@ const ALL_CONTENT_TYPES: ContentTypeFilter[] = [
 const PRESET_GENRES = [
   'Боевик',
   'Драма',
-  'Sci-Fi',
+  'Фантастика',
   'Фэнтези',
   'Комедия',
   'Романтика',
@@ -75,7 +108,7 @@ const PRESET_GENRES = [
   'Хоррор',
   'Детектив',
   'Мистика',
-  'Slice of Life',
+  'Повседневность',
   'Приключения',
   'Документальное',
   'Анимация',
@@ -85,17 +118,26 @@ const PRESET_GENRES = [
   'Спорт',
 ];
 
+const DEFAULT_CONTENT_TYPES: ContentTypeFilter[] = [
+  'movie',
+  'series',
+  'anime',
+];
+
 const COUNT_OPTIONS = [5, 10, 15, 20];
 
 interface AiAssistantSectionProps {
   /** Compatibility shim for old RecommendationsPage callback. The new flow
-   *  works with AICardData → MediaEntry directly via aiCardToAddMediaInitial. */
-  onAdd: (item: RecommendationItem) => void;
+   *  works with AICardData → MediaEntry directly via aiCardToAddMediaInitial.
+   *  savedRecId — id закреплённой рекомендации, подлежащей удалению после
+   *  успешного добавления в библиотеку. */
+  onAdd: (item: RecommendationItem, savedRecId?: number) => void;
 }
 
 const SOURCE_LABEL: Record<AiSource, string> = {
   'claude-api': 'Claude API',
   'claude-cli': 'Claude CLI',
+  'codex-cli': 'Codex CLI',
 };
 
 const RESULTS_CACHE_KEY = (userId: number) =>
@@ -195,25 +237,36 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
   const source: AiSource = prefs?.aiSource ?? 'claude-api';
   const sourceLabel = SOURCE_LABEL[source];
 
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+
   const [prompt, setPrompt] = useState('');
   const [mood, setMood] = useState<ClaudeMoodTag | null>(null);
-  const [selectedTypes, setSelectedTypes] = useState<ContentTypeFilter[]>([
-    'movie',
-    'series',
-    'anime',
-  ]);
+  const [selectedTypes, setSelectedTypes] = useState<ContentTypeFilter[]>(
+    DEFAULT_CONTENT_TYPES,
+  );
+
+  // Авто-ресайз по контенту; границы задаются классами min-h/max-h на textarea
+  useEffect(() => {
+    const el = promptRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    // scrollHeight — это padding-box; для border-box добавляем рамку,
+    // иначе последняя строка подрезается на пару пикселей
+    const borderHeight = el.offsetHeight - el.clientHeight;
+    el.style.height = `${el.scrollHeight + borderHeight}px`;
+  }, [prompt]);
+
   const [genres, setGenres] = useState<string[]>([]);
   const [count, setCount] = useState(10);
   const [newForMe, setNewForMe] = useState(false);
+  const [paramsOpen, setParamsOpen] = useState(false);
 
   const initialCache = useMemo(() => loadCachedResults(userId), [userId]);
 
   const [cards, setCards] = useState<AICardData[]>(
     () => initialCache?.cards ?? [],
   );
-  const [progress, setProgress] = useState<
-    Array<{ stage: string; message?: string; detail?: string; ts: number }>
-  >([]);
+  const [progress, setProgress] = useState<ProgressEntry[]>([]);
   const [meta, setMeta] = useState<AiStreamMeta | null>(
     () => initialCache?.meta ?? null,
   );
@@ -230,52 +283,39 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
   );
 
   const abortRef = useRef<AbortController | null>(null);
+  const queryClient = useQueryClient();
+
+  // Общий кэш сохранённых рекомендаций: consume-флоу страницы инвалидирует
+  // его после добавления карточки в библиотеку, бейджи сбрасываются сами.
+  const { data: savedRecRows } = useSavedRecommendations();
 
   // Map: cardKey (title|type) -> savedRecommendation row id, for active state
-  const [savedByKey, setSavedByKey] = useState<
-    Record<string, { id: number; status: SavedRecStatus }>
-  >({});
+  const savedByKey = useMemo(() => {
+    const next: Record<string, { id: number; status: SavedRecStatus }> = {};
+    for (const r of savedRecRows ?? []) {
+      next[cardKey(r)] = { id: r.id, status: r.status };
+    }
+    return next;
+  }, [savedRecRows]);
 
-  const cardKey = (c: { title: string; type: string }) =>
-    `${c.title.toLowerCase()}|${c.type}`;
-
-  // Load existing saved recommendations once on mount so toggles know state
-  useEffect(() => {
-    let cancelled = false;
-    libraryApi
-      .listSavedRecommendations()
-      .then((rows) => {
-        if (cancelled) return;
-        const next: Record<string, { id: number; status: SavedRecStatus }> = {};
-        for (const r of rows) {
-          next[cardKey(r)] = { id: r.id, status: r.status };
-        }
-        setSavedByKey(next);
-      })
-      .catch(() => {
-        // ignore — feature still works, just no active-state info
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const upsertSaved = (
-    card: AICardData,
-    next: SavedRecommendation,
-  ): void => {
-    setSavedByKey((prev) => ({
-      ...prev,
-      [cardKey(card)]: { id: next.id, status: next.status },
-    }));
+  const upsertSaved = (next: SavedRecommendation): void => {
+    queryClient.setQueryData<SavedRecommendation[]>(
+      SAVED_RECS_QUERY_KEY,
+      (rows) => {
+        const list = rows ?? [];
+        const idx = list.findIndex((r) => r.id === next.id);
+        return idx === -1
+          ? [...list, next]
+          : list.map((r) => (r.id === next.id ? next : r));
+      },
+    );
   };
 
-  const removeSavedKey = (card: AICardData): void => {
-    setSavedByKey((prev) => {
-      const next = { ...prev };
-      delete next[cardKey(card)];
-      return next;
-    });
+  const removeSaved = (id: number): void => {
+    queryClient.setQueryData<SavedRecommendation[]>(
+      SAVED_RECS_QUERY_KEY,
+      (rows) => (rows ?? []).filter((r) => r.id !== id),
+    );
   };
 
   const persistSavedStatus = async (
@@ -288,7 +328,7 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
         const created = await libraryApi.saveRecommendation(
           aiCardToSavePayload(card, targetStatus, meta?.modelUsed),
         );
-        upsertSaved(card, created);
+        upsertSaved(created);
         toast.success(
           targetStatus === 'considering'
             ? 'Добавлено в «Подумаю»'
@@ -296,14 +336,14 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
         );
       } else if (existing.status === targetStatus) {
         await libraryApi.removeSavedRecommendation(existing.id);
-        removeSavedKey(card);
+        removeSaved(existing.id);
         toast.success('Убрано');
       } else {
         const updated = await libraryApi.updateSavedRecommendationStatus(
           existing.id,
           targetStatus,
         );
-        upsertSaved(card, updated);
+        upsertSaved(updated);
         toast.success(
           targetStatus === 'considering'
             ? 'Перемещено в «Подумаю»'
@@ -334,9 +374,9 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
   );
   const [consentDialogOpen, setConsentDialogOpen] = useState(false);
 
-  // CLI doesn't need consent (runs locally) — auto-accept whenever source flips
+  // Local CLIs don't need consent (runs locally) — auto-accept whenever source flips
   useEffect(() => {
-    if (source === 'claude-cli') {
+    if (source === 'claude-cli' || source === 'codex-cli') {
       setConsentGiven(true);
     } else if (consentKey) {
       setConsentGiven(localStorage.getItem(consentKey) === '1');
@@ -345,12 +385,28 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
 
   const sourceMisconfigured = useMemo(() => {
     if (source === 'claude-api') {
-      return !prefs?.anthropicApiKey
+      return !prefs?.hasAnthropicApiKey
         ? 'Не задан Anthropic API key — добавьте в Настройках → AI'
         : null;
     }
     return null;
-  }, [source, prefs?.anthropicApiKey]);
+  }, [source, prefs?.hasAnthropicApiKey]);
+
+  const activeExtrasCount =
+    (mood ? 1 : 0) + genres.length + (newForMe ? 1 : 0);
+  const hasNonDefaultParams =
+    activeExtrasCount > 0 ||
+    count !== 10 ||
+    selectedTypes.length !== DEFAULT_CONTENT_TYPES.length ||
+    selectedTypes.some((t) => !DEFAULT_CONTENT_TYPES.includes(t));
+
+  const resetParams = () => {
+    setMood(null);
+    setSelectedTypes(DEFAULT_CONTENT_TYPES);
+    setCount(10);
+    setGenres([]);
+    setNewForMe(false);
+  };
 
   const toggleType = (t: ContentTypeFilter) => {
     setSelectedTypes((prev) =>
@@ -537,31 +593,64 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
   const skeletonCount = Math.max(0, count - cards.length);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-      <Card className="h-fit border-0 shadow-lg overflow-hidden lg:sticky lg:top-4">
+    <div className="space-y-6">
+      <Card className="border-0 shadow-lg overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500" />
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20">
-                <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        <CardContent className="p-4 sm:p-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 shrink-0">
+                  <Brain className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold leading-tight">
+                    AI-ассистент
+                  </div>
+                  <div className="text-xs text-muted-foreground leading-tight truncate">
+                    Персональные рекомендации на основе вашей библиотеки
+                  </div>
+                </div>
               </div>
-              AI Assistant
-            </CardTitle>
-            <Badge
-              variant="outline"
-              className="text-[10px] font-medium bg-background/60"
-            >
-              {sourceLabel}
-            </Badge>
-          </div>
-          <CardDescription>
-            Персональные рекомендации на основе вашей библиотеки
-          </CardDescription>
-        </CardHeader>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-medium bg-background/60"
+                >
+                  {sourceLabel}
+                </Badge>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  title="Настройки AI"
+                  onClick={() => navigate('/settings?tab=integrations')}
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setParamsOpen(true)}
+                disabled={isStreaming}
+                title="Параметры рекомендаций: настроение, тип, жанры"
+              >
+                <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                Параметры
+                {activeExtrasCount > 0 && (
+                  <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-bold text-white">
+                    {activeExtrasCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+
             {sourceMisconfigured && (
               <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -578,175 +667,184 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">
-                Что вы хотите увидеть?{' '}
-                <span className="text-muted-foreground font-normal text-xs">
-                  (опционально)
-                </span>
-              </label>
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <textarea
-                className="flex w-full rounded-xl border border-input bg-background/50 px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[110px] resize-none"
-                placeholder="Опишите своими словами или оставьте пустым — Claude сам решит на основе вашей истории"
+                ref={promptRef}
+                rows={1}
+                className="flex-1 rounded-xl border border-input bg-background/50 px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-11.5 max-h-60 resize-none overflow-y-auto pretty-scrollbar"
+                placeholder="Что хотите увидеть? Опишите своими словами или оставьте пустым — AI решит сам по вашей истории"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 maxLength={2000}
                 disabled={isStreaming}
               />
+              <div className="flex sm:flex-col gap-2 sm:w-44 shrink-0">
+                {!isStreaming ? (
+                  <Button
+                    type="submit"
+                    className="flex-1 sm:flex-none h-11.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 hover:from-indigo-600 hover:via-violet-600 hover:to-fuchsia-600 text-white border-0 shadow-lg"
+                    size="lg"
+                    disabled={!!sourceMisconfigured}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Спросить
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      className="flex-1 sm:flex-none h-11.5"
+                      size="lg"
+                      variant="secondary"
+                      disabled
+                    >
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Думает...
+                    </Button>
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="destructive"
+                      onClick={handleCancel}
+                    >
+                      <Square className="w-4 h-4 fill-current" />
+                      Остановить
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <MoodPicker value={mood} onChange={setMood} />
+            <Dialog open={paramsOpen} onOpenChange={setParamsOpen}>
+              <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Параметры рекомендаций</DialogTitle>
+                  <DialogDescription>
+                    Тонкая настройка выдачи — всё опционально
+                  </DialogDescription>
+                </DialogHeader>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Тип контента</label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_CONTENT_TYPES.map((t) => {
-                  const active = selectedTypes.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => toggleType(t)}
-                      disabled={isStreaming}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all disabled:opacity-50 ${
-                        active
-                          ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
-                          : 'border-border bg-background/60 text-muted-foreground hover:bg-muted/40'
+                <div className="space-y-5">
+                  <MoodPicker value={mood} onChange={setMood} />
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Тип контента</label>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_CONTENT_TYPES.map((t) => {
+                        const active = selectedTypes.includes(t);
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => toggleType(t)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                              active
+                                ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
+                                : 'border-border bg-background/60 text-muted-foreground hover:bg-muted/40'
+                            }`}
+                          >
+                            {CONTENT_TYPE_LABELS[t]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">
+                      Количество карточек
+                    </label>
+                    <Select
+                      value={String(count)}
+                      onValueChange={(v) => setCount(Number(v))}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNT_OPTIONS.map((c) => (
+                          <SelectItem key={c} value={String(c)}>
+                            {c} карточек
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">
+                      Жанры{' '}
+                      <span className="text-muted-foreground font-normal text-xs">
+                        (опционально)
+                      </span>
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_GENRES.map((g) => {
+                        const active = genres.includes(g);
+                        return (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => toggleGenre(g)}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer ${
+                              active
+                                ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
+                                : 'border-border bg-background/60 text-muted-foreground hover:bg-muted/40'
+                            }`}
+                          >
+                            {g}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setNewForMe((v) => !v)}
+                    className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-all cursor-pointer ${
+                      newForMe
+                        ? 'border-fuchsia-500 bg-gradient-to-br from-fuchsia-500/10 via-pink-500/10 to-rose-500/10'
+                        : 'border-border bg-background/40 hover:border-fuchsia-500/40'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold">
+                        ✨ Новое для меня
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {newForMe
+                          ? 'AI предложит жанры, которых нет в библиотеке'
+                          : 'Опираться на ваши вкусы из библиотеки'}
+                      </div>
+                    </div>
+                    <div
+                      className={`ml-3 w-10 h-6 rounded-full transition-all flex items-center px-1 shrink-0 ${
+                        newForMe
+                          ? 'bg-gradient-to-r from-fuchsia-500 to-pink-500 justify-end'
+                          : 'bg-muted justify-start'
                       }`}
                     >
-                      {CONTENT_TYPE_LABELS[t]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">
-                Жанры{' '}
-                <span className="text-muted-foreground font-normal text-xs">
-                  (опционально)
-                </span>
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {PRESET_GENRES.map((g) => {
-                  const active = genres.includes(g);
-                  return (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => toggleGenre(g)}
-                      disabled={isStreaming}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all disabled:opacity-50 ${
-                        active
-                          ? 'border-indigo-500 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
-                          : 'border-border bg-background/60 text-muted-foreground hover:bg-muted/40'
-                      }`}
-                    >
-                      {g}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Количество</label>
-              <Select
-                value={String(count)}
-                onValueChange={(v) => setCount(Number(v))}
-                disabled={isStreaming}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNT_OPTIONS.map((c) => (
-                    <SelectItem key={c} value={String(c)}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setNewForMe((v) => !v)}
-              disabled={isStreaming}
-              className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-all disabled:opacity-50 ${
-                newForMe
-                  ? 'border-fuchsia-500 bg-gradient-to-br from-fuchsia-500/10 via-pink-500/10 to-rose-500/10'
-                  : 'border-border bg-background/40 hover:border-fuchsia-500/40'
-              }`}
-            >
-              <div className="flex-1">
-                <div className="text-sm font-semibold flex items-center gap-2">
-                  ✨ Новое для меня
+                      <div className="w-4 h-4 bg-white rounded-full shadow" />
+                    </div>
+                  </button>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  {newForMe
-                    ? 'Активно — Claude предложит жанры/настроения, которых нет в библиотеке'
-                    : 'Выкл — рекомендации опираются на ваши вкусы из библиотеки'}
-                </div>
-              </div>
-              <div
-                className={`ml-3 w-10 h-6 rounded-full transition-all flex items-center px-1 ${
-                  newForMe
-                    ? 'bg-gradient-to-r from-fuchsia-500 to-pink-500 justify-end'
-                    : 'bg-muted justify-start'
-                }`}
-              >
-                <div className="w-4 h-4 bg-white rounded-full shadow" />
-              </div>
-            </button>
 
-            <div className="flex gap-2">
-              {!isStreaming ? (
-                <Button
-                  type="submit"
-                  className="flex-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 hover:from-indigo-600 hover:via-violet-600 hover:to-fuchsia-600 text-white border-0 shadow-lg"
-                  size="lg"
-                  disabled={!!sourceMisconfigured}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Спросить
-                </Button>
-              ) : (
-                <>
+                <DialogFooter className="gap-2 sm:justify-between">
                   <Button
                     type="button"
-                    className="flex-1"
-                    size="lg"
-                    variant="secondary"
-                    disabled
+                    variant="ghost"
+                    disabled={!hasNonDefaultParams}
+                    onClick={resetParams}
                   >
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Думает...
+                    Сбросить
                   </Button>
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="outline"
-                    onClick={handleCancel}
-                  >
-                    <X className="w-4 h-4" />
+                  <Button type="button" onClick={() => setParamsOpen(false)}>
+                    Готово
                   </Button>
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Источник: {sourceLabel}</span>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 hover:text-foreground"
-                onClick={() => navigate('/settings?tab=integrations')}
-              >
-                <SettingsIcon className="w-3 h-3" />
-                Настройки
-              </button>
-            </div>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </form>
         </CardContent>
       </Card>
@@ -791,14 +889,18 @@ export function AiAssistantSection({ onAdd: _onAdd }: AiAssistantSectionProps) {
                   index={idx}
                   onAdd={(c) => {
                     const initial = aiCardToAddMediaInitial(c);
-                    _onAdd({
-                      title: initial.title,
-                      description: initial.description,
-                      image: initial.image,
-                      rating: initial.rating,
-                      genres: initial.genres,
-                      category: initial.category,
-                    });
+                    _onAdd(
+                      {
+                        title: initial.title,
+                        description: initial.description,
+                        image: initial.image,
+                        rating: initial.rating,
+                        genres: initial.genres,
+                        category: initial.category,
+                        source: initial.source,
+                      },
+                      saved?.id,
+                    );
                   }}
                   onConsider={handleConsider}
                   onFavorite={handleFavorite}
@@ -840,7 +942,7 @@ function ProgressTimeline({
   cardsCount,
   target,
 }: {
-  entries: Array<{ stage: string; message?: string; detail?: string; ts: number }>;
+  entries: ProgressEntry[];
   cardsCount: number;
   target: number;
 }) {
@@ -858,7 +960,7 @@ function ProgressTimeline({
         <div className="flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
           <span className="text-sm font-semibold">
-            {last?.message || 'Думает…'}
+            {stageLabel(last)}
           </span>
         </div>
         <div className="text-xs text-muted-foreground tabular-nums">
@@ -901,7 +1003,7 @@ function ProgressTimeline({
                     +{((e.ts - (startedAt ?? e.ts)) / 1000).toFixed(1)}с
                   </span>
                   <span className="font-medium">
-                    {e.message || e.stage}
+                    {stageLabel(e)}
                   </span>
                 </li>
               ))}
@@ -926,6 +1028,9 @@ function ErrorPanel({
   onClose: () => void;
 }) {
   const hasDetails = !!error.details && Object.keys(error.details).length > 0;
+  const isCodex = (error.details?.binPath ?? '')
+    .toLowerCase()
+    .includes('codex');
   const copy = () => {
     if (!error.details) return;
     void navigator.clipboard.writeText(
@@ -950,14 +1055,19 @@ function ErrorPanel({
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
             Установите CLI:{' '}
             <code className="bg-muted px-1.5 py-0.5 rounded">
-              npm install -g @anthropic-ai/claude-code
+              {isCodex
+                ? 'npm install -g @openai/codex'
+                : 'npm install -g @anthropic-ai/claude-code'}
             </code>
           </p>
         )}
         {error.code === 'cli_not_authed' && (
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
             Запустите в терминале:{' '}
-            <code className="bg-muted px-1.5 py-0.5 rounded">claude</code> и выполните вход.
+            <code className="bg-muted px-1.5 py-0.5 rounded">
+              {isCodex ? 'codex login' : 'claude'}
+            </code>{' '}
+            и выполните вход.
           </p>
         )}
       </div>
@@ -982,11 +1092,11 @@ function ErrorPanel({
         <div className="rounded-xl border bg-background/60 p-3 space-y-2 text-left">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground">
-              Код: {error.code ?? 'unknown'}
+              Код: {error.code ?? 'неизвестно'}
               {error.details?.exitCode !== undefined && (
-                <> · exit {error.details.exitCode}</>
+                <> · выход {error.details.exitCode}</>
               )}
-              {error.details?.signal && <> · signal {error.details.signal}</>}
+              {error.details?.signal && <> · сигнал {error.details.signal}</>}
             </span>
             <Button
               size="sm"
@@ -998,16 +1108,16 @@ function ErrorPanel({
             </Button>
           </div>
           {error.details?.binPath && (
-            <KeyValue k="binPath" v={error.details.binPath} />
+            <KeyValue k="путь к CLI" v={error.details.binPath} />
           )}
           {error.details?.argv && (
-            <KeyValue k="argv" v={error.details.argv.join(' ')} />
+            <KeyValue k="аргументы" v={error.details.argv.join(' ')} />
           )}
           {error.details?.stderr && (
             <Block k="stderr" v={error.details.stderr} />
           )}
           {error.details?.stdout && (
-            <Block k="stdout (tail)" v={error.details.stdout} />
+            <Block k="stdout (хвост)" v={error.details.stdout} />
           )}
         </div>
       )}
@@ -1063,7 +1173,7 @@ function ResultsHeader({
         {meta?.webSearched && (
           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-0">
             <Globe className="w-3 h-3 mr-1" />
-            web search
+            веб-поиск
           </Badge>
         )}
         {meta?.libraryTruncated && (
@@ -1092,19 +1202,10 @@ function EmptyState() {
         Готов к работе
       </h3>
       <p className="max-w-md mt-2">
-        Заполните форму слева — Claude проанализирует всю вашу библиотеку и
+        Заполните форму выше — AI проанализирует всю вашу библиотеку и
         предложит как классику, которую вы могли пропустить, так и актуальные
         новинки.
       </p>
-      <a
-        href="https://docs.anthropic.com/en/docs/claude-code"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-      >
-        Документация Claude Code CLI
-        <ExternalLink className="w-3 h-3" />
-      </a>
     </div>
   );
 }

@@ -50,6 +50,9 @@ export default function AddMediaModal({
 }: AddMediaModalProps) {
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
+  // Предзаполненная форма без id (напр. из рекомендаций) — это создание, а не редактирование
+  const isEditMode = Boolean(initialData?.id);
+
   const {
     methods,
     handleSubmit,
@@ -69,6 +72,13 @@ export default function AddMediaModal({
     validateAndNext,
   } = useMediaForm({ isOpen, initialData, onSuccess, onClose });
 
+  const goBack = () => setActiveStep(activeStep === 'media' ? 'details' : 'info');
+  const goNext = () => validateAndNext(activeStep === 'info' ? 'details' : 'media');
+
+  // В режиме редактирования сохранение отделено от навигации: «Сохранить»
+  // закреплена слева и доступна на любом шаге, «Далее» только переключает шаги.
+  const showNextButton = isEditMode ? activeStep !== 'media' : activeStep === 'info';
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -84,7 +94,7 @@ export default function AddMediaModal({
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <DialogTitle className="text-lg font-semibold">
-                  {initialData
+                  {initialData?.id
                     ? 'Редактировать запись'
                     : 'Добавить новую запись'}
                 </DialogTitle>
@@ -171,23 +181,15 @@ export default function AddMediaModal({
           </FormProvider>
 
           <footer className="p-4 flex items-center justify-between border-t">
-            {activeStep !== 'info' ? (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() =>
-                  setActiveStep(activeStep === 'media' ? 'details' : 'info')
-                }
-                className="cursor-pointer"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Назад
-              </Button>
-            ) : (
-              <div />
-            )}
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <SubmitButton isSubmitting={isSubmitting} label="Сохранить" />
+              ) : (
+                activeStep !== 'info' && (
+                  <SubmitButton isSubmitting={isSubmitting} label="Создать" />
+                )
+              )}
 
-            <div className="flex gap-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -197,27 +199,25 @@ export default function AddMediaModal({
               >
                 Отмена
               </Button>
+            </div>
 
-              {activeStep === 'details' || activeStep === 'media' ? (
-                <Button
-                  type="submit"
-                  form="add-media-form"
-                  disabled={isSubmitting}
-                  className="min-w-[100px] cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Сохранение...
-                    </>
-                  ) : (
-                    <>{initialData ? 'Сохранить' : 'Создать'}</>
-                  )}
-                </Button>
-              ) : (
+            <div className="flex items-center gap-2">
+              {activeStep !== 'info' && (
                 <Button
                   type="button"
-                  onClick={() => validateAndNext('details')}
+                  variant="ghost"
+                  onClick={goBack}
+                  className="cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Назад
+                </Button>
+              )}
+
+              {showNextButton && (
+                <Button
+                  type="button"
+                  onClick={goNext}
                   className="cursor-pointer"
                 >
                   Далее
@@ -238,6 +238,32 @@ export default function AddMediaModal({
         }}
       />
     </>
+  );
+}
+
+function SubmitButton({
+  isSubmitting,
+  label,
+}: {
+  isSubmitting: boolean;
+  label: string;
+}) {
+  return (
+    <Button
+      type="submit"
+      form="add-media-form"
+      disabled={isSubmitting}
+      className="min-w-[100px] cursor-pointer bg-success text-white hover:bg-success/90"
+    >
+      {isSubmitting ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Сохранение...
+        </>
+      ) : (
+        label
+      )}
+    </Button>
   );
 }
 

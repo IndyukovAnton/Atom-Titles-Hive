@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Star, Plus, Pin, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { useNavigate } from 'react-router-dom';
 
 import { Sidebar, HomeHeader } from '@/components/HomePage';
@@ -60,6 +60,7 @@ export default function FavoritesPage() {
   const [addModalInitialData, setAddModalInitialData] = useState<
     Partial<MediaEntry> | undefined
   >(undefined);
+  const [addingRecId, setAddingRecId] = useState<number | null>(null);
 
   const [selectedGroupId, setSelectedGroupId] = useState<number | null | 'all'>(
     'all',
@@ -104,7 +105,23 @@ export default function FavoritesPage() {
   const handleAddRecToLibrary = (rec: SavedRecommendation) => {
     const initial = aiCardToAddMediaInitial(savedRecToAICard(rec));
     setAddModalInitialData(initial);
+    setAddingRecId(rec.id);
     setIsAddModalOpen(true);
+  };
+
+  const handleAddRecSuccess = async () => {
+    if (addingRecId !== null) {
+      try {
+        await libraryApi.removeSavedRecommendation(addingRecId);
+        setFavRecs((prev) => prev.filter((r) => r.id !== addingRecId));
+      } catch {
+        toast.error(
+          'Запись добавлена в библиотеку, но убрать её из «Избранного» не удалось',
+        );
+      }
+      setAddingRecId(null);
+    }
+    toast.success('Название добавлено в библиотеку');
   };
 
   const handleMoveRecToConsider = async (rec: SavedRecommendation) => {
@@ -165,7 +182,7 @@ export default function FavoritesPage() {
 
         <div className="flex-1 overflow-hidden relative bg-muted/10">
           <ScrollArea className="h-full w-full">
-            <div className="w-full p-6 space-y-6 mx-4 my-4 bg-background/80 backdrop-blur-sm rounded-2xl shadow-lg">
+            <div className="w-full p-6 space-y-6 mx-4 my-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-500/20 to-orange-500/20">
                   <Star className="w-7 h-7 text-rose-500 fill-rose-500/40" />
@@ -263,10 +280,9 @@ export default function FavoritesPage() {
         onClose={() => {
           setIsAddModalOpen(false);
           setAddModalInitialData(undefined);
+          setAddingRecId(null);
         }}
-        onSuccess={() => {
-          toast.success('Title added to library');
-        }}
+        onSuccess={() => void handleAddRecSuccess()}
         initialData={addModalInitialData as MediaEntry}
       />
 

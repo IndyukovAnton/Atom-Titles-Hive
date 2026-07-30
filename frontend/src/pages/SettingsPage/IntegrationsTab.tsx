@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Bot, Key, Save, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowRight, Blocks, Bot, Key, Save, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from '@/utils/app-toast';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,12 +15,14 @@ import { Label } from '@/components/ui/label';
 import { AISettings } from '@/components/personalization/AISettings';
 import { useAuthStore } from '@/store/authStore';
 import { usePersonalization } from '@/hooks/usePersonalization';
+import { stripAiKey, useAiKeyPersistence } from '@/hooks/useAiKeyPersistence';
 import type { UserPreferences } from '@/api/auth';
 import { logger } from '@/utils/logger';
 
 export function IntegrationsTab() {
   const { user } = useAuthStore();
-  const { aiKey, setAiKey } = usePersonalization();
+  const { aiKey } = usePersonalization();
+  const persistAiKey = useAiKeyPersistence();
 
   const [tempPreferences, setTempPreferences] = useState<Partial<UserPreferences>>(() => ({
     ...(user?.preferences || {}),
@@ -32,19 +35,8 @@ export function IntegrationsTab() {
 
   const handleApplyAi = async () => {
     try {
-      if (tempPreferences.aiKey !== undefined) {
-        setAiKey(tempPreferences.aiKey);
-        if (tempPreferences.aiKey) {
-          localStorage.setItem(
-            `ai_secure_key_${user?.id}`,
-            tempPreferences.aiKey,
-          );
-        } else {
-          localStorage.removeItem(`ai_secure_key_${user?.id}`);
-        }
-      }
-      const safePrefs = { ...tempPreferences };
-      delete safePrefs.aiKey;
+      persistAiKey(tempPreferences.aiKey);
+      const safePrefs = stripAiKey(tempPreferences);
 
       await useAuthStore.getState().updateProfile({
         preferences: {
@@ -75,7 +67,7 @@ export function IntegrationsTab() {
   };
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
       <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm xl:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
@@ -85,7 +77,7 @@ export function IntegrationsTab() {
             Искусственный Интеллект
           </CardTitle>
           <CardDescription>
-            Настройте параметры нейросети для получения персонализированных рекомендаций
+            Выберите движок рекомендаций и настройте его поведение
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -105,7 +97,7 @@ export function IntegrationsTab() {
       </Card>
 
       <div className="space-y-6">
-        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm h-full">
+        <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-background/60 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500/20">
@@ -127,7 +119,11 @@ export function IntegrationsTab() {
                 <Input
                   id="tmdb-key"
                   type="password"
-                  placeholder="Введите токен доступа..."
+                  placeholder={
+                    tempPreferences.hasTmdbApiKey
+                      ? 'Ключ сохранён — введите новый для замены'
+                      : 'Введите токен доступа...'
+                  }
                   value={tempPreferences.tmdbApiKey || ''}
                   onChange={(e) =>
                     setTempPreferences((prev) => ({
@@ -163,6 +159,22 @@ export function IntegrationsTab() {
             </Button>
           </CardContent>
         </Card>
+
+        <Link
+          to="/settings?tab=providers"
+          className="group flex items-center gap-3 rounded-xl border bg-background/60 backdrop-blur-sm px-4 py-3.5 shadow-sm hover:shadow-md hover:border-indigo-500/40 transition-all duration-300"
+        >
+          <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-1 ring-violet-500/20">
+            <Blocks className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold">Другие AI-провайдеры</div>
+            <div className="text-xs text-muted-foreground">
+              OpenAI, Gemini, Cohere — задел на будущие фичи
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+        </Link>
       </div>
     </div>
   );

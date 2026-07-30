@@ -1,6 +1,8 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { User } from './entities/user.entity';
@@ -19,6 +21,10 @@ import { LoggerService } from './utils/logger.service';
 import { CleanTypeOrmLogger } from './utils/clean-typeorm.logger';
 import { HttpLoggerMiddleware } from './utils/http-logger.middleware';
 import { validate } from './config/env.validation';
+import {
+  GLOBAL_THROTTLE_LIMIT,
+  THROTTLE_TTL_MS,
+} from './config/throttle.config';
 import { getDatabasePath } from './utils/path.utils';
 import { InitialSchema1736729735000 } from './migrations/1736729735000-InitialSchema';
 import { AddParentIdToGroups1768295470289 } from './migrations/1768295470289-AddParentIdToGroups';
@@ -27,6 +33,9 @@ import { AddUserPersonalization1768446524526 } from './migrations/1768446524526-
 import { AddGoogleAuthFields1768473242770 } from './migrations/1768473242770-AddGoogleAuthFields';
 import { AddCreatedAtIndexes1777708800000 } from './migrations/1777708800000-AddCreatedAtIndexes';
 import { AddLibraryEntities1782000000000 } from './migrations/1782000000000-AddLibraryEntities';
+import { MakeUserEmailNullable1785456000000 } from './migrations/1785456000000-MakeUserEmailNullable';
+import { AddGroupSortOrder1785518400000 } from './migrations/1785518400000-AddGroupSortOrder';
+import { AddMediaEntrySource1785604800000 } from './migrations/1785604800000-AddMediaEntrySource';
 
 @Module({
   imports: [
@@ -34,6 +43,12 @@ import { AddLibraryEntities1782000000000 } from './migrations/1782000000000-AddL
       isGlobal: true,
       validate,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: THROTTLE_TTL_MS,
+        limit: GLOBAL_THROTTLE_LIMIT,
+      },
+    ]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -60,6 +75,9 @@ import { AddLibraryEntities1782000000000 } from './migrations/1782000000000-AddL
           AddGoogleAuthFields1768473242770,
           AddCreatedAtIndexes1777708800000,
           AddLibraryEntities1782000000000,
+          MakeUserEmailNullable1785456000000,
+          AddGroupSortOrder1785518400000,
+          AddMediaEntrySource1785604800000,
         ];
 
         return {
@@ -97,6 +115,10 @@ import { AddLibraryEntities1782000000000 } from './migrations/1782000000000-AddL
   providers: [
     AppService,
     LoggerService, // Глобальный LoggerService
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
   exports: [LoggerService], // Экспортируем для использования в других модулях
 })

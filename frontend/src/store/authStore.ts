@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { authApi, type UserProfile } from '../api/auth';
+import { authApi, type RegisterData, type UserProfile } from '../api/auth';
 import { AxiosError } from 'axios';
 import { logger } from '../utils/logger';
 
@@ -19,7 +19,7 @@ interface AuthState {
   clearTourReplayRequest: () => void;
 
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   initializeAuth: () => Promise<void>;
@@ -67,10 +67,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (username, email, password) => {
+      register: async (data) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await authApi.register({ username, email, password });
+          const response = await authApi.register(data);
           set({
             user: response.user,
             token: response.access_token,

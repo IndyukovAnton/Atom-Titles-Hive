@@ -4,11 +4,12 @@ import { MediaService } from './media.service';
 import { MediaController } from './media.controller';
 import { MediaEntry } from '../../entities/media-entry.entity';
 import { MediaFile } from '../../entities/media-file.entity';
+import { Group } from '../../entities/group.entity';
 import { LoggerService } from '../../utils/logger.service';
 import { ImageSearchService } from './image-search.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MediaEntry, MediaFile])],
+  imports: [TypeOrmModule.forFeature([MediaEntry, MediaFile, Group])],
   controllers: [MediaController],
   providers: [MediaService, LoggerService, ImageSearchService],
   exports: [MediaService],

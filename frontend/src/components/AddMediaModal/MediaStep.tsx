@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 import { Download, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

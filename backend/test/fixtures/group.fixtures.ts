@@ -11,6 +11,8 @@ export const createMockGroup = (overrides?: Partial<Group>): Group => {
   group.id = 1;
   group.name = 'Test Group';
   group.userId = 1;
+  group.parentId = null;
+  group.sortOrder = 0;
   group.createdAt = new Date('2024-01-01T00:00:00.000Z');
   group.mediaEntries = [];
 
@@ -26,6 +28,8 @@ export const createMockGroups = (
     group.id = i + 1;
     group.name = `Test Group ${i + 1}`;
     group.userId = userId;
+    group.parentId = null;
+    group.sortOrder = i;
     group.createdAt = new Date(`2024-01-0${i + 1}T00:00:00.000Z`);
     group.mediaEntries = [];
     return group;

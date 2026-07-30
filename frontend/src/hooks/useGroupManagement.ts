@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from '@/utils/app-toast';
 import { groupsApi } from '../api/groups';
-import type { GroupStats } from '../api/groups';
+import type { GroupStats, MoveGroupData } from '../api/groups';
 import { logger } from '../utils/logger';
 
 export const GROUPS_STATS_QUERY_KEY = ['groups', 'stats'] as const;
@@ -43,6 +43,7 @@ export function useGroupManagement(
   const [editingGroup, setEditingGroup] = useState<{
     id: number;
     name: string;
+    parentId: number | null;
   } | null>(null);
   const [targetParentId, setTargetParentId] = useState<number | undefined>(
     undefined,
@@ -72,23 +73,17 @@ export function useGroupManagement(
   }, []);
 
   const moveGroup = useCallback(
-    async (id: number, parentId: number | null) => {
+    async (id: number, data: MoveGroupData) => {
       try {
-        const group = groupStats?.groups.find((g) => g.id === id);
-        if (group) {
-          await groupsApi.update(id, {
-            name: group.name,
-            parentId: parentId ?? undefined,
-          });
-          await queryClient.invalidateQueries({ queryKey: ['groups'] });
-          toast.success('Группа перемещена');
-        }
+        await groupsApi.move(id, data);
+        await queryClient.invalidateQueries({ queryKey: ['groups'] });
+        toast.success('Группа перемещена');
       } catch (error) {
         logger.error('Failed to move group', error);
         toast.error('Ошибка при перемещении группы');
       }
     },
-    [groupStats, queryClient],
+    [queryClient],
   );
 
   const openCreateGroupModal = useCallback((parentId?: number) => {
@@ -101,7 +96,12 @@ export function useGroupManagement(
     (id: number) => {
       const group = groupStats?.groups.find((g) => g.id === id);
       if (group) {
-        setEditingGroup({ id: group.id, name: group.name });
+        setEditingGroup({
+          id: group.id,
+          name: group.name,
+          parentId: group.parentId ?? null,
+        });
+        setTargetParentId(undefined);
         setIsGroupModalOpen(true);
       }
     },
@@ -111,6 +111,7 @@ export function useGroupManagement(
   const closeGroupModal = useCallback(() => {
     setIsGroupModalOpen(false);
     setEditingGroup(null);
+    setTargetParentId(undefined);
   }, []);
 
   return {

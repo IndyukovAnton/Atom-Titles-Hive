@@ -69,13 +69,65 @@ export class CliStatusService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     const cliBin = user?.preferences?.claudeCliPath?.trim() || 'claude';
 
+    return this.probeBinary({
+      cliBin,
+      notFoundMessage: `Claude CLI не найден в PATH (искал "${cliBin}"). Установите его или укажите полный путь в Настройках.`,
+      authArgs: [
+        '-p',
+        'ping',
+        '--output-format',
+        'json',
+        '--max-turns',
+        '1',
+        '--disallowedTools',
+        'WebSearch',
+      ],
+      unauthedMessage:
+        'Claude CLI установлен, но не авторизован. Запустите `claude` в терминале.',
+      versionFailPrefix: 'claude --version',
+    });
+  }
+
+  async checkCodex(userId: number): Promise<CliStatus> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const cliBin = user?.preferences?.codexCliPath?.trim() || 'codex';
+
+    return this.probeBinary({
+      cliBin,
+      notFoundMessage: `Codex CLI не найден в PATH (искал "${cliBin}"). Установите: npm install -g @openai/codex — или укажите полный путь в Настройках.`,
+      authArgs: ['login', 'status'],
+      unauthedMessage:
+        'Codex CLI установлен, но не авторизован. Выполните `codex login` в терминале.',
+      versionFailPrefix: 'codex --version',
+      /** For `codex login status`, non-zero exit usually means not logged in. */
+      treatNonZeroAuthAsUnauthed: true,
+    });
+  }
+
+  private async probeBinary(opts: {
+    cliBin: string;
+    notFoundMessage: string;
+    authArgs: string[];
+    unauthedMessage: string;
+    versionFailPrefix: string;
+    treatNonZeroAuthAsUnauthed?: boolean;
+  }): Promise<CliStatus> {
+    const {
+      cliBin,
+      notFoundMessage,
+      authArgs,
+      unauthedMessage,
+      versionFailPrefix,
+      treatNonZeroAuthAsUnauthed,
+    } = opts;
+
     const resolvedPath = await resolveBinary(cliBin);
     if (!resolvedPath) {
       return {
         installed: false,
         authed: false,
         path: cliBin,
-        error: `Claude CLI не найден в PATH (искал "${cliBin}"). Установите его или укажите полный путь в Настройках.`,
+        error: notFoundMessage,
       };
     }
 
@@ -89,32 +141,27 @@ export class CliStatusService {
         resolvedPath,
         error:
           versionRun.stderr.trim().slice(0, 400) ||
-          `claude --version вернул exit code ${versionRun.exitCode ?? '???'}`,
+          `${versionFailPrefix} вернул exit code ${versionRun.exitCode ?? '???'}`,
       };
     }
 
-    const versionMatch = /\d+\.\d+\.\d+(?:[-+][\w.]+)?/.exec(versionRun.stdout);
+    const versionMatch = /\d+\.\d+\.\d+(?:[-+][\w.]+)?/.exec(
+      versionRun.stdout + '\n' + versionRun.stderr,
+    );
     const version = versionMatch?.[0];
 
-    const authRun = await runProbe(cliBin, [
-      '-p',
-      'ping',
-      '--output-format',
-      'json',
-      '--max-turns',
-      '1',
-      '--disallowedTools',
-      'WebSearch',
-    ]);
-
+    const authRun = await runProbe(cliBin, authArgs);
     const lower = (authRun.stderr + '\n' + authRun.stdout).toLowerCase();
     const looksUnauthed =
-      authRun.exitCode !== 0 &&
-      (lower.includes('not authenticated') ||
-        lower.includes('please run') ||
-        lower.includes('login') ||
-        lower.includes('unauthor') ||
-        lower.includes('no api key'));
+      (treatNonZeroAuthAsUnauthed && authRun.exitCode !== 0) ||
+      (authRun.exitCode !== 0 &&
+        (lower.includes('not authenticated') ||
+          lower.includes('not logged in') ||
+          lower.includes('please run') ||
+          lower.includes('login') ||
+          lower.includes('unauthor') ||
+          lower.includes('no api key') ||
+          lower.includes('authentication required')));
 
     return {
       installed: true,
@@ -122,9 +169,7 @@ export class CliStatusService {
       authed: !looksUnauthed,
       path: cliBin,
       resolvedPath,
-      error: looksUnauthed
-        ? 'Claude CLI установлен, но не авторизован. Запустите `claude` в терминале.'
-        : undefined,
+      error: looksUnauthed ? unauthedMessage : undefined,
     };
   }
 }
