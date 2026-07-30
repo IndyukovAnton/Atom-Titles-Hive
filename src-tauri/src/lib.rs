@@ -9,12 +9,17 @@ use tauri_plugin_shell::ShellExt;
 use std::env;
 use std::path::Path;
 
-
 use tauri::Manager;
+
+mod process_job;
+use process_job::ProcessJob;
 
 /// Состояние backend процесса
 pub struct BackendState {
     pub child: Option<CommandChild>,
+    /// Job Object держит sidecar (и его потомков) — при Drop/смерти app.exe
+    /// Windows убивает всё дерево. Без этого сироты копятся при crash/updater.
+    pub job: Option<ProcessJob>,
     pub port: Option<u16>,
 }
 
@@ -22,6 +27,7 @@ impl Default for BackendState {
     fn default() -> Self {
         Self {
             child: None,
+            job: None,
             port: None,
         }
     }
@@ -184,16 +190,18 @@ fn get_backend_port(state: tauri::State<Arc<Mutex<BackendState>>>) -> Option<u16
 /// файлы каталога установки заблокированными, и NSIS не может их заменить.
 #[tauri::command]
 fn shutdown_backend(state: tauri::State<Arc<Mutex<BackendState>>>) {
-    if let Ok(mut state) = state.lock() {
-        if let Some(child) = state.child.take() {
-            let _ = child.kill();
-            log::info!("Backend sidecar killed via shutdown_backend command");
-        }
-    }
+    kill_backend_child(&state);
+    log::info!("Backend sidecar killed via shutdown_backend command");
 }
 
-fn kill_backend_child(state: &Arc<Mutex<BackendState>>) {
+/// Убивает sidecar и его дерево: сначала Drop Job Object (KILL_ON_JOB_CLOSE
+/// → TerminateProcess для всего дерева, включая CLI-потомков), затем явный
+/// child.kill() на случай если Job не создался.
+fn kill_backend_child(state: &Mutex<BackendState>) {
     if let Ok(mut state) = state.lock() {
+        // Job Drop = Windows убивает дерево. Делаем до child.kill(), чтобы
+        // внуки (codex/claude CLI) тоже ушли, а не остались сиротами.
+        drop(state.job.take());
         if let Some(child) = state.child.take() {
             let _ = child.kill();
         }
@@ -237,8 +245,29 @@ pub fn run() {
             // Запускаем backend sidecar
             match spawn_backend(app.handle(), port, backend_state.clone()) {
                 Ok(child) => {
+                    // Job Object: при любой смерти app.exe Windows сам убьёт
+                    // sidecar и всех его потомков. Если assign не удался
+                    // (редко: процесс уже в чужом Job) — остаёмся на явном
+                    // kill в RunEvent::Exit / tray Quit.
+                    let job = match ProcessJob::create_for(child.pid()) {
+                        Ok(job) => {
+                            log::info!(
+                                "Backend sidecar wrapped in Job Object (pid {})",
+                                child.pid()
+                            );
+                            Some(job)
+                        }
+                        Err(e) => {
+                            log::warn!(
+                                "Failed to wrap backend in Job Object: {e} — fallback to explicit kill"
+                            );
+                            None
+                        }
+                    };
+
                     let mut state = backend_state.lock().unwrap();
                     state.child = Some(child);
+                    state.job = job;
                     // state.port намеренно НЕ выставляем здесь — только после
                     // BACKEND_READY (см. spawn_backend), иначе фронт получит
                     // порт, который ещё никто не слушает.
@@ -270,12 +299,8 @@ pub fn run() {
                         }
                     }
                     "quit" => {
-                        // Завершаем backend и выходим
-                        if let Ok(mut state) = tray_quit_state.lock() {
-                            if let Some(child) = state.child.take() {
-                                let _ = child.kill();
-                            }
-                        }
+                        // Завершаем backend (Job Drop + kill) и выходим
+                        kill_backend_child(&tray_quit_state);
                         app_handle.exit(0);
                     }
                     _ => {}

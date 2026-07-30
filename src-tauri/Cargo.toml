@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.4.3"
+version = "0.4.4"
 description = "Seen - Media Tracker App"
 authors = ["you"]
 license = ""
@@ -29,3 +29,12 @@ tauri-plugin-process = "2"
 tauri-plugin-notification = "2"
 rand = "0.8"
 dotenvy = "0.15"
+
+# Job Object (KILL_ON_JOB_CLOSE) — чтобы sidecar умирал вместе с app.exe.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_JobObjects",
+  "Win32_System_Threading",
+] }
