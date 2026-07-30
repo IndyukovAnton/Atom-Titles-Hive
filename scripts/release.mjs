@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { homedir, platform } from 'node:os';
 import path from 'node:path';
+import { writeLatestJson } from './latest-json.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 
@@ -81,7 +82,20 @@ const child = spawn(cmd, ['run', 'tauri:build'], {
   shell: isWin,
 });
 
-child.on('exit', (code) => process.exit(code ?? 0));
+// After a successful build, regenerate bundle/latest.json so the updater
+// manifest can't be forgotten or left stale from a previous release.
+child.on('exit', (code) => {
+  if (code === 0) {
+    try {
+      const { outPath } = writeLatestJson(root);
+      console.log(`✓ latest.json → ${outPath}`);
+    } catch (err) {
+      console.error(`✗ latest.json: ${err.message}`);
+      process.exit(1);
+    }
+  }
+  process.exit(code ?? 0);
+});
 child.on('error', (err) => {
   console.error('✗ Failed to start tauri:build:', err.message);
   process.exit(1);
