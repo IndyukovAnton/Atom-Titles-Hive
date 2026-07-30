@@ -180,10 +180,31 @@ fn get_backend_port(state: tauri::State<Arc<Mutex<BackendState>>>) -> Option<u16
     state.port
 }
 
+/// Гасит backend sidecar перед установкой обновления: живой процесс держит
+/// файлы каталога установки заблокированными, и NSIS не может их заменить.
+#[tauri::command]
+fn shutdown_backend(state: tauri::State<Arc<Mutex<BackendState>>>) {
+    if let Ok(mut state) = state.lock() {
+        if let Some(child) = state.child.take() {
+            let _ = child.kill();
+            log::info!("Backend sidecar killed via shutdown_backend command");
+        }
+    }
+}
+
+fn kill_backend_child(state: &Arc<Mutex<BackendState>>) {
+    if let Ok(mut state) = state.lock() {
+        if let Some(child) = state.child.take() {
+            let _ = child.kill();
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let backend_state = Arc::new(Mutex::new(BackendState::default()));
     let cleanup_state = backend_state.clone();
+    let exit_cleanup_state = backend_state.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -191,7 +212,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_notification::init())
         .manage(backend_state.clone())
-        .invoke_handler(tauri::generate_handler![get_backend_port])
+        .invoke_handler(tauri::generate_handler![get_backend_port, shutdown_backend])
         .setup(move |app| {
             // Логирование (включено всегда для отладки продакшена)
             app.handle().plugin(
@@ -291,6 +312,17 @@ pub fn run() {
             // действительно выходим.
             let _ = &cleanup_state;
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(move |_, event| {
+            // Гасим backend при любом завершении приложения — в т.ч. когда
+            // updater останавливает процесс ради установки новой версии:
+            // живой sidecar держит файлы установки заблокированными.
+            if matches!(
+                event,
+                tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
+            ) {
+                kill_backend_child(&exit_cleanup_state);
+            }
+        });
 }

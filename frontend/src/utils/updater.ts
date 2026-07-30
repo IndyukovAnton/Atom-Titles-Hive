@@ -27,7 +27,7 @@ async function downloadInstallAndRelaunch(update: UpdateHandle): Promise<void> {
   let downloaded = 0;
   const progressToast = toast.loading('Загрузка обновления…');
 
-  await update.downloadAndInstall((event) => {
+  await update.download((event) => {
     switch (event.event) {
       case 'Started':
         total = event.data.contentLength ?? 0;
@@ -40,15 +40,34 @@ async function downloadInstallAndRelaunch(update: UpdateHandle): Promise<void> {
         }
         break;
       case 'Finished':
-        toast.success('Обновление загружено, перезапускаю…', {
-          id: progressToast,
-        });
         break;
     }
   });
 
+  // Гасим backend ДО установки: живой sidecar держит файлы каталога
+  // установки заблокированными, и NSIS-инсталлер не может их заменить.
+  toast.loading('Устанавливаю обновление…', { id: progressToast });
+  await shutdownBackend();
+
+  await update.install();
+  toast.success('Обновление установлено, перезапускаю…', {
+    id: progressToast,
+  });
+
   const { relaunch } = await import('@tauri-apps/plugin-process');
   await relaunch();
+}
+
+/** Останавливает backend-sidecar и ждёт освобождения файловых локов. */
+async function shutdownBackend(): Promise<void> {
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('shutdown_backend');
+  } catch (e) {
+    logger.warn('Backend shutdown before update failed', e);
+  }
+  // Даём процессу время завершиться и отпустить файлы.
+  await new Promise((resolve) => setTimeout(resolve, 700));
 }
 
 /**
@@ -110,7 +129,10 @@ export function scheduleStartupUpdateCheck(): void {
         action: {
           label: 'Обновить',
           onClick: () => {
-            void downloadInstallAndRelaunch(update);
+            downloadInstallAndRelaunch(update).catch((e) => {
+              logger.error('Update install failed', e);
+              toast.error('Не удалось установить обновление');
+            });
           },
         },
         cancel: { label: 'Позже', onClick: () => undefined },
